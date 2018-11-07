@@ -12,6 +12,7 @@ namespace Wallee\Payment\Model\Service\Order;
 
 use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Sales\Model\Order;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
@@ -36,13 +37,14 @@ class LineItemService extends AbstractLineItemService
      * @param TaxHelper $taxHelper
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
+     * @param EventManagerInterface $eventManager
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry)
+        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager)
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
-            $groupRegistry);
+            $groupRegistry, $eventManager);
     }
 
     /**

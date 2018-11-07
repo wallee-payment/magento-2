@@ -21,6 +21,8 @@ use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Sdk\Model\LineItemCreate;
 use Wallee\Sdk\Model\LineItemType;
 use Wallee\Sdk\Model\TaxCreate;
+use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
+use Magento\Framework\DataObject;
 
 /**
  * Abstract service to handle line items.
@@ -72,6 +74,12 @@ abstract class AbstractLineItemService
 
     /**
      *
+     * @var EventManagerInterface
+     */
+    protected $_eventManager;
+
+    /**
+     *
      * @param Helper $helper
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
@@ -79,10 +87,11 @@ abstract class AbstractLineItemService
      * @param TaxHelper $taxHelper
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
+     * @param EventManagerInterface $eventManager
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry)
+        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager)
     {
         $this->_helper = $helper;
         $this->_lineItemHelper = $lineItemHelper;
@@ -91,6 +100,7 @@ abstract class AbstractLineItemService
         $this->_taxHelper = $taxHelper;
         $this->_taxCalculation = $taxCalculation;
         $this->_groupRegistry = $groupRegistry;
+        $this->_eventManager = $eventManager;
     }
 
     /**
@@ -114,7 +124,14 @@ abstract class AbstractLineItemService
             $items[] = $shippingItem;
         }
 
-        return $items;
+        $transport = new DataObject([
+            'items' => $items
+        ]);
+        $this->_eventManager->dispatch('wallee_payment_convert_line_items', [
+            'transport' => $transport,
+            'entity' => $entity
+        ]);
+        return $transport->getData('items');
     }
 
     /**

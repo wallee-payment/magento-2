@@ -13,6 +13,7 @@ namespace Wallee\Payment\Model\Service\Quote;
 use Magento\Catalog\Helper\Product\Configuration as ProductConfigurationHelper;
 use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
@@ -43,14 +44,15 @@ class LineItemService extends AbstractLineItemService
      * @param TaxHelper $taxHelper
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
+     * @param EventManagerInterface $eventManager
      * @param ProductConfigurationHelper $productConfigurationHelper
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry, ProductConfigurationHelper $productConfigurationHelper)
+        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager, ProductConfigurationHelper $productConfigurationHelper)
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
-            $groupRegistry);
+            $groupRegistry, $eventManager);
         $this->_productConfigurationHelper = $productConfigurationHelper;
     }
 
