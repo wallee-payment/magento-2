@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+		<meta name="keywords" value="wallee, Magento 2, Magento Extension, Payment, Payment Integration, Documentation"><meta name="description" value="The documentation for the Magento 2 extension that enables processing payments with wallee.">		<link rel="canonical" href="https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/master/docs/en/documentation.html" />
+		<title>wallee Magento 2</title>
+		<link href="assets/base.css" rel="stylesheet" />
+	</head>
+	<body class="documentation">
+		<div class="layout-wrapper">
+							<div class="layout-title">
+					<h1>wallee Magento 2</h1>
+<h2>Documentation</h2>				</div>
+										<div class="layout-navigation">
+					<ul class="nav">
+	<li>
+		<a href="https://app-wallee.com/user/signup">
+			Sign Up
+		</a>
+	</li>
+	<li>
+		<a href="https://github.com/wallee-payment/magento-2.3/releases/tag/1.0.15/">
+			Source
+		</a>
+	</li>
+</ul>				</div>
+										<div class="layout-content">
+												<div class="col-body">
+							<div class="col-body-wrapper">
+																	<div class="body-container">
+																						<div class="chapter" id="_prerequisites">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">1</span>Prerequisites					</h1>
+	</div>
+	<div class="chapter-body">
+					<div class="paragraph">
+<p>If you don&#8217;t already have one, create a <a href="https://www.wallee.com/">wallee</a> account.</p>
+</div>					</div>
+</div>	<div class="chapter" id="_installation">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">2</span>Installation					</h1>
+	</div>
+	<div class="chapter-body">
+					<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Update the <code>composer.json</code> file in the root directory of your Magento store and wait for Composer to finish updating the dependencies.</p>
+<div class="listingblock">
+<div class="content">
+<pre>composer require wallee/magento-2</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Enable the extension and clear the static view files.</p>
+<div class="listingblock">
+<div class="content">
+<pre>bin/magento module:enable Wallee_Payment --clear-static-content</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Register the extension and initiate the database migrations.</p>
+<div class="listingblock">
+<div class="content">
+<pre>bin/magento setup:upgrade</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Recompile the Magento project.</p>
+<div class="listingblock">
+<div class="content">
+<pre>bin/magento setup:di:compile</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Clear the Magento store&#8217;s cache.</p>
+<div class="listingblock">
+<div class="content">
+<pre>bin/magento cache:flush</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>					</div>
+</div>	<div class="chapter" id="_configuration">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">3</span>Configuration					</h1>
+	</div>
+	<div class="chapter-body">
+					<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Navigate to Stores &#8594; Configuration &#8594; Sales &#8594; wallee Payment in your Magento backend and in the section <em>General</em> enter the wallee User ID and Authentification Key that you can create in the <a href="https://app-wallee.com/space/select?target=/space/assistant" target="_blank">setup assistant</a>. Alternatively, you can manually create an <a href="https://app-wallee.com/en-us/doc/permission-concept#_create_application_users" target="_blank">application user</a>.</p>
+<div class="imageblock">
+<div class="content">
+<img src="resource/application-user-configuration.png" alt="application user configuration"/>
+</div>
+</div>
+</li>
+<li>
+<p>You need to switch the configuration scope to <strong>Main Website</strong> to enter the space id.</p>
+<div class="imageblock">
+<div class="content">
+<img src="resource/space-configuration.png" alt="space configuration"/>
+</div>
+</div>
+</li>
+<li>
+<p>After saving the configuration, the payment methods are created in the Magento store and the necessary webhooks are set up.</p>
+</li>
+</ol>
+</div><div class="paragraph">
+<p>The setup is now finished. You should see the payment methods in your checkout. To view the payment method configuration in the backend of Magento go to
+Stores &#8594; Configuration &#8594; Payment Methods. Make sure you are in the <strong>Website</strong> configuration scope to view the payment methods.</p>
+</div><div class="paragraph">
+<p>Most of the payment method configuration is done in wallee. After following the steps of the previous steps, the wallee payment method configurations will be synchronized automatically into the Magento store. There are just a few payment method settings in the Magento store in Stores &#8594; Configuration &#8594; Sales &#8594; Payment Methods.</p>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/payment-method-configuration.png" alt="payment method configuration"/>
+</div>
+</div>					</div>
+</div>	<div class="chapter" id="_payment_method_configuration">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">4</span>Payment Method Configuration					</h1>
+	</div>
+	<div class="chapter-body">
+							<div class="section" id="_setup">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">4.1</span>Setup					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>The wallee payment method configurations are synchronized automatically into the Magento store. There are just a few payment method settings in the Magento store in Stores &#8594; Configuration &#8594; Sales &#8594; Payment Methods. To see the wallee payment methods, you need to switch the configuration scope to <strong>Website</strong></p>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/payment-method-configuration.png" alt="payment method configuration"/>
+</div>
+</div><div class="paragraph">
+<p>Additional payment methods are directly added in wallee. This can be done in the <a href="https://app-wallee.com/space/select?target=/space/assistant/payment" target="_blank">setup assistant</a>. Changes are synchronized automatically.</p>
+</div>					</div>
+</div>					<div class="section" id="_customization">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">4.2</span>Customization					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>If you want to change the payment method description, title, logo, etc you need to do this in the <a href="https://app-wallee.com/space/select?target=/payment/method-configuration/list" target="_blank">payment method configuration</a>. Changes will be synchronized automatically.</p>
+</div>					</div>
+</div>			</div>
+</div>	<div class="chapter" id="_state_graph">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">5</span>State Graph					</h1>
+	</div>
+	<div class="chapter-body">
+					<div class="paragraph">
+<p>The Payment Process of wallee is <strong>completely standardized for every payment method</strong> you can process. This gives you the ability to simply add
+a payment method or processor without changes inside of your Magento configuration. An overview about the states and the payment processes of wallee
+can be found in the <a href="https://app-wallee.com/en-us/doc/payment/transaction-process" target="_blank">Payment Documentation</a>.</p>
+</div><div class="paragraph">
+<p>In the following section we provide you an overview about how the wallee states are mapped into the Magento State graph for orders and invoices.</p>
+</div>							<div class="section" id="_state_mapping_of_magento_orders">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">5.1</span>State Mapping Of Magento Orders					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>Below you find a diagram that shows the state machine of Magento for orders including additional information for the state transitions.</p>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/magento2_state_graph.svg" alt="magento2 state graph"/>
+</div>
+</div>					</div>
+</div>					<div class="section" id="_state_mapping_of_magento_invoices">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">5.2</span>State Mapping of Magento Invoices					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>Below you find a diagram that shows the state machine of Magento for Invoices including additional information for the state transitions.</p>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/magento2_state_graph_invoice.svg" alt="magento2 state graph invoice"/>
+</div>
+</div>					</div>
+</div>			</div>
+</div>	<div class="chapter" id="_transaction_management">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">6</span>Transaction Management					</h1>
+	</div>
+	<div class="chapter-body">
+					<div class="paragraph">
+<p>You can capture, cancel and refund transactions directly from within the Magento backend. Please note
+if you refund, void or capture transaction inside wallee the events will be synchronized into
+Magento. However, there are some limitations (see below).</p>
+</div>							<div class="section" id="_complete_capture_an_order">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">6.1</span>Complete (capture) an order					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>You have the possibility for your transactions to have the invoice created and the payment only authorized after the order is placed. Inside the <a href="https://app-wallee.com/space/select?target=/payment/connector-configuration/list" target="_blank">connector configuration</a> you have the option, if the payment method supports it, to define whether the payment should be completed immediately or deferred.</p>
+</div><div class="paragraph">
+<p>In order to capture a transaction, open the invoice and click on <code>capture</code>.</p>
+</div><div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+When the completion is pending in wallee the invoice will stay in pending state.
+</td>
+</tr>
+</table>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/magento2-capture.png" alt="magento2 capture"/>
+</div>
+</div>					</div>
+</div>					<div class="section" id="_void_a_transaction">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">6.2</span>Void a Transaction					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>In order to void a transaction, open the invoice and click on the <code>cancel</code> button. This will cancel the invoice and void the transaction.</p>
+</div><div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+You can only void transactions that are not yet completed.
+</td>
+</tr>
+</table>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/magento2-cancel.png" alt="magento2 cancel"/>
+</div>
+</div>					</div>
+</div>					<div class="section" id="_refund_of_a_transaction">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">6.3</span>Refund of a Transaction					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>You have the possibility to refund already completed transactions. In order to do so, open the invoice of the captured order and click on <code>Credit Memo</code>. In case the payment method does not support refund, you will not see the possibility to issue online refunds.</p>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/magento2-refund1.png" alt="magento2 refund1"/>
+</div>
+</div><div class="paragraph">
+<p>You can make refunds based on product quantity. In order to do so, enter the amount of products you wish to refund to your customer.</p>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/magento2-refund2.png" alt="magento2 refund2"/>
+</div>
+</div><div class="paragraph">
+<p>You can carry out as many individual refunds as you wish until you have reached the quantity of the original order.
+The status of the order then automatically switches to complete.</p>
+</div><div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+It can take some time until you see the refund in Magento. Refunds will only be visible once they have been processed successfully.
+</td>
+</tr>
+</table>
+</div>					</div>
+</div>					<div class="section" id="_on_hold_orders">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">6.4</span>On Hold Orders					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>As long as the delivery should not be done the state of the order will be in <code>On Hold</code>. This happens when the transaction in wallee
+has not reached the fulfill state.</p>
+</div><div class="paragraph">
+<p>There are essentially two reasons why this can happen:</p>
+</div><div class="ulist">
+<ul>
+<li>
+<p>The transaction is not completed. In this case you have to complete the transaction as written above.</p>
+</li>
+<li>
+<p>As long as we are not able to tell you if you should fulfill the order. The delivery decision is done automatically. If this does not happen
+within the defined time frame, wallee will generate a manual task which you should observe and follow the instructions.
+When there is a manual task we will also display it in the Magento Backend.</p>
+</li>
+</ul>
+</div><div class="paragraph">
+<p>You can find more information about manual tasks in our <a href="https://app-wallee.com/en-us/doc/manual-tasks" target="_blank">Manual Task Documentation</a>.</p>
+</div>					</div>
+</div>					<div class="section" id="_limitations_of_the_synchronization_between_whitelabelname_and_magento">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">6.5</span>Limitations of the Synchronization between wallee and Magento					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>Please note that captures, voids and refunds done in wallee are synchronized. However, there are some
+limitations. Inside wallee you are able to change the <strong>unit price</strong> and the <strong>quantity</strong> at once. This can not
+be done in the Magento backend. We therefore recommend that you
+perform the refunds always inside the Magento backend and not inside wallee. If a refund
+cannot be synchronized it will be sent to the processor but it could be that you do not see it inside
+your Magento backend.</p>
+</div><div class="paragraph">
+<p>You can find more information about Refunds in wallee in our <a href="https://app-wallee.com/en-us/doc/payment/refund" target="_blank">Refund Documentation</a>.</p>
+</div>					</div>
+</div>					<div class="section" id="_tokenization">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">6.6</span>Tokenization					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>In case the payment method supports tokenization you can store the payment details of your customer for future purchases.
+In order to use this feature make sure that the <strong>One-Click-Payment Mode</strong> in your <a href="https://app-wallee.com/space/select?target=/payment/method-configuration/list">payment method configuration</a> is set to <code>allow</code> or <code>force</code> storage.</p>
+</div><div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Tokenization is not available for guest checkouts.
+</td>
+</tr>
+</table>
+</div>					</div>
+</div>			</div>
+</div>	<div class="chapter" id="_backend_orders">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">7</span>Backend Orders					</h1>
+	</div>
+	<div class="chapter-body">
+					<div class="paragraph">
+<p>You can create orders inside Magento also from the Magento Backend. If you create the transaction
+from the backend and select a payment method created by wallee then we are using the
+<a href="https://app-wallee.com/en-us/doc/payment/charge-flows" target="_blank">Charge Flow</a> Feature of wallee.
+This means that we first check if the payment method allows to
+charge the customer without customer interaction (i. e. invoice). If not and you did not
+select from the dropdown to use a token with stored payment information we are going to trigger
+the <a href="https://app-wallee.com/space/select?target=/payment/flow/list" target="_blank">charge flow process</a> you configured to ask the buyer for the payment details.</p>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/moto-token.png" alt="moto token"/>
+</div>
+</div><div class="paragraph">
+<p>You can find more information about charge flows in our <a href="https://app-wallee.com/en-us/doc/payment/charge-flows" target="_blank">charge flow documentation</a>.</p>
+</div>					</div>
+</div>	<div class="chapter" id="_faq">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">8</span>FAQ					</h1>
+	</div>
+	<div class="chapter-body">
+							<div class="section" id="_how_can_i_make_the_payment_methods_appear_in_the_checkout">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">8.1</span>How can I make the payment methods appear in the checkout?					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>Make sure that you followed the <a href="#_configuration">Configuration</a> section by stating your wallee space ID and application user&#8217;s access information in the Magento backend. By saving the configuration form the synchronization of the payment methods and the set up of the webhooks are initiated.</p>
+</div><div class="paragraph">
+<p>If this does not solve the problem, it could be that you use a special fee or coupon module that we do not support. Try to disable this plugin and see if it helps.
+The payment methods are only displayed if the plugin&#8217;s total calculation matches the actual order total.</p>
+</div>					</div>
+</div>			</div>
+</div>	<div class="chapter" id="_support">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">9</span>Support					</h1>
+	</div>
+	<div class="chapter-body">
+					<div class="paragraph">
+<p>If you need help, feel free to contact our <a href="https://app-wallee.com/space/select?target=/support">support</a>.</p>
+</div>					</div>
+</div>																			</div>
+															</div>
+						</div>
+						<div class="col-right">
+		<div class="col-right-wrapper">
+							<div class="table-of-contents">
+	<ul class="nav">
+					<li class="nav-level-1">
+	<a href="#_prerequisites">
+		<span class="item-number">1</span>
+		<span class="item-title">Prerequisites</span>
+			</a>
+    </li>					<li class="nav-level-1">
+	<a href="#_installation">
+		<span class="item-number">2</span>
+		<span class="item-title">Installation</span>
+			</a>
+    </li>					<li class="nav-level-1">
+	<a href="#_configuration">
+		<span class="item-number">3</span>
+		<span class="item-title">Configuration</span>
+			</a>
+    </li>					<li class="nav-level-1">
+	<a href="#_payment_method_configuration">
+		<span class="item-number">4</span>
+		<span class="item-title">Payment Method Configuration</span>
+			</a>
+        	<ul  class="nav">
+    		    			<li class="nav-level-2">
+	<a href="#_setup">
+		<span class="item-number">4.1</span>
+		<span class="item-title">Setup</span>
+			</a>
+    </li>    		    			<li class="nav-level-2">
+	<a href="#_customization">
+		<span class="item-number">4.2</span>
+		<span class="item-title">Customization</span>
+			</a>
+    </li>    		    	</ul>
+    </li>					<li class="nav-level-1">
+	<a href="#_state_graph">
+		<span class="item-number">5</span>
+		<span class="item-title">State Graph</span>
+			</a>
+        	<ul  class="nav">
+    		    			<li class="nav-level-2">
+	<a href="#_state_mapping_of_magento_orders">
+		<span class="item-number">5.1</span>
+		<span class="item-title">State Mapping Of Magento Orders</span>
+			</a>
+    </li>    		    			<li class="nav-level-2">
+	<a href="#_state_mapping_of_magento_invoices">
+		<span class="item-number">5.2</span>
+		<span class="item-title">State Mapping of Magento Invoices</span>
+			</a>
+    </li>    		    	</ul>
+    </li>					<li class="nav-level-1">
+	<a href="#_transaction_management">
+		<span class="item-number">6</span>
+		<span class="item-title">Transaction Management</span>
+			</a>
+        	<ul  class="nav">
+    		    			<li class="nav-level-2">
+	<a href="#_complete_capture_an_order">
+		<span class="item-number">6.1</span>
+		<span class="item-title">Complete (capture) an order</span>
+			</a>
+    </li>    		    			<li class="nav-level-2">
+	<a href="#_void_a_transaction">
+		<span class="item-number">6.2</span>
+		<span class="item-title">Void a Transaction</span>
+			</a>
+    </li>    		    			<li class="nav-level-2">
+	<a href="#_refund_of_a_transaction">
+		<span class="item-number">6.3</span>
+		<span class="item-title">Refund of a Transaction</span>
+			</a>
+    </li>    		    			<li class="nav-level-2">
+	<a href="#_on_hold_orders">
+		<span class="item-number">6.4</span>
+		<span class="item-title">On Hold Orders</span>
+			</a>
+    </li>    		    			<li class="nav-level-2">
+	<a href="#_limitations_of_the_synchronization_between_whitelabelname_and_magento">
+		<span class="item-number">6.5</span>
+		<span class="item-title">Limitations of the Synchronization between wallee and Magento</span>
+			</a>
+    </li>    		    			<li class="nav-level-2">
+	<a href="#_tokenization">
+		<span class="item-number">6.6</span>
+		<span class="item-title">Tokenization</span>
+			</a>
+    </li>    		    	</ul>
+    </li>					<li class="nav-level-1">
+	<a href="#_backend_orders">
+		<span class="item-number">7</span>
+		<span class="item-title">Backend Orders</span>
+			</a>
+    </li>					<li class="nav-level-1">
+	<a href="#_faq">
+		<span class="item-number">8</span>
+		<span class="item-title">FAQ</span>
+			</a>
+        	<ul  class="nav">
+    		    			<li class="nav-level-2">
+	<a href="#_how_can_i_make_the_payment_methods_appear_in_the_checkout">
+		<span class="item-number">8.1</span>
+		<span class="item-title">How can I make the payment methods appear in the checkout?</span>
+			</a>
+    </li>    		    	</ul>
+    </li>					<li class="nav-level-1">
+	<a href="#_support">
+		<span class="item-number">9</span>
+		<span class="item-title">Support</span>
+			</a>
+    </li>			</ul>
+</div>					</div>
+	</div>
+				</div>
+					</div>
+
+		<script type="text/javascript" src="assets/jquery.js"></script>
+		<script type="text/javascript" src="assets/scrollspy.js"></script>
+		<script type="text/javascript" src="assets/sticky-kit.js"></script>
+		<script type="text/javascript" src="assets/base.js"></script>
+	</body>
+</html>

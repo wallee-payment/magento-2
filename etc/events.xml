@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!-- 
+/**
+ * wallee Magento 2
+ *
+ * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com/).
+ *
+ * @package Wallee_Payment
+ * @author customweb GmbH (http://www.customweb.com/)
+ * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
+ */
+ -->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+	<event name="admin_system_config_changed_section_wallee_payment">
+		<observer name="wallee_payment_config_observer" instance="Wallee\Payment\Observer\SaveConfig" />
+	</event>
+	
+	<event name="wallee_payment_config_synchronize">
+		<observer name="wallee_payment_synchronize_payment_method_configuration" instance="Wallee\Payment\Observer\SynchronizePaymentMethodConfiguration" />
+		<observer name="wallee_payment_install_webhook" instance="Wallee\Payment\Observer\InstallWebhook" />
+		<observer name="wallee_payment_update_manual_task" instance="Wallee\Payment\Observer\UpdateManualTask" />
+	</event>
+	
+	<event name="sales_order_payment_capture">
+		<observer name="wallee_payment_payment_capture" instance="Wallee\Payment\Observer\CapturePayment" />
+	</event>
+	
+	<event name="sales_order_invoice_cancel">
+		<observer name="wallee_payment_invoice_cancel" instance="Wallee\Payment\Observer\CancelInvoice"></observer>
+	</event>
+	
+	<event name="sales_order_invoice_register">
+		<observer name="wallee_payment_invoice_register" instance="Wallee\Payment\Observer\RegisterInvoice"></observer>
+	</event>
+	
+	<event name="sales_model_service_quote_submit_success">
+		<observer name="wallee_payment_quote_submit" instance="Wallee\Payment\Observer\SubmitQuote" />
+	</event>
+</config>

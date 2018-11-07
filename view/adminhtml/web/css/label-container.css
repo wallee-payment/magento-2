@@ -1,0 +1,60 @@
+/**
+ * wallee Magento 2
+ *
+ * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com/).
+ *
+ * @package Wallee_Payment
+ * @author customweb GmbH (http://www.customweb.com/)
+ * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
+ */
+ 
+.wallee-label-container {
+	margin-top: 1rem;
+}
+
+.wallee-label-container > a {
+	clear: both;
+	color: #0a0a0a;
+	cursor: pointer;
+	display: block;
+	font-size: 1.5rem;
+	font-weight: 600;
+	letter-spacing: .025em;
+	padding: 1.9rem 2.8rem 1.9rem 0;
+	position: relative;
+	text-decoration: none;
+	transition: color .15s linear;
+}
+
+.wallee-label-container > a:hover,
+.wallee-label-container > a:focus {
+	color: #0a0a0a;
+    text-decoration: none;
+}
+
+.wallee-label-container > a:before {
+	-webkit-font-smoothing: antialiased;
+	font-family: 'Admin Icons';
+	font-style: normal;
+	font-weight: normal;
+	line-height: 1;
+	speak: none;
+	content: '\e616';
+	font-size: 1.8rem;
+	position: absolute;
+	right: 1.3rem;
+	top: 2.3rem;
+}
+
+.wallee-label-container.active > a:before {
+	content: '\e615';
+}
+
+.wallee-label-container > table.admin__table-secondary {
+	display: none;
+	margin-top: 0;
+}
+
+.wallee-label-container.active > table.admin__table-secondary {
+	display: table;
+}

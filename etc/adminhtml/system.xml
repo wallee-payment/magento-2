@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<!-- 
+/**
+ * wallee Magento 2
+ *
+ * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com/).
+ *
+ * @package Wallee_Payment
+ * @author customweb GmbH (http://www.customweb.com/)
+ * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
+ */
+ -->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+	<system>
+		<section id="wallee_payment" type="text" sortOrder="800" showInDefault="1" showInWebsite="1" showInStore="1">
+			<label>wallee Payment</label>
+			<tab>sales</tab>
+			<resource>Wallee_Payment::config</resource>
+			<group id="information" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+				<label>Information</label>
+				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/1.0.15/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
+				<field id="version" translate="label" type="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Module Version</label>
+				</field>
+				<field id="sdk_version" translate="label" type="label" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>wallee SDK Version</label>
+				</field>
+			</group>
+			<group id="general" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+				<label>General</label>
+				<comment><![CDATA[To use this extension, a wallee account is required. Sign up on <a href="https://www.wallee.com/" target="_blank">https://www.wallee.com</a>.]]></comment>
+				<field id="api_user_id" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
+					<label>User Id</label>
+					<comment>The Application User needs to have full permissions in all spaces this shop is linked to.</comment>
+				</field>
+				<field id="api_user_secret" translate="label" type="obscure" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0">
+					<label>Authentication Key</label>
+					<backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+				</field>
+				<field id="space_id" translate="label" type="text" sortOrder="30" showInDefault="0" showInWebsite="1" showInStore="0">
+					<label>Space Id</label>
+				</field>
+				<field id="space_view_id" translate="label" type="text" sortOrder="40" showInDefault="0" showInWebsite="1" showInStore="1">
+					<label>Space View Id</label>
+					<comment>The Space View Id allows to control the styling of the payment form and the payment page. It allows in multistore setups to adapt the payment form to different styling per substore without requiring a dedicated space.</comment>
+				</field>
+			</group>
+			<group id="email" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+				<label>Email</label>
+				<field id="order" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Send Order Email</label>
+					<comment>Send the Magento store's order email.</comment>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+			</group>
+			<group id="document" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+				<label>Document</label>
+				<field id="customer_download_invoice" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Customer Download: Invoice</label>
+					<comment>Allow customer's to download invoice documents.</comment>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+				<field id="customer_download_packing_slip" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Customer Download: Packing Slip</label>
+					<comment>Allow customer's to download packing slips.</comment>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+				<field id="customer_download_refund" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Customer Download: Refund</label>
+					<comment>Allow customer's to download refund documents.</comment>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+			</group>
+			<group id="line_items" translate="label" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+				<label>Line Items</label>
+				<field id="overwrite_shipping_description" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Overwrite Shipping Description</label>
+					<comment>Use the custom description for the shipping line item.</comment>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+				<field id="custom_shipping_description" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Custom Shipping Description</label>
+					<comment>The description to set on the shipping line item.</comment>
+					<depends><field id="overwrite_shipping_description">1</field></depends>
+				</field>
+			</group>
+		</section>
+	</system>
+</config>

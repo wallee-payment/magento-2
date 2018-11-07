@@ -1,0 +1,206 @@
+<?xml version="1.0"?>
+<!-- 
+/**
+ * wallee Magento 2
+ *
+ * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com/).
+ *
+ * @package Wallee_Payment
+ * @author customweb GmbH (http://www.customweb.com/)
+ * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
+ */
+ -->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+	<preference for="Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface" type="Wallee\Payment\Model\PaymentMethodConfigurationRepository" />
+	<preference for="Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface" type="Wallee\Payment\Model\PaymentMethodConfigurationManagement" />
+	<preference for="Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface" type="Wallee\Payment\Model\PaymentMethodConfiguration" />
+	<preference for="Wallee\Payment\Api\Data\PaymentMethodConfigurationSearchResultsInterface" type="Magento\Framework\Api\SearchResults" />
+	<preference for="Wallee\Payment\Api\TransactionInfoRepositoryInterface" type="Wallee\Payment\Model\TransactionInfoRepository" />
+	<preference for="Wallee\Payment\Api\TransactionInfoManagementInterface" type="Wallee\Payment\Model\TransactionInfoManagement" />
+	<preference for="Wallee\Payment\Api\Data\TransactionInfoInterface" type="Wallee\Payment\Model\TransactionInfo" />
+	<preference for="Wallee\Payment\Api\Data\TransactionInfoSearchResultsInterface" type="Magento\Framework\Api\SearchResults" />
+	<preference for="Wallee\Payment\Api\TokenInfoRepositoryInterface" type="Wallee\Payment\Model\TokenInfoRepository" />
+	<preference for="Wallee\Payment\Api\TokenInfoManagementInterface" type="Wallee\Payment\Model\TokenInfoManagement" />
+	<preference for="Wallee\Payment\Api\Data\TokenInfoInterface" type="Wallee\Payment\Model\TokenInfo" />
+	<preference for="Wallee\Payment\Api\Data\TokenInfoSearchResultsInterface" type="Magento\Framework\Api\SearchResults" />
+	<preference for="Wallee\Payment\Api\RefundJobRepositoryInterface" type="Wallee\Payment\Model\RefundJobRepository" />
+	<preference for="Wallee\Payment\Api\Data\RefundJobInterface" type="Wallee\Payment\Model\RefundJob" />
+	<preference for="Wallee\Payment\Api\Data\RefundJobSearchResultsInterface" type="Magento\Framework\Api\SearchResults" />
+	
+	<type name="Wallee\Payment\Model\ResourceModel\TokenInfo\Collection\Grid">
+        <arguments>
+            <argument name="resource" xsi:type="object">Wallee\Payment\Model\ResourceModel\TokenInfo</argument>
+        </arguments>
+    </type>
+	
+	<type name="Wallee\Payment\Model\Config\Structure\Reader">
+        <arguments>
+            <argument name="compiler" xsi:type="object">Magento\Framework\View\TemplateEngine\Xhtml\ConfigCompiler</argument>
+        </arguments>
+    </type>
+    
+    <type name="Wallee\Payment\Model\Service\WebhookService">
+    	<arguments>
+    		<argument name="webhookListenerPool" xsi:type="object">WalleeWebhookListenerPool</argument>
+	        <argument name="urlBuilder" xsi:type="object">Magento\Framework\Url</argument>
+	    </arguments>
+	</type>
+    
+    <!-- Providers -->
+    <type name="Wallee\Payment\Model\Provider\PaymentMethodProvider">
+        <arguments>
+            <argument name="cache" xsi:type="object">Magento\Framework\App\Cache\Type\Config</argument>
+        </arguments>
+    </type>
+    <type name="Wallee\Payment\Model\Provider\PaymentConnectorProvider">
+        <arguments>
+            <argument name="cache" xsi:type="object">Magento\Framework\App\Cache\Type\Config</argument>
+        </arguments>
+    </type>
+    <type name="Wallee\Payment\Model\Provider\LanguageProvider">
+        <arguments>
+            <argument name="cache" xsi:type="object">Magento\Framework\App\Cache\Type\Config</argument>
+        </arguments>
+    </type>
+    <type name="Wallee\Payment\Model\Provider\LabelDescriptorProvider">
+        <arguments>
+            <argument name="cache" xsi:type="object">Magento\Framework\App\Cache\Type\Config</argument>
+        </arguments>
+    </type>
+    <type name="Wallee\Payment\Model\Provider\LabelDescriptorGroupProvider">
+        <arguments>
+            <argument name="cache" xsi:type="object">Magento\Framework\App\Cache\Type\Config</argument>
+        </arguments>
+    </type>
+    <type name="Wallee\Payment\Model\Provider\CurrencyProvider">
+        <arguments>
+            <argument name="cache" xsi:type="object">Magento\Framework\App\Cache\Type\Config</argument>
+        </arguments>
+    </type>
+    
+    <!-- Webhook Listeners -->
+    <type name="Wallee\Payment\Model\Webhook\Listener\TransactionListener">
+    	<arguments>
+    		<argument name="commandPool" xsi:type="object">WalleeTransactionWebhookCommandPool</argument>
+    	</arguments>
+    </type>
+    <type name="Wallee\Payment\Model\Webhook\Listener\TransactionInvoiceListener">
+    	<arguments>
+    		<argument name="commandPool" xsi:type="object">WalleeTransactionInvoiceWebhookCommandPool</argument>
+    	</arguments>
+    </type>
+    <type name="Wallee\Payment\Model\Webhook\Listener\DeliveryIndicationListener">
+    	<arguments>
+    		<argument name="commandPool" xsi:type="object">WalleeDeliveryIndicationWebhookCommandPool</argument>
+    	</arguments>
+    </type>
+    <type name="Wallee\Payment\Model\Webhook\Listener\TransactionCompletionListener">
+    	<arguments>
+    		<argument name="commandPool" xsi:type="object">WalleeTransactionCompletionWebhookCommandPool</argument>
+    	</arguments>
+    </type>
+    <type name="Wallee\Payment\Model\Webhook\Listener\RefundListener">
+    	<arguments>
+    		<argument name="commandPool" xsi:type="object">WalleeRefundWebhookCommandPool</argument>
+    	</arguments>
+    </type>
+    
+    <!-- Webhook Listener Pools -->
+    <virtualType name="WalleeWebhookListenerPool" type="Wallee\Payment\Model\Webhook\ListenerPool">
+    	<arguments>
+            <argument name="listeners" xsi:type="array">
+            	<item name="transaction" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionListener</item>
+            	<item name="transactioninvoice" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionInvoiceListener</item>
+            	<item name="deliveryindication" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\DeliveryIndicationListener</item>
+            	<item name="transactioncompletion" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionCompletionListener</item>
+            	<item name="refund" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\RefundListener</item>
+            	<item name="paymentmethodconfiguration" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\PaymentMethodConfigurationListener</item>
+            	<item name="manualtask" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\ManualTaskListener</item>
+            	<item name="token" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TokenListener</item>
+            	<item name="tokenversion" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TokenVersionListener</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WalleeTransactionWebhookCommandPool" type="Wallee\Payment\Model\Webhook\Listener\CommandPool">
+    	<arguments>
+            <argument name="commands" xsi:type="array">
+            	<item name="authorized" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\AuthorizedCommand</item>
+            	<item name="fulfill" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\FulfillCommand</item>
+            	<item name="decline" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\DeclineCommand</item>
+            	<item name="failed" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\FailedCommand</item>
+            	<item name="voided" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\VoidedCommand</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WalleeTransactionInvoiceWebhookCommandPool" type="Wallee\Payment\Model\Webhook\Listener\CommandPool">
+    	<arguments>
+            <argument name="commands" xsi:type="array">
+            	<item name="paid" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionInvoice\CaptureCommand</item>
+            	<item name="not_applicable" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionInvoice\CaptureCommand</item>
+            	<item name="derecognized" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionInvoice\DerecognizedCommand</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WalleeDeliveryIndicationWebhookCommandPool" type="Wallee\Payment\Model\Webhook\Listener\CommandPool">
+    	<arguments>
+            <argument name="commands" xsi:type="array">
+            	<item name="manual_check_required" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\DeliveryIndication\ManualCheckRequiredCommand</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WalleeTransactionCompletionWebhookCommandPool" type="Wallee\Payment\Model\Webhook\Listener\CommandPool">
+    	<arguments>
+            <argument name="commands" xsi:type="array">
+            	<item name="failed" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionCompletion\FailedCommand</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WalleeRefundWebhookCommandPool" type="Wallee\Payment\Model\Webhook\Listener\CommandPool">
+    	<arguments>
+            <argument name="commands" xsi:type="array">
+            	<item name="successful" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Refund\SuccessfulCommand</item>
+            	<item name="failed" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Refund\FailedCommand</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    
+    <!-- Payment Gateway -->
+    <virtualType name="WalleePaymentGatewayCommandPool" type="Magento\Payment\Gateway\Command\CommandPool">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="initialize" xsi:type="string">Wallee\Payment\Gateway\Command\InitializeCommand</item>
+                <item name="capture" xsi:type="string">Wallee\Payment\Gateway\Command\CaptureCommand</item>
+                <item name="void" xsi:type="string">Wallee\Payment\Gateway\Command\VoidCommand</item>
+                <item name="refund" xsi:type="string">Wallee\Payment\Gateway\Command\RefundCommand</item>
+                <item name="cancel" xsi:type="string">Wallee\Payment\Gateway\Command\VoidCommand</item>
+                <item name="accept_payment" xsi:type="string">Wallee\Payment\Gateway\Command\AcceptPaymentCommand</item>
+                <item name="deny_payment" xsi:type="string">Wallee\Payment\Gateway\Command\DenyPaymentCommand</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WalleePaymentGatewayValidatorPool" type="Magento\Payment\Gateway\Validator\ValidatorPool">
+    	<arguments>
+            <argument name="validators" xsi:type="array"></argument>
+        </arguments>
+    </virtualType>
+    
+	<!-- Plugins/Interceptors -->
+	<type name="Magento\Config\Model\Config\Structure\Converter">
+		<plugin name="wallee_payment_config_structure_converter" type="Wallee\Payment\Plugin\Config\Model\Config\Structure\Converter" />
+	</type>
+	<type name="Magento\Framework\App\Config\Initial\Converter">
+		<plugin name="wallee_payment_config_initial_converter" type="Wallee\Payment\Plugin\Framework\App\Config\Initial\Converter" />
+	</type>
+	<type name="Magento\Payment\Model\Config\Reader">
+		<plugin name="wallee_payment_payment_config_reader" type="Wallee\Payment\Plugin\Payment\Model\Config\Reader" />
+	</type>
+	<type name="Magento\Payment\Model\Method\Factory">
+		<plugin name="wallee_payment_payment_method_factory" type="Wallee\Payment\Plugin\Payment\Model\Method\Factory" />
+	</type>
+	<type name="Magento\Checkout\Block\Checkout\LayoutProcessor">
+		<plugin name="wallee_payment_checkout_layout_processor" type="Wallee\Payment\Plugin\Checkout\Block\Checkout\LayoutProcessor" />
+	</type>
+	<type name="Magento\Sales\Model\Service\CreditmemoService">
+		<plugin name="wallee_payment_sales_creditmemo_service" type="Wallee\Payment\Plugin\Sales\Model\Service\CreditmemoService" />
+	</type>
+</config>
