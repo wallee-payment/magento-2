@@ -99,9 +99,9 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
 
         $connection = $this->beginTransaction();
         try {
-            $order = $this->getOrderByIncrementId($this->getOrderIncrementId($entity));
+            $order = $this->getOrderByTransaction($request->getSpaceId(), $this->getTransactionId($entity));
             if ($order instanceof Order) {
-                if ($order->getWalleeTransactionId() == $this->getTransactionId($entity)) {
+                if ($order->getIncrementId() == $this->getOrderIncrementId($entity)) {
                     $this->lock($order);
                     $this->process($entity, $order->load($order->getId()));
                 }
@@ -136,14 +136,17 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
     }
 
     /**
-     * Gets the order by its increment id.
+     * Gets the order linked to the given transaction.
      *
-     * @param string $incrementId
+     * @param int $spaceId
+     * @param int $transactionId
      * @return Order|NULL
      */
-    protected function getOrderByIncrementId($incrementId)
+    protected function getOrderByTransaction($spaceId, $transactionId)
     {
-        $searchCriteria = $this->_searchCriteriaBuilder->addFilter('increment_id', $incrementId)
+        $searchCriteria = $this->_searchCriteriaBuilder
+            ->addFilter('wallee_space_id', $spaceId)
+            ->addFilter('wallee_transaction_id', $transactionId)
             ->setPageSize(1)
             ->create();
         $orders = $this->_orderRepository->getList($searchCriteria)->getItems();
