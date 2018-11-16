@@ -11,7 +11,9 @@
 namespace Wallee\Payment\Model\Service;
 
 use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
+use Magento\Framework\DataObject;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
@@ -21,8 +23,6 @@ use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Sdk\Model\LineItemCreate;
 use Wallee\Sdk\Model\LineItemType;
 use Wallee\Sdk\Model\TaxCreate;
-use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
-use Magento\Framework\DataObject;
 
 /**
  * Abstract service to handle line items.
@@ -354,6 +354,7 @@ abstract class AbstractLineItemService
             $entity->getStoreId());
         if ($shippingTaxClassId > 0) {
             $shippingTaxClass = $this->_taxClassRepository->get($shippingTaxClassId);
+            $taxRateRequest->setProductClassId($shippingTaxClassId);
             $rate = $this->_taxCalculation->getRate($taxRateRequest);
             if ($rate > 0) {
                 $tax = new TaxCreate();
