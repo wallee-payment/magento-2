@@ -61,6 +61,12 @@ define([
 				this.handler.create(this.getFormId(), (function(validationResult){
 					if (validationResult.success) {
 						this.placeOrder();
+					} else {
+						for (var i = 0; i < validationResult.errors.length; i++) {
+							this.messageContainer.addErrorMessage({
+								message: validationResult.errors[i]
+							});
+						}
 					}
 				}).bind(this), function(){
 					fullScreenLoader.stopLoader();
