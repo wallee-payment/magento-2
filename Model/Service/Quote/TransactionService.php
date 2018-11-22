@@ -20,6 +20,7 @@ use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\AbstractTransactionService;
+use Wallee\Sdk\ApiException;
 use Wallee\Sdk\VersioningException;
 use Wallee\Sdk\Model\AbstractTransactionPending;
 use Wallee\Sdk\Model\AddressCreate;
@@ -111,8 +112,13 @@ class TransactionService extends AbstractTransactionService
         if (! array_key_exists($quote->getId(), $this->possiblePaymentMethodCache) ||
             $this->possiblePaymentMethodCache[$quote->getId()] == null) {
             $transaction = $this->getTransactionByQuote($quote);
-            $paymentMethods = $this->_apiClient->getService(TransactionApiService::class)->fetchPossiblePaymentMethods(
-                $transaction->getLinkedSpaceId(), $transaction->getId());
+            try {
+                $paymentMethods = $this->_apiClient->getService(TransactionApiService::class)->fetchPossiblePaymentMethods(
+                    $transaction->getLinkedSpaceId(), $transaction->getId());
+            } catch (ApiException $e) {
+                $this->possiblePaymentMethodCache[$quote->getId()] = [];
+                throw $e;
+            }
             $this->updatePaymentMethodConfigurations($paymentMethods);
             $this->possiblePaymentMethodCache[$quote->getId()] = $paymentMethods;
         }

@@ -62,6 +62,7 @@ define([
 					if (validationResult.success) {
 						this.placeOrder();
 					} else {
+						$('html, body').animate({ scrollTop: $('#' + this.getCode()).offset().top - 20 });
 						for (var i = 0; i < validationResult.errors.length; i++) {
 							this.messageContainer.addErrorMessage({
 								message: validationResult.errors[i]
