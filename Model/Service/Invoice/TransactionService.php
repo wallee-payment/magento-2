@@ -11,6 +11,7 @@
 namespace Wallee\Payment\Model\Service\Invoice;
 
 use Magento\Customer\Model\CustomerRegistry;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Quote\Api\CartRepositoryInterface;
@@ -63,6 +64,7 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @param ResourceConnection $resource
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
@@ -74,13 +76,13 @@ class TransactionService extends AbstractTransactionService
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param OrderTransactionService $orderTransactionService
      */
-    public function __construct(Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
+    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
         CartRepositoryInterface $quoteRepository,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
         LocaleHelper $localeHelper, LineItemService $lineItemService,
         TransactionInfoRepositoryInterface $transactionInfoRepository, OrderTransactionService $orderTransactionService)
     {
-        parent::__construct($helper, $scopeConfig, $customerRegistry, $quoteRepository,
+        parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository,
             $paymentMethodConfigurationManagement, $apiClient);
         $this->_localeHelper = $localeHelper;
         $this->_lineItemService = $lineItemService;

@@ -11,6 +11,7 @@
 namespace Wallee\Payment\Model\Service;
 
 use Magento\Customer\Model\CustomerRegistry;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
@@ -26,6 +27,12 @@ use Wallee\Sdk\Service\TransactionService;
  */
 abstract class AbstractTransactionService
 {
+
+    /**
+     *
+     * @var ResourceConnection
+     */
+    protected $_resource;
 
     /**
      *
@@ -65,6 +72,7 @@ abstract class AbstractTransactionService
 
     /**
      *
+     * @param ResourceConnection $resource
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
@@ -72,10 +80,11 @@ abstract class AbstractTransactionService
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
      */
-    public function __construct(Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
+    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
         CartRepositoryInterface $quoteRepository,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient)
     {
+        $this->_resource = $resource;
         $this->_helper = $helper;
         $this->_scopeConfig = $scopeConfig;
         $this->_customerRegistry = $customerRegistry;
@@ -116,9 +125,13 @@ abstract class AbstractTransactionService
      */
     protected function updateQuote(Quote $quote, Transaction $transaction)
     {
-        $quote->setWalleeSpaceId($transaction->getLinkedSpaceId());
-        $quote->setWalleeTransactionId($transaction->getId());
-        $this->_quoteRepository->save($quote);
+        $this->_resource->getConnection()->update($this->_resource->getTableName('quote'),
+            [
+                'wallee_space_id' => $transaction->getLinkedSpaceId(),
+                'wallee_transaction_id' => $transaction->getId(),
+            ], [
+                'entity_id = ?' => $quote->getId()
+            ]);
     }
 
     /**

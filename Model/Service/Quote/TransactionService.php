@@ -11,6 +11,7 @@
 namespace Wallee\Payment\Model\Service\Quote;
 
 use Magento\Customer\Model\CustomerRegistry;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
@@ -57,6 +58,7 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @param ResourceConnection $resource
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
@@ -65,12 +67,12 @@ class TransactionService extends AbstractTransactionService
      * @param ApiClient $apiClient
      * @param LineItemService $lineItemService
      */
-    public function __construct(Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
+    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
         CartRepositoryInterface $quoteRepository,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
         LineItemService $lineItemService)
     {
-        parent::__construct($helper, $scopeConfig, $customerRegistry, $quoteRepository,
+        parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository,
             $paymentMethodConfigurationManagement, $apiClient);
         $this->_lineItemService = $lineItemService;
     }
@@ -109,7 +111,7 @@ class TransactionService extends AbstractTransactionService
      */
     public function getPossiblePaymentMethods(Quote $quote)
     {
-        if (! array_key_exists($quote->getId(), $this->possiblePaymentMethodCache) ||
+        if (! \array_key_exists($quote->getId(), $this->possiblePaymentMethodCache) ||
             $this->possiblePaymentMethodCache[$quote->getId()] == null) {
             $transaction = $this->getTransactionByQuote($quote);
             try {
@@ -135,7 +137,7 @@ class TransactionService extends AbstractTransactionService
      */
     public function getTransactionByQuote(Quote $quote)
     {
-        if (! array_key_exists($quote->getId(), $this->transactionCache) ||
+        if (! \array_key_exists($quote->getId(), $this->transactionCache) ||
             $this->transactionCache[$quote->getId()] == null) {
             $transactionId = $quote->getWalleeTransactionId();
             if (empty($transactionId)) {

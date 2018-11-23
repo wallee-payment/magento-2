@@ -11,6 +11,7 @@
 namespace Wallee\Payment\Model\Service\Order;
 
 use Magento\Customer\Model\CustomerRegistry;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Quote\Api\CartRepositoryInterface;
@@ -65,6 +66,7 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @param ResourceConnection $resource
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
@@ -74,12 +76,12 @@ class TransactionService extends AbstractTransactionService
      * @param LineItemService $lineItemService
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      */
-    public function __construct(Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
+    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
         CartRepositoryInterface $quoteRepository,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
         LineItemService $lineItemService, TransactionInfoRepositoryInterface $transactionInfoRepository)
     {
-        parent::__construct($helper, $scopeConfig, $customerRegistry, $quoteRepository,
+        parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository,
             $paymentMethodConfigurationManagement, $apiClient);
         $this->_lineItemService = $lineItemService;
         $this->_transactionInfoRepository = $transactionInfoRepository;
