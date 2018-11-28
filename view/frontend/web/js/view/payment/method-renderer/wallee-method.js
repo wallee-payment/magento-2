@@ -24,6 +24,7 @@ define([
     		template: 'Wallee_Payment/payment/form'
 		},
 		redirectAfterPlaceOrder: false,
+		submitDisabled: false,
 		
 		/**
 		 * @override
@@ -47,17 +48,19 @@ define([
 		},
 		
 		createHandler: function(){
-			if (this.handler) return;
-			
-			if (typeof window.IframeCheckoutHandler != 'undefined') {
+			if (this.handler) {
+				$('button.checkout').prop('disabled', this.submitDisabled);
+			} else if (typeof window.IframeCheckoutHandler != 'undefined') {
 				fullScreenLoader.startLoader();
 				this.handler = window.IframeCheckoutHandler(this.getConfigurationId());
 				this.handler.setEnableSubmitCallback(function(){
 					$('button.checkout').prop('disabled', false);
-				});
+					this.submitDisabled = false;
+				}.bind(this));
 				this.handler.setDisableSubmitCallback(function(){
 					$('button.checkout').prop('disabled', true);
-				});
+					this.submitDisabled = true;
+				}.bind(this));
 				this.handler.create(this.getFormId(), (function(validationResult){
 					if (validationResult.success) {
 						this.placeOrder();
