@@ -49,7 +49,8 @@ class LineItemService extends AbstractLineItemService
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager, ProductConfigurationHelper $productConfigurationHelper)
+        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
+        ProductConfigurationHelper $productConfigurationHelper)
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
             $groupRegistry, $eventManager);
@@ -99,10 +100,10 @@ class LineItemService extends AbstractLineItemService
      */
     protected function convertShippingLineItem($quote)
     {
-        return $this->convertShippingLineItemInner($quote,
-            $quote->getShippingAddress()
-                ->getShippingInclTax(), $quote->getShippingAddress()
-                ->getShippingDescription());
+        return $this->convertShippingLineItemInner($quote, $quote->getShippingAddress()
+            ->getShippingInclTax(), $quote->getShippingAddress()
+            ->getShippingDescription(), $quote->getShippingAddress()
+            ->getShippingDiscountAmount());
     }
 
     /**

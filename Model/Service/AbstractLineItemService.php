@@ -119,10 +119,7 @@ abstract class AbstractLineItemService
             }
         }
 
-        $shippingItem = $this->convertShippingLineItem($entity);
-        if ($shippingItem instanceof LineItemCreate) {
-            $items[] = $shippingItem;
-        }
+        $items = \array_merge($items, $this->convertShippingLineItem($entity));
 
         $transport = new DataObject([
             'items' => $items
@@ -298,7 +295,7 @@ abstract class AbstractLineItemService
     protected function convertShippingLineItem($entity)
     {
         return $this->convertShippingLineItemInner($entity, $entity->getShippingInclTax(),
-            $entity->getShippingDescription());
+            $entity->getShippingDescription(), $entity->getShippingDiscountAmount());
     }
 
     /**
@@ -307,10 +304,12 @@ abstract class AbstractLineItemService
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
      * @param float $shippingAmount
      * @param string $shippingDescription
+     * @param float $shippingDiscountAmount
      * @return LineItemCreate
      */
-    protected function convertShippingLineItemInner($entity, $shippingAmount, $shippingDescription)
+    protected function convertShippingLineItemInner($entity, $shippingAmount, $shippingDescription, $shippingDiscountAmount)
     {
+        $items = [];
         if ($shippingAmount > 0) {
             $shippingItem = new LineItemCreate();
             $shippingItem->setType(LineItemType::SHIPPING);
@@ -320,11 +319,11 @@ abstract class AbstractLineItemService
             if ($this->_scopeConfig->getValue('wallee_payment/line_items/overwrite_shipping_description',
                 ScopeInterface::SCOPE_STORE, $entity->getStoreId())) {
                 $shippingItem->setName(
-                    $this->_scopeConfig->getValue(
+                    $this->_helper->fixLength($this->_scopeConfig->getValue(
                         'wallee_payment/line_items/custom_shipping_description',
-                        ScopeInterface::SCOPE_STORE, $entity->getStoreId()));
+                        ScopeInterface::SCOPE_STORE, $entity->getStoreId()), 150));
             } else {
-                $shippingItem->setName($shippingDescription);
+                $shippingItem->setName($this->_helper->fixLength($shippingDescription, 150));
             }
             $shippingItem->setQuantity(1);
             $shippingItem->setSku('shipping');
@@ -334,7 +333,35 @@ abstract class AbstractLineItemService
                     $tax
                 ]);
             }
-            return $shippingItem;
+            $items[] = $shippingItem;
+
+            $discountItem = $this->getShippingDiscountLineItem($entity, $shippingItem->getName(), $shippingDiscountAmount);
+            if ($discountItem instanceof LineItemCreate) {
+                $items[] = $discountItem;
+            }
+        }
+        return $items;
+    }
+
+    protected function getShippingDiscountLineItem($entity, $shippingDescription, $shippingDiscountAmount) {
+        if ($shippingDiscountAmount > 0) {
+            $discountItem = new LineItemCreate();
+            $discountItem->setType(LineItemType::DISCOUNT);
+            $discountItem->setUniqueId('shipping-discount');
+            $discountItem->setAmountIncludingTax(
+                $this->_helper->roundAmount($shippingDiscountAmount * - 1, $this->getCurrencyCode($entity)));
+            $discountItem->setName((String) \__('Shipping Discount'));
+            $discountItem->setQuantity(1);
+            $discountItem->setSku('shipping-discount');
+            if ($this->_taxHelper->applyTaxAfterDiscount($entity->getStore())) {
+                $tax = $this->getShippingTax($entity);
+                if ($tax instanceof TaxCreate) {
+                    $discountItem->setTaxes([
+                        $tax
+                    ]);
+                }
+            }
+            return $discountItem;
         }
     }
 
