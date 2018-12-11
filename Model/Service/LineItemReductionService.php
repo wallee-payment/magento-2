@@ -179,8 +179,8 @@ class LineItemReductionService
                 ->getWalleeSpaceId(),
             $creditmemo->getOrder()
                 ->getWalleeTransactionId());
-        $reducedAmount = $this->_reductionHelper->getReducedAmount($baseLineItems, $reductions);
-        if ($reducedAmount != $creditmemo->getGrandTotal()) {
+        $reducedAmount = $this->_reductionHelper->getReducedAmount($baseLineItems, $reductions, $creditmemo->getOrderCurrencyCode());
+        if ($reducedAmount != $this->_helper->roundAmount($creditmemo->getGrandTotal(), $creditmemo->getOrderCurrencyCode())) {
             $baseAmount = $this->_lineItemHelper->getTotalAmountIncludingTax($baseLineItems);
             $rate = $creditmemo->getGrandTotal() / $baseAmount;
             $fixedReductions = [];
@@ -196,7 +196,7 @@ class LineItemReductionService
                     $fixedReductions[] = $reduction;
                 }
             }
-            $fixedReductionAmount = $this->_reductionHelper->getReducedAmount($baseLineItems, $fixedReductions);
+            $fixedReductionAmount = $this->_reductionHelper->getReducedAmount($baseLineItems, $fixedReductions, $creditmemo->getOrderCurrencyCode());
             $roundingDifference = $creditmemo->getGrandTotal() - $fixedReductionAmount;
             return $this->distributeRoundingDifference($fixedReductions, 0, $roundingDifference, $baseLineItems, $creditmemo->getOrderCurrencyCode());
         } else {

@@ -101,9 +101,12 @@ class LineItemService extends AbstractLineItemService
     protected function convertShippingLineItem($quote)
     {
         return $this->convertShippingLineItemInner($quote, $quote->getShippingAddress()
-            ->getShippingInclTax(), $quote->getShippingAddress()
-            ->getShippingDescription(), $quote->getShippingAddress()
-            ->getShippingDiscountAmount());
+            ->getShippingAmount(), $quote->getShippingAddress()
+            ->getShippingTaxAmount(),
+            $quote->getShippingAddress()
+                ->getShippingDiscountAmount() - $quote->getShippingAddress()
+                ->getShippingDiscountTaxCompensationAmount(), $quote->getShippingAddress()
+                ->getShippingDescription());
     }
 
     /**

@@ -11,6 +11,7 @@
 namespace Wallee\Payment\Helper;
 
 use Magento\Framework\App\Helper\AbstractHelper;
+use Magento\Framework\App\Helper\Context;
 
 /**
  * Helper to provide line item reduction related functionality.
@@ -19,12 +20,30 @@ class LineItemReduction extends AbstractHelper
 {
 
     /**
+     *
+     * @var Data
+     */
+    protected $_helper;
+
+    /**
+     *
+     * @param Context $context
+     * @param Data $helper
+     */
+    public function __construct(Context $context, Data $helper)
+    {
+        parent::__construct($context);
+        $this->_helper = $helper;
+    }
+
+    /**
      * Gets the amount of the line item's reductions.
      *
      * @param \Wallee\Sdk\Model\LineItem[] $lineItems
      * @param \Wallee\Sdk\Model\LineItemReduction[] $reductions
+     * @param string $currency
      */
-    public function getReducedAmount(array $lineItems, array $reductions)
+    public function getReducedAmount(array $lineItems, array $reductions, $currency)
     {
         $lineItemMap = array();
         foreach ($lineItems as $lineItem) {
@@ -34,11 +53,12 @@ class LineItemReduction extends AbstractHelper
         $amount = 0;
         foreach ($reductions as $reduction) {
             $lineItem = $lineItemMap[$reduction->getLineItemUniqueId()];
-            $amount += $lineItem->getUnitPriceIncludingTax() * $reduction->getQuantityReduction();
+            $unitPrice = $lineItem->getAmountIncludingTax() / $lineItem->getQuantity();
+            $amount += $unitPrice * $reduction->getQuantityReduction();
             $amount += $reduction->getUnitPriceReduction() *
                 ($lineItem->getQuantity() - $reduction->getQuantityReduction());
         }
 
-        return $amount;
+        return $this->_helper->roundAmount($amount, $currency);
     }
 }

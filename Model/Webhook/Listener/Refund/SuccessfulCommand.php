@@ -20,6 +20,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\CreditmemoFactory;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
+use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Model\RefundJobRepository;
 use Wallee\Payment\Model\Service\LineItemReductionService;
 use Wallee\Sdk\Model\LineItemType;
@@ -63,6 +64,12 @@ class SuccessfulCommand extends AbstractCommand
 
     /**
      *
+     * @var Helper
+     */
+    protected $_helper;
+
+    /**
+     *
      * @param DBTransactionFactory $dbTransactionFactory
      * @param OrderRepositoryInterface $orderRepository
      * @param OrderEmailSender $orderEmailSender
@@ -72,12 +79,13 @@ class SuccessfulCommand extends AbstractCommand
      * @param CreditmemoManagementInterface $creditmemoManagement
      * @param InvoiceRepositoryInterface $invoiceRepository
      * @param LineItemReductionService $lineItemReductionService
+     * @param Helper $helper
      */
     public function __construct(DBTransactionFactory $dbTransactionFactory, OrderRepositoryInterface $orderRepository,
         OrderEmailSender $orderEmailSender, RefundJobRepository $refundJobRepository,
         CreditmemoRepositoryInterface $creditmemoRepository, CreditmemoFactory $creditmemoFactory,
         CreditmemoManagementInterface $creditmemoManagement, InvoiceRepositoryInterface $invoiceRepository,
-        LineItemReductionService $lineItemReductionService)
+        LineItemReductionService $lineItemReductionService, Helper $helper)
     {
         parent::__construct($dbTransactionFactory, $orderRepository, $orderEmailSender, $refundJobRepository);
         $this->_creditmemoRepository = $creditmemoRepository;
@@ -85,6 +93,7 @@ class SuccessfulCommand extends AbstractCommand
         $this->_creditmemoManagement = $creditmemoManagement;
         $this->_invoiceRepository = $invoiceRepository;
         $this->_lineItemReductionService = $lineItemReductionService;
+        $this->_helper = $helper;
     }
 
     /**
@@ -158,7 +167,11 @@ class SuccessfulCommand extends AbstractCommand
                     if ($reduction->getQuantityReduction() > 0) {
                         $refundQuantities[$orderItemMap[$reduction->getLineItemUniqueId()]->getId()] = $reduction->getQuantityReduction();
                         $creditmemoAmount += $reduction->getQuantityReduction() *
-                            $orderItemMap[$reduction->getLineItemUniqueId()]->getPriceInclTax();
+                            ($orderItemMap[$reduction->getLineItemUniqueId()]->getRowTotal() +
+                            $orderItemMap[$reduction->getLineItemUniqueId()]->getTaxAmount() -
+                            $orderItemMap[$reduction->getLineItemUniqueId()]->getDiscountAmount() +
+                            $orderItemMap[$reduction->getLineItemUniqueId()]->getDiscountTaxCompensationAmount()) /
+                            $orderItemMap[$reduction->getLineItemUniqueId()]->getQtyOrdered();
                     }
                     break;
                 case LineItemType::FEE:
@@ -178,16 +191,22 @@ class SuccessfulCommand extends AbstractCommand
                     } else {
                         $shippingAmount = 0;
                     }
+
+                    if ($order->getShippingDiscountAmount() > 0) {
+                        $shippingAmount += ($shippingAmount / $order->getShippingAmount()) * $order->getShippingDiscountAmount();
+                    }
                     break;
             }
         }
 
+        $roundedCreditmemoAmount = $this->_helper->roundAmount($creditmemoAmount, $refund->getTransaction()->getCurrency());
+
         $positiveAdjustment = 0;
         $negativeAdjustment = 0;
-        if ($creditmemoAmount > $refund->getAmount()) {
-            $negativeAdjustment = $creditmemoAmount - $refund->getAmount();
-        } elseif ($creditmemoAmount < $refund->getAmount()) {
-            $positiveAdjustment = $refund->getAmount() - $creditmemoAmount;
+        if ($roundedCreditmemoAmount > $refund->getAmount()) {
+            $negativeAdjustment = $roundedCreditmemoAmount - $refund->getAmount();
+        } elseif ($roundedCreditmemoAmount < $refund->getAmount()) {
+            $positiveAdjustment = $refund->getAmount() - $roundedCreditmemoAmount;
         }
 
         return array(

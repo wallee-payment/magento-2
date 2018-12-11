@@ -115,19 +115,23 @@ abstract class AbstractLineItemService
 
         foreach ($entity->getAllItems() as $entityItem) {
             if ($this->isIncludeItem($entityItem)) {
-                $items = \array_merge($items, $this->convertItem($entityItem, $entity));
+                $items[] = $this->convertItem($entityItem, $entity);
             }
         }
 
-        $items = \array_merge($items, $this->convertShippingLineItem($entity));
+        $shippingLineItems = $this->convertShippingLineItem($entity);
+        if ($shippingLineItems instanceof LineItemCreate) {
+            $items[] = $shippingLineItems;
+        }
 
         $transport = new DataObject([
             'items' => $items
         ]);
-        $this->_eventManager->dispatch('wallee_payment_convert_line_items', [
-            'transport' => $transport,
-            'entity' => $entity
-        ]);
+        $this->_eventManager->dispatch('wallee_payment_convert_line_items',
+            [
+                'transport' => $transport,
+                'entity' => $entity
+            ]);
         return $transport->getData('items');
     }
 
@@ -158,90 +162,33 @@ abstract class AbstractLineItemService
      *
      * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
-     * @return LineItemCreate[]
+     * @return LineItemCreate
      */
     protected function convertItem($entityItem, $entity)
     {
-        $items = [];
+        $amountIncludingTax = $entityItem->getRowTotal() - $entityItem->getDiscountAmount() + $entityItem->getTaxAmount() +
+            $entityItem->getDiscountTaxCompensationAmount();
 
-        $items[] = $this->convertProductItem($entityItem, $entity);
-
-        $discountItem = $this->convertDiscountItem($entityItem, $entity);
-        if ($discountItem instanceof LineItemCreate) {
-            $items[] = $discountItem;
-        }
-
-        return $items;
-    }
-
-    /**
-     * Converts the given entity item to a line item.
-     *
-     * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
-     * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
-     * @return LineItemCreate
-     */
-    protected function convertProductItem($entityItem, $entity)
-    {
         $productItem = new LineItemCreate();
         $productItem->setType(LineItemType::PRODUCT);
         $productItem->setUniqueId($this->getUniqueId($entityItem));
         $productItem->setAmountIncludingTax(
-            $this->_helper->roundAmount($entityItem->getRowTotalInclTax(), $this->getCurrencyCode($entity)));
+            $this->_helper->roundAmount($amountIncludingTax, $this->getCurrencyCode($entity)));
         $productItem->setName($this->_helper->fixLength($entityItem->getName(), 150));
         $productItem->setQuantity($entityItem->getQty() ? $entityItem->getQty() : $entityItem->getQtyOrdered());
         $productItem->setShippingRequired(! $entityItem->getIsVirtual());
         $productItem->setSku($this->_helper->fixLength($entityItem->getSku(), 200));
-        if ($entityItem->getTaxPercent() > 0) {
-            $tax = $this->getTax($entityItem);
-            if ($tax instanceof TaxCreate) {
-                $productItem->setTaxes([
-                    $tax
-                ]);
-            }
+        $tax = $this->getTax($entityItem);
+        if ($tax instanceof TaxCreate) {
+            $productItem->setTaxes([
+                $tax
+            ]);
         }
         $attributes = $this->getAttributes($entityItem);
         if (! empty($attributes)) {
             $productItem->setAttributes($attributes);
         }
         return $productItem;
-    }
-
-    /**
-     * Converts the given entity item to a line item representing its discount if any.
-     *
-     * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
-     * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
-     * @return LineItemCreate
-     */
-    protected function convertDiscountItem($entityItem, $entity)
-    {
-        if ($entityItem->getDiscountAmount() > 0) {
-            if ($this->_taxHelper->priceIncludesTax($entityItem->getStore()) ||
-                ! $this->_taxHelper->applyTaxAfterDiscount($entityItem->getStore())) {
-                $discountAmount = $entityItem->getDiscountAmount();
-            } else {
-                $discountAmount = $entityItem->getDiscountAmount() * ($entityItem->getTaxPercent() / 100 + 1);
-            }
-
-            $discountItem = new LineItemCreate();
-            $discountItem->setType(LineItemType::DISCOUNT);
-            $discountItem->setUniqueId($this->getUniqueId($entityItem) . '-discount');
-            $discountItem->setAmountIncludingTax(
-                $this->_helper->roundAmount($discountAmount * - 1, $this->getCurrencyCode($entity)));
-            $discountItem->setName((String) \__('Discount'));
-            $discountItem->setQuantity($entityItem->getQty() ? $entityItem->getQty() : $entityItem->getQtyOrdered());
-            $discountItem->setSku($this->_helper->fixLength($entityItem->getSku(), 191) . '-discount');
-            if ($this->_taxHelper->applyTaxAfterDiscount($entityItem->getStore()) && $entityItem->getTaxPercent()) {
-                $tax = $this->getTax($entityItem);
-                if ($tax instanceof TaxCreate) {
-                    $discountItem->setTaxes([
-                        $tax
-                    ]);
-                }
-            }
-            return $discountItem;
-        }
     }
 
     /**
@@ -267,14 +214,18 @@ abstract class AbstractLineItemService
      */
     protected function getTax($entityItem)
     {
-        $taxClassId = $entityItem->getProduct()->getTaxClassId();
-        if ($taxClassId > 0) {
-            $taxClass = $this->_taxClassRepository->get($taxClassId);
+        if ($entityItem->getTaxAmount() > 0 && $entityItem->getTaxPercent() > 0) {
+            $taxClassId = $entityItem->getProduct()->getTaxClassId();
+            if ($taxClassId > 0) {
+                $taxClass = $this->_taxClassRepository->get($taxClassId);
 
-            $tax = new TaxCreate();
-            $tax->setRate($entityItem->getTaxPercent());
-            $tax->setTitle($taxClass->getClassName());
-            return $tax;
+                $tax = new TaxCreate();
+                $tax->setRate($entityItem->getTaxPercent());
+                $tax->setTitle($taxClass->getClassName());
+                return $tax;
+            }
+        } else {
+            return null;
         }
     }
 
@@ -294,8 +245,10 @@ abstract class AbstractLineItemService
      */
     protected function convertShippingLineItem($entity)
     {
-        return $this->convertShippingLineItemInner($entity, $entity->getShippingInclTax(),
-            $entity->getShippingDescription(), $entity->getShippingDiscountAmount());
+        return $this->convertShippingLineItemInner($entity, $entity->getShippingAmount(),
+            $entity->getShippingTaxAmount(),
+            $entity->getShippingDiscountAmount() - $entity->getShippingDiscountTaxCompensationAmount(),
+            $entity->getShippingDescription());
     }
 
     /**
@@ -307,61 +260,39 @@ abstract class AbstractLineItemService
      * @param float $shippingDiscountAmount
      * @return LineItemCreate
      */
-    protected function convertShippingLineItemInner($entity, $shippingAmount, $shippingDescription, $shippingDiscountAmount)
+    protected function convertShippingLineItemInner($entity, $shippingAmount, $shippingTaxAmount, $shippingDiscountAmount,
+        $shippingDescription)
     {
-        $items = [];
         if ($shippingAmount > 0) {
             $shippingItem = new LineItemCreate();
             $shippingItem->setType(LineItemType::SHIPPING);
             $shippingItem->setUniqueId('shipping');
             $shippingItem->setAmountIncludingTax(
-                $this->_helper->roundAmount($shippingAmount, $this->getCurrencyCode($entity)));
+                $this->_helper->roundAmount($shippingAmount + $shippingTaxAmount - $shippingDiscountAmount,
+                    $this->getCurrencyCode($entity)));
             if ($this->_scopeConfig->getValue('wallee_payment/line_items/overwrite_shipping_description',
                 ScopeInterface::SCOPE_STORE, $entity->getStoreId())) {
                 $shippingItem->setName(
-                    $this->_helper->fixLength($this->_scopeConfig->getValue(
-                        'wallee_payment/line_items/custom_shipping_description',
-                        ScopeInterface::SCOPE_STORE, $entity->getStoreId()), 150));
+                    $this->_helper->fixLength(
+                        $this->_scopeConfig->getValue(
+                            'wallee_payment/line_items/custom_shipping_description',
+                            ScopeInterface::SCOPE_STORE, $entity->getStoreId()), 150));
             } else {
                 $shippingItem->setName($this->_helper->fixLength($shippingDescription, 150));
             }
             $shippingItem->setQuantity(1);
             $shippingItem->setSku('shipping');
-            $tax = $this->getShippingTax($entity);
-            if ($tax instanceof TaxCreate) {
-                $shippingItem->setTaxes([
-                    $tax
-                ]);
-            }
-            $items[] = $shippingItem;
-
-            $discountItem = $this->getShippingDiscountLineItem($entity, $shippingItem->getName(), $shippingDiscountAmount);
-            if ($discountItem instanceof LineItemCreate) {
-                $items[] = $discountItem;
-            }
-        }
-        return $items;
-    }
-
-    protected function getShippingDiscountLineItem($entity, $shippingDescription, $shippingDiscountAmount) {
-        if ($shippingDiscountAmount > 0) {
-            $discountItem = new LineItemCreate();
-            $discountItem->setType(LineItemType::DISCOUNT);
-            $discountItem->setUniqueId('shipping-discount');
-            $discountItem->setAmountIncludingTax(
-                $this->_helper->roundAmount($shippingDiscountAmount * - 1, $this->getCurrencyCode($entity)));
-            $discountItem->setName((String) \__('Shipping Discount'));
-            $discountItem->setQuantity(1);
-            $discountItem->setSku('shipping-discount');
-            if ($this->_taxHelper->applyTaxAfterDiscount($entity->getStore())) {
+            if ($shippingTaxAmount > 0) {
                 $tax = $this->getShippingTax($entity);
                 if ($tax instanceof TaxCreate) {
-                    $discountItem->setTaxes([
+                    $shippingItem->setTaxes([
                         $tax
                     ]);
                 }
             }
-            return $discountItem;
+            return $shippingItem;
+        } else {
+            return null;
         }
     }
 

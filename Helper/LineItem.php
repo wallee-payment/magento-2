@@ -123,7 +123,9 @@ class LineItem extends AbstractHelper
 
         $appliedAmount = 0;
         foreach ($items as $item) {
-            $item->setAmountIncludingTax($item->getAmountIncludingTax() * $factor);
+            if ($item->getUniqueId() != 'shipping') {
+                $item->setAmountIncludingTax($item->getAmountIncludingTax() * $factor);
+            }
             $appliedAmount += $item->getAmountIncludingTax();
         }
 
