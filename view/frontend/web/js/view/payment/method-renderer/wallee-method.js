@@ -11,12 +11,14 @@ define([
 	'jquery',
 	'Magento_Checkout/js/view/payment/default',
 	'rjsResolver',
-	'Magento_Checkout/js/model/full-screen-loader'
+	'Magento_Checkout/js/model/full-screen-loader',
+	'Magento_Checkout/js/model/payment/method-list'
 ], function(
 	$,
 	Component,
 	resolver,
-	fullScreenLoader
+	fullScreenLoader,
+	methodList
 ){
 	'use strict';
 	return Component.extend({
@@ -37,6 +39,14 @@ define([
 					this.createHandler();
 				}
 			}).bind(this));
+			
+			/*methodList.subscribe($.proxy(function(methods){
+				if (methods) {
+					this.handler = null;
+					$('#' + this.getFormId()).find('iframe').remove();
+					this.createHandler();
+				}
+			}, this));*/
 		},
         
 		getFormId: function(){
@@ -66,10 +76,12 @@ define([
 						this.placeOrder();
 					} else {
 						$('html, body').animate({ scrollTop: $('#' + this.getCode()).offset().top - 20 });
-						for (var i = 0; i < validationResult.errors.length; i++) {
-							this.messageContainer.addErrorMessage({
-								message: validationResult.errors[i]
-							});
+						if (validationResult.errors) {
+							for (var i = 0; i < validationResult.errors.length; i++) {
+								this.messageContainer.addErrorMessage({
+									message: validationResult.errors[i]
+								});
+							}
 						}
 					}
 				}).bind(this), function(){

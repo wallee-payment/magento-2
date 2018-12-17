@@ -203,4 +203,7 @@
 	<type name="Magento\Sales\Model\Service\CreditmemoService">
 		<plugin name="wallee_payment_sales_creditmemo_service" type="Wallee\Payment\Plugin\Sales\Model\Service\CreditmemoService" />
 	</type>
+	<type name="Magento\Sales\Model\AdminOrder\Create">
+		<plugin name="wallee_payment_sales_adminorder_create" type="Wallee\Payment\Plugin\Sales\Model\AdminOrder\Create" />
+	</type>
 </config>
