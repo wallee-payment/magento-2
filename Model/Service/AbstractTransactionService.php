@@ -10,11 +10,13 @@
  */
 namespace Wallee\Payment\Model\Service;
 
+use Magento\Customer\Model\Customer;
 use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
+use Magento\Store\Model\ScopeInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Model\ApiClient;
@@ -80,8 +82,8 @@ abstract class AbstractTransactionService
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
      */
-    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
-        CartRepositoryInterface $quoteRepository,
+    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
+        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient)
     {
         $this->_resource = $resource;
@@ -128,7 +130,7 @@ abstract class AbstractTransactionService
         $this->_resource->getConnection()->update($this->_resource->getTableName('quote'),
             [
                 'wallee_space_id' => $transaction->getLinkedSpaceId(),
-                'wallee_transaction_id' => $transaction->getId(),
+                'wallee_transaction_id' => $transaction->getId()
             ], [
                 'entity_id = ?' => $quote->getId()
             ]);
@@ -213,6 +215,30 @@ abstract class AbstractTransactionService
         if ($dateOfBirth !== null) {
             $date = new \DateTime($dateOfBirth);
             return $date->format(\DateTime::W3C);
+        }
+    }
+
+    /**
+     * Collects the data that is to be transmitted to the gateway as transaction meta data.
+     *
+     * @param Customer $customer
+     * @return array
+     */
+    protected function collectCustomerMetaData(Customer $customer)
+    {
+        $attributeCodesConfig = $this->_scopeConfig->getValue(
+            'wallee_payment/meta_data/customer_attributes', ScopeInterface::SCOPE_STORE,
+            $customer->getStoreId());
+        if (! empty($attributeCodesConfig)) {
+            $metaData = [];
+            $attributeCodes = \explode(',', $attributeCodesConfig);
+            foreach ($attributeCodes as $attributeCode) {
+                $value = $customer->getData($attributeCode);
+                if ($value !== null && $value !== "" && $value !== false) {
+                    $metaData['customer_' . $attributeCode] = $value;
+                }
+            }
+            return $metaData;
         }
     }
 }

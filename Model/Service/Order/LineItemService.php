@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Service\Order;
 
+use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
@@ -38,13 +39,15 @@ class LineItemService extends AbstractLineItemService
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
+     * @param ProductRepositoryInterface $productRepository
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager)
+        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
+        ProductRepositoryInterface $productRepository)
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
-            $groupRegistry, $eventManager);
+            $groupRegistry, $eventManager, $productRepository);
     }
 
     /**
@@ -68,21 +71,21 @@ class LineItemService extends AbstractLineItemService
     protected function getAttributes($entityItem)
     {
         $attributes = [];
-        $options = $entityItem->getProductOptions();
-        if (isset($options['attributes_info'])) {
-            foreach ($options['attributes_info'] as $option) {
-                $value = $option['value'];
-                if (\is_array($value)) {
-                    $value = \current($value);
-                }
-
-                $attribute = new LineItemAttributeCreate();
-                $attribute->setLabel($this->_helper->fixLength($this->_helper->getFirstLine($option['label']), 512));
-                $attribute->setValue($this->_helper->fixLength($this->_helper->getFirstLine($value), 512));
-                $attributes[$this->getAttributeKey($option)] = $attribute;
+        foreach ($this->getProductOptions($entityItem) as $option) {
+            $value = $option['value'];
+            if (\is_array($value)) {
+                $value = \current($value);
             }
+
+            $attribute = new LineItemAttributeCreate();
+            $attribute->setLabel($this->_helper->fixLength($this->_helper->getFirstLine($option['label']), 512));
+            $attribute->setValue($this->_helper->fixLength($this->_helper->getFirstLine($value), 512));
+            $attributes[$this->getAttributeKey($option)] = $attribute;
         }
-        return $attributes;
+
+        return \array_merge($attributes,
+            $this->getCustomAttributes($entityItem->getProductId(), $entityItem->getOrder()
+                ->getStoreId()));
     }
 
     /**

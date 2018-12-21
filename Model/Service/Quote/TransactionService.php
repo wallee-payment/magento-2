@@ -67,8 +67,8 @@ class TransactionService extends AbstractTransactionService
      * @param ApiClient $apiClient
      * @param LineItemService $lineItemService
      */
-    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
-        CartRepositoryInterface $quoteRepository,
+    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
+        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
         LineItemService $lineItemService)
     {
@@ -218,13 +218,14 @@ class TransactionService extends AbstractTransactionService
         $transaction->setLineItems($this->_lineItemService->convertQuoteLineItems($quote));
         if (! empty($quote->getCustomerId())) {
             $transaction->setCustomerId($quote->getCustomerId());
+            $transaction->setMetaData(
+                $this->collectCustomerMetaData($this->_customerRegistry->retrieve($quote->getCustomerId())));
         }
         if ($quote->getShippingAddress()) {
             $transaction->setShippingMethod(
                 $this->_helper->fixLength(
-                    $this->_helper->getFirstLine(
-                        $quote->getShippingAddress()
-                            ->getShippingDescription()), 200));
+                    $this->_helper->getFirstLine($quote->getShippingAddress()
+                        ->getShippingDescription()), 200));
         }
 
         if ($transaction instanceof TransactionCreate) {

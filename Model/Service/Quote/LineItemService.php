@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Service\Quote;
 
+use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Helper\Product\Configuration as ProductConfigurationHelper;
 use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -45,15 +46,16 @@ class LineItemService extends AbstractLineItemService
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
+     * @param ProductRepositoryInterface $productRepository
      * @param ProductConfigurationHelper $productConfigurationHelper
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
         CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
-        ProductConfigurationHelper $productConfigurationHelper)
+        ProductRepositoryInterface $productRepository, ProductConfigurationHelper $productConfigurationHelper)
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
-            $groupRegistry, $eventManager);
+            $groupRegistry, $eventManager, $productRepository);
         $this->_productConfigurationHelper = $productConfigurationHelper;
     }
 
@@ -89,6 +91,11 @@ class LineItemService extends AbstractLineItemService
             $attribute->setValue($this->_helper->fixLength($this->_helper->getFirstLine($value), 512));
             $attributes[$this->getAttributeKey($option)] = $attribute;
         }
+
+        return \array_merge($attributes,
+            $this->getCustomAttributes($entityItem->getProductId(), $entityItem->getQuote()
+                ->getStoreId()));
+
         return $attributes;
     }
 

@@ -76,8 +76,8 @@ class TransactionService extends AbstractTransactionService
      * @param LineItemService $lineItemService
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      */
-    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
-        CartRepositoryInterface $quoteRepository,
+    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
+        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
         LineItemService $lineItemService, TransactionInfoRepositoryInterface $transactionInfoRepository)
     {
@@ -167,13 +167,14 @@ class TransactionService extends AbstractTransactionService
         $transaction->setInvoiceMerchantReference($invoice->getIncrementId());
         if (! empty($order->getCustomerId())) {
             $transaction->setCustomerId($order->getCustomerId());
+            $transaction->setMetaData(
+                $this->collectCustomerMetaData($this->_customerRegistry->retrieve($order->getCustomerId())));
         }
         if ($order->getShippingAddress()) {
             $transaction->setShippingMethod(
                 $this->_helper->fixLength(
-                    $this->_helper->getFirstLine(
-                        $order->getShippingAddress()
-                            ->getShippingDescription()), 200));
+                    $this->_helper->getFirstLine($order->getShippingAddress()
+                        ->getShippingDescription()), 200));
         }
         if ($transaction instanceof TransactionCreate) {
             $transaction->setSpaceViewId(

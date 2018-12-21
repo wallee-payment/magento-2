@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Service;
 
+use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -20,6 +21,7 @@ use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
+use Wallee\Sdk\Model\LineItemAttributeCreate;
 use Wallee\Sdk\Model\LineItemCreate;
 use Wallee\Sdk\Model\LineItemType;
 use Wallee\Sdk\Model\TaxCreate;
@@ -80,6 +82,12 @@ abstract class AbstractLineItemService
 
     /**
      *
+     * @var ProductRepositoryInterface
+     */
+    protected $_productRepository;
+
+    /**
+     *
      * @param Helper $helper
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
@@ -88,10 +96,12 @@ abstract class AbstractLineItemService
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
+     * @param ProductRepositoryInterface $productRepository
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager)
+        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
+        ProductRepositoryInterface $productRepository)
     {
         $this->_helper = $helper;
         $this->_lineItemHelper = $lineItemHelper;
@@ -101,6 +111,7 @@ abstract class AbstractLineItemService
         $this->_taxCalculation = $taxCalculation;
         $this->_groupRegistry = $groupRegistry;
         $this->_eventManager = $eventManager;
+        $this->_productRepository = $productRepository;
     }
 
     /**
@@ -236,6 +247,54 @@ abstract class AbstractLineItemService
      * @return \Wallee\Sdk\Model\LineItemAttributeCreate[]
      */
     abstract protected function getAttributes($entityItem);
+
+    /**
+     * Gets the line item attributes by the configured product attributes.
+     *
+     * @param int $productId
+     * @param int $storeId
+     * @return \Wallee\Sdk\Model\LineItemAttributeCreate[]
+     */
+    protected function getCustomAttributes($productId, $storeId)
+    {
+        $attributes = [];
+        $productAttributeCodeConfig = $this->_scopeConfig->getValue(
+            'wallee_payment/line_items/product_attributes', ScopeInterface::SCOPE_STORE, $storeId);
+        if (! empty($productAttributeCodeConfig)) {
+            $product = $this->_productRepository->getById($productId, false, $storeId);
+            $productAttributeCodes = \explode(',', $productAttributeCodeConfig);
+            foreach ($productAttributeCodes as $productAttributeCode) {
+                $productAttribute = $product->getResource()->getAttribute($productAttributeCode);
+                $label = \__($productAttribute->getStoreLabel($storeId));
+                $value = $productAttribute->getFrontend()->getValue($product);
+                if ($value !== null && $value !== "" && $value !== false) {
+                    $attribute = new LineItemAttributeCreate();
+                    $attribute->setLabel($this->_helper->fixLength($this->_helper->getFirstLine($label), 512));
+                    $attribute->setValue($this->_helper->fixLength($this->_helper->getFirstLine($value), 512));
+                    $attributes['product_' . $productAttributeCode] = $attribute;
+                }
+            }
+        }
+        return $attributes;
+    }
+
+    /**
+     * Gets the product options.
+     *
+     * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
+     * @return array
+     */
+    protected function getProductOptions($entityItem)
+    {
+        $options = $entityItem->getProductOptions();
+        if (isset($options['attributes_info'])) {
+            return $options['attributes_info'];
+        } elseif (isset($options['options'])) {
+            return $options['options'];
+        } else {
+            return [];
+        }
+    }
 
     /**
      * Converts the entity's shipping information to a line item.

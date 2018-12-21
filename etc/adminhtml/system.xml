@@ -18,7 +18,7 @@
 			<resource>Wallee_Payment::config</resource>
 			<group id="information" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 				<label>Information</label>
-				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/1.0.26/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
+				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/1.0.27/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
 				<field id="version" translate="label" type="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 					<label>Module Version</label>
 				</field>
@@ -82,6 +82,21 @@
 					<label>Custom Shipping Description</label>
 					<comment>The description to set on the shipping line item.</comment>
 					<depends><field id="overwrite_shipping_description">1</field></depends>
+				</field>
+				<field id="product_attributes" translate="label comment" type="multiselect" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Product Attributes</label>
+					<comment>Define the product attributes that should be appended to the line item attributes sent of the wallee transactions. They will be displayed in the line item list of emails and documents.</comment>
+					<source_model>Wallee\Payment\Model\Config\Source\ProductAttribute</source_model>
+					<can_be_empty>1</can_be_empty>
+				</field>
+			</group>
+			<group id="meta_data" translate="label" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+				<label>Meta Data</label>
+				<field id="customer_attributes" translate="label comment" type="multiselect" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Customer Attributes</label>
+					<comment>Define the customer attributes that should be attached to the wallee transaction as meta data.</comment>
+					<source_model>Wallee\Payment\Model\Config\Source\CustomerAttribute</source_model>
+					<can_be_empty>1</can_be_empty>
 				</field>
 			</group>
 		</section>
