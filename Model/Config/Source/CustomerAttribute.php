@@ -15,23 +15,26 @@ namespace Wallee\Payment\Model\Config\Source;
  */
 class CustomerAttribute implements \Magento\Framework\Option\ArrayInterface
 {
+
     /**
+     *
      * @var \Magento\Customer\Model\Form
      */
-    protected $_customerForm;
+    private $customerForm;
 
     /**
      *
      * @param \Magento\Customer\Model\Form $customerForm
      */
-    public function __construct(\Magento\Customer\Model\Form $customerForm) {
-        $this->_customerForm = $customerForm;
+    public function __construct(\Magento\Customer\Model\Form $customerForm)
+    {
+        $this->customerForm = $customerForm;
     }
 
     public function toOptionArray()
     {
         $options = [];
-        $attributes = $this->_customerForm->setFormCode('adminhtml_customer')->getAttributes();
+        $attributes = $this->customerForm->setFormCode('adminhtml_customer')->getAttributes();
         /** @var $attribute \Magento\Eav\Model\Attribute */
         foreach ($attributes as $attribute) {
             $options[] = [
@@ -41,5 +44,4 @@ class CustomerAttribute implements \Magento\Framework\Option\ArrayInterface
         }
         return $options;
     }
-
 }

@@ -11,7 +11,7 @@
 namespace Wallee\Payment\Model\Checkout;
 
 use Magento\Checkout\Model\ConfigProviderInterface;
-use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Checkout\Model\Session\Proxy as CheckoutSession;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\Search\FilterGroupBuilder;
@@ -30,37 +30,37 @@ class ConfigProvider implements ConfigProviderInterface
      *
      * @var PaymentMethodConfigurationRepositoryInterface
      */
-    protected $_paymentMethodConfigurationRepository;
+    private $paymentMethodConfigurationRepository;
 
     /**
      *
      * @var TransactionService
      */
-    protected $_transactionService;
+    private $transactionService;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var FilterBuilder
      */
-    protected $_filterBuilder;
+    private $filterBuilder;
 
     /**
      *
      * @var FilterGroupBuilder
      */
-    protected $_filterGroupBuilder;
+    private $filterGroupBuilder;
 
     /**
      *
      * @var CheckoutSession
      */
-    protected $_checkoutSession;
+    private $checkoutSession;
 
     /**
      *
@@ -75,12 +75,12 @@ class ConfigProvider implements ConfigProviderInterface
         TransactionService $transactionService, SearchCriteriaBuilder $searchCriteriaBuilder,
         FilterBuilder $filterBuilder, FilterGroupBuilder $filterGroupBuilder, CheckoutSession $checkoutSession)
     {
-        $this->_paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->_transactionService = $transactionService;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_filterBuilder = $filterBuilder;
-        $this->_filterGroupBuilder = $filterGroupBuilder;
-        $this->_checkoutSession = $checkoutSession;
+        $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
+        $this->transactionService = $transactionService;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->filterBuilder = $filterBuilder;
+        $this->filterGroupBuilder = $filterGroupBuilder;
+        $this->checkoutSession = $checkoutSession;
     }
 
     public function getConfig()
@@ -91,31 +91,30 @@ class ConfigProvider implements ConfigProviderInterface
         ];
 
         try {
-            $config['wallee']['javascriptUrl'] = $this->_transactionService->getJavaScriptUrl(
-                $this->_checkoutSession->getQuote());
+            $config['wallee']['javascriptUrl'] = $this->transactionService->getJavaScriptUrl(
+                $this->checkoutSession->getQuote());
         } catch (\Exception $e) {}
 
         try {
-            $config['wallee']['paymentPageUrl'] = $this->_transactionService->getPaymentPageUrl(
-                $this->_checkoutSession->getQuote());
+            $config['wallee']['paymentPageUrl'] = $this->transactionService->getPaymentPageUrl(
+                $this->checkoutSession->getQuote());
         } catch (\Exception $e) {}
 
-        $stateFilter = $this->_filterBuilder->setConditionType('in')
+        $stateFilter = $this->filterBuilder->setConditionType('in')
             ->setField(PaymentMethodConfigurationInterface::STATE)
-            ->setValue(
-            [
-                PaymentMethodConfiguration::STATE_ACTIVE,
-                PaymentMethodConfiguration::STATE_INACTIVE
-            ])
+            ->setValue([
+            PaymentMethodConfiguration::STATE_ACTIVE,
+            PaymentMethodConfiguration::STATE_INACTIVE
+        ])
             ->create();
-        $filterGroup = $this->_filterGroupBuilder->setFilters([
+        $filterGroup = $this->filterGroupBuilder->setFilters([
             $stateFilter
         ])->create();
-        $searchCriteria = $this->_searchCriteriaBuilder->setFilterGroups([
+        $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
             $filterGroup
         ])->create();
 
-        $configurations = $this->_paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
+        $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
         foreach ($configurations as $configuration) {
             $config['payment']['wallee_payment_' . $configuration->getEntityId()] = [
                 'isActive' => true,

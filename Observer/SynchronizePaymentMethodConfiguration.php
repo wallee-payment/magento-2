@@ -24,7 +24,7 @@ class SynchronizePaymentMethodConfiguration implements ObserverInterface
      *
      * @var PaymentMethodConfigurationManagementInterface
      */
-    protected $_paymentMethodConfigurationManagement;
+    private $paymentMethodConfigurationManagement;
 
     /**
      *
@@ -32,11 +32,11 @@ class SynchronizePaymentMethodConfiguration implements ObserverInterface
      */
     public function __construct(PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement)
     {
-        $this->_paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
+        $this->paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
     }
 
     public function execute(Observer $observer)
     {
-        $this->_paymentMethodConfigurationManagement->synchronize();
+        $this->paymentMethodConfigurationManagement->synchronize();
     }
 }

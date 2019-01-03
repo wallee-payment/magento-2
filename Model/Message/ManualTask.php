@@ -25,13 +25,13 @@ class ManualTask implements MessageInterface
      *
      * @var ScopeConfigInterface
      */
-    protected $_scopeConfig;
+    private $scopeConfig;
 
     /**
      *
      * @var ManualTaskService
      */
-    protected $_manualTaskService;
+    private $manualTaskService;
 
     /**
      *
@@ -40,8 +40,8 @@ class ManualTask implements MessageInterface
      */
     public function __construct(ScopeConfigInterface $scopeConfig, ManualTaskService $manualTaskService)
     {
-        $this->_scopeConfig = $scopeConfig;
-        $this->_manualTaskService = $manualTaskService;
+        $this->scopeConfig = $scopeConfig;
+        $this->manualTaskService = $manualTaskService;
     }
 
     public function getSeverity()
@@ -56,8 +56,8 @@ class ManualTask implements MessageInterface
 
     public function getText()
     {
-        $numberOfManualTasks = $this->_manualTaskService->getNumberOfManualTasks();
-        $totalNumberOfManualTasks = \array_sum($this->_manualTaskService->getNumberOfManualTasks());
+        $numberOfManualTasks = $this->manualTaskService->getNumberOfManualTasks();
+        $totalNumberOfManualTasks = \array_sum($this->manualTaskService->getNumberOfManualTasks());
         $url = $this->buildManualTaskUrl(\count($numberOfManualTasks) == 1 ? \key($numberOfManualTasks) : null);
         if ($totalNumberOfManualTasks == 1) {
             return \__('There is a <a href="%1" target="_blank">manual task</a> that needs your attention.', $url);
@@ -69,7 +69,7 @@ class ManualTask implements MessageInterface
 
     public function isDisplayed()
     {
-        return \array_sum($this->_manualTaskService->getNumberOfManualTasks()) > 0;
+        return \array_sum($this->manualTaskService->getNumberOfManualTasks()) > 0;
     }
 
     /**
@@ -77,11 +77,11 @@ class ManualTask implements MessageInterface
      * @param int $websiteId
      * @return string
      */
-    protected function buildManualTaskUrl($websiteId = null)
+    private function buildManualTaskUrl($websiteId = null)
     {
-        $url = rtrim($this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
+        $url = rtrim($this->scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
         if ($websiteId != null) {
-            $spaceId = $this->_scopeConfig->getValue('wallee_payment/general/space_id',
+            $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
                 ScopeInterface::SCOPE_WEBSITE, $websiteId);
             $url .= '/s/' . $spaceId . '/manual-task/list';
         }

@@ -22,12 +22,19 @@ class CurrencyProvider extends AbstractProvider
 
     /**
      *
+     * @var ApiClient
+     */
+    private $apiClient;
+
+    /**
+     *
      * @param FrontendInterface $cache
      * @param ApiClient $apiClient
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, $apiClient, 'wallee_payment_currencies');
+        parent::__construct($cache, 'wallee_payment_currencies');
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -53,7 +60,7 @@ class CurrencyProvider extends AbstractProvider
 
     protected function fetchData()
     {
-        return $this->_apiClient->getService(CurrencyService::class)->all();
+        return $this->apiClient->getService(CurrencyService::class)->all();
     }
 
     protected function getId($entry)

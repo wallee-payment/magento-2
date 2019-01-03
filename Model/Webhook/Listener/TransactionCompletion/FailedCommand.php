@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\TransactionCompletion;
 
+use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
 
@@ -18,6 +19,21 @@ use Magento\Sales\Model\Order\Invoice;
  */
 class FailedCommand extends AbstractCommand
 {
+
+    /**
+     *
+     * @var OrderRepositoryInterface
+     */
+    private $orderRepository;
+
+    /**
+     *
+     * @param OrderRepositoryInterface $orderRepository
+     */
+    public function __construct(OrderRepositoryInterface $orderRepository)
+    {
+        $this->orderRepository = $orderRepository;
+    }
 
     /**
      *
@@ -39,7 +55,7 @@ class FailedCommand extends AbstractCommand
 
             $order->addRelatedObject($invoice);
             $order->addRelatedObject($authTransaction);
-            $this->_orderRepository->save($order);
+            $this->orderRepository->save($order);
         }
     }
 }

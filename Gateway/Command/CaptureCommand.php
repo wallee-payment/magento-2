@@ -30,19 +30,19 @@ class CaptureCommand implements CommandInterface
      *
      * @var Registry
      */
-    protected $_registry;
+    private $registry;
 
     /**
      *
      * @var InvoiceTransactionService
      */
-    protected $_invoiceTransactionService;
+    private $invoiceTransactionService;
 
     /**
      *
      * @var OrderTransactionService
      */
-    protected $_orderTransactionService;
+    private $orderTransactionService;
 
     /**
      *
@@ -53,9 +53,9 @@ class CaptureCommand implements CommandInterface
     public function __construct(Registry $registry, InvoiceTransactionService $invoiceTransactionService,
         OrderTransactionService $orderTransactionService)
     {
-        $this->_registry = $registry;
-        $this->_invoiceTransactionService = $invoiceTransactionService;
-        $this->_orderTransactionService = $orderTransactionService;
+        $this->registry = $registry;
+        $this->invoiceTransactionService = $invoiceTransactionService;
+        $this->orderTransactionService = $orderTransactionService;
     }
 
     public function execute(array $commandSubject)
@@ -66,7 +66,7 @@ class CaptureCommand implements CommandInterface
         $payment = SubjectReader::readPayment($commandSubject)->getPayment();
 
         /** @var Invoice $invoice */
-        $invoice = $this->_registry->registry(Adapter::CAPTURE_INVOICE_REGISTRY_KEY);
+        $invoice = $this->registry->registry(Adapter::CAPTURE_INVOICE_REGISTRY_KEY);
 
         if ($invoice->getWalleeCapturePending() || $this->isTransactionInvoiceOpen($invoice)) {
             throw new \Magento\Framework\Exception\LocalizedException(
@@ -74,7 +74,7 @@ class CaptureCommand implements CommandInterface
                     'The capture has already been requested but could not be completed yet. The invoice will be updated, as soon as the capture is done.'));
         }
 
-        $this->_invoiceTransactionService->complete($payment, $invoice, $amount);
+        $this->invoiceTransactionService->complete($payment, $invoice, $amount);
         if (! $invoice->getId()) {
             throw new \Magento\Framework\Exception\LocalizedException(
                 \__('The capture has been registered. The invoice will be created, as soon as the capture is done.'));
@@ -87,10 +87,10 @@ class CaptureCommand implements CommandInterface
      * @param Invoice $invoice
      * @return boolean
      */
-    protected function isTransactionInvoiceOpen(Invoice $invoice)
+    private function isTransactionInvoiceOpen(Invoice $invoice)
     {
         try {
-            $invoice = $this->_orderTransactionService->getTransactionInvoice($invoice->getOrder());
+            $invoice = $this->orderTransactionService->getTransactionInvoice($invoice->getOrder());
             return $invoice->getState() == TransactionInvoiceState::OPEN ||
                 $invoice->getState() == TransactionInvoiceState::OVERDUE;
         } catch (NoSuchEntityException $e) {

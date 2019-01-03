@@ -10,12 +10,10 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\Refund;
 
-use Magento\Framework\DB\TransactionFactory as DBTransactionFactory;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
+use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Helper\Locale as LocaleHelper;
-use Wallee\Payment\Model\RefundJobRepository;
 
 /**
  * Webhook listener command to handle failed refunds.
@@ -25,23 +23,28 @@ class FailedCommand extends AbstractCommand
 
     /**
      *
-     * @var LocaleHelper
+     * @var OrderRepositoryInterface
      */
-    protected $_localeHelper;
+    private $orderRepository;
 
     /**
      *
-     * @param DBTransactionFactory $dbTransactionFactory
+     * @var LocaleHelper
+     */
+    private $localeHelper;
+
+    /**
+     *
+     * @param RefundJobRepositoryInterface $refundJobRepository
      * @param OrderRepositoryInterface $orderRepository
-     * @param OrderEmailSender $orderEmailSender
-     * @param RefundJobRepository $refundJobRepository
      * @param LocaleHelper $localeHelper
      */
-    public function __construct(DBTransactionFactory $dbTransactionFactory, OrderRepositoryInterface $orderRepository,
-        OrderEmailSender $orderEmailSender, RefundJobRepository $refundJobRepository, LocaleHelper $localeHelper)
+    public function __construct(RefundJobRepositoryInterface $refundJobRepository, OrderRepositoryInterface $orderRepository,
+        LocaleHelper $localeHelper)
     {
-        parent::__construct($dbTransactionFactory, $orderRepository, $orderEmailSender, $refundJobRepository);
-        $this->_localeHelper = $localeHelper;
+        parent::__construct($refundJobRepository);
+        $this->orderRepository = $orderRepository;
+        $this->localeHelper = $localeHelper;
     }
 
     /**
@@ -51,13 +54,13 @@ class FailedCommand extends AbstractCommand
      */
     public function execute($entity, Order $order)
     {
-        $order->addStatusHistoryComment(
+        $order->addCommentToStatusHistory(
             \__('The refund of %1 failed on the gateway: %2',
                 $order->getBaseCurrency()
                     ->formatTxt($entity->getAmount()),
-                $this->_localeHelper->translate($entity->getFailureReason()
+                $this->localeHelper->translate($entity->getFailureReason()
                     ->getDescription())));
-        $this->_orderRepository->save($order);
+        $this->orderRepository->save($order);
         $this->deleteRefundJob($entity);
     }
 }

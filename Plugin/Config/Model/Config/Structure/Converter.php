@@ -32,43 +32,55 @@ class Converter
      *
      * @var PaymentMethodConfigurationRepositoryInterface
      */
-    protected $_paymentMethodConfigurationRepository;
+    private $paymentMethodConfigurationRepository;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var FilterBuilder
      */
-    protected $_filterBuilder;
+    private $filterBuilder;
 
     /**
      *
      * @var FilterGroupBuilder
      */
-    protected $_filterGroupBuilder;
+    private $filterGroupBuilder;
 
     /**
      *
      * @var StoreManagerInterface
      */
-    protected $_storeManager;
+    private $storeManager;
 
     /**
      *
      * @var ResourceConnection
      */
-    protected $_resourceConnection;
+    private $resourceConnection;
 
     /**
      *
      * @var Reader
      */
-    protected $_reader;
+    private $reader;
+
+    /**
+     *
+     * @var ModuleDirReader
+     */
+    private $moduleReader;
+
+    /**
+     *
+     * @var DriverPool
+     */
+    private $driverPool;
 
     /**
      *
@@ -93,17 +105,15 @@ class Converter
         FilterGroupBuilder $filterGroupBuilder, StoreManagerInterface $storeManager,
         ResourceConnection $resourceConnection, Reader $reader, ModuleDirReader $moduleReader, DriverPool $driverPool)
     {
-        $this->_paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_filterBuilder = $filterBuilder;
-        $this->_filterGroupBuilder = $filterGroupBuilder;
-        $this->_storeManager = $storeManager;
-        $this->_resourceConnection = $resourceConnection;
-        $this->_reader = $reader;
-
-        $templatePath = $moduleReader->getModuleDir(\Magento\Framework\Module\Dir::MODULE_ETC_DIR,
-            'Wallee_Payment') . '/adminhtml/system-method-template.xml';
-        $this->template = $driverPool->getDriver(DriverPool::FILE)->fileGetContents($templatePath);
+        $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->filterBuilder = $filterBuilder;
+        $this->filterGroupBuilder = $filterGroupBuilder;
+        $this->storeManager = $storeManager;
+        $this->resourceConnection = $resourceConnection;
+        $this->reader = $reader;
+        $this->moduleReader = $moduleReader;
+        $this->driverPool = $driverPool;
     }
 
     public function beforeConvert(\Magento\Config\Model\Config\Structure\Converter $subject, $source)
@@ -114,27 +124,26 @@ class Converter
             ];
         }
 
-        $configMerger = $this->_reader->createConfigMerger();
+        $configMerger = $this->reader->createConfigMerger();
         $configMerger->setDom($source);
 
-        $stateFilter = $this->_filterBuilder->setConditionType('in')
+        $stateFilter = $this->filterBuilder->setConditionType('in')
             ->setField(PaymentMethodConfigurationInterface::STATE)
-            ->setValue(
-            [
-                PaymentMethodConfiguration::STATE_ACTIVE,
-                PaymentMethodConfiguration::STATE_INACTIVE
-            ])
+            ->setValue([
+            PaymentMethodConfiguration::STATE_ACTIVE,
+            PaymentMethodConfiguration::STATE_INACTIVE
+        ])
             ->create();
-        $filterGroup = $this->_filterGroupBuilder->setFilters([
+        $filterGroup = $this->filterGroupBuilder->setFilters([
             $stateFilter
         ])->create();
-        $searchCriteria = $this->_searchCriteriaBuilder->setFilterGroups([
+        $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
             $filterGroup
         ])->create();
 
-        $configurations = $this->_paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
+        $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
         foreach ($configurations as $configuration) {
-            $configMerger->merge($this->_reader->processDocument($this->generateXml($configuration)));
+            $configMerger->merge($this->reader->processDocument($this->generateXml($configuration)));
         }
 
         return [
@@ -142,7 +151,7 @@ class Converter
         ];
     }
 
-    protected function generateXml(PaymentMethodConfigurationInterface $configuration)
+    private function generateXml(PaymentMethodConfigurationInterface $configuration)
     {
         return str_replace([
             '{id}',
@@ -150,7 +159,7 @@ class Converter
         ], [
             $configuration->getEntityId(),
             $configuration->getConfigurationName()
-        ], $this->template);
+        ], $this->getTemplate());
     }
 
     /**
@@ -158,9 +167,19 @@ class Converter
      *
      * @return boolean
      */
-    protected function isTableExists()
+    private function isTableExists()
     {
-        return $this->_resourceConnection->getConnection()->isTableExists(
-            $this->_resourceConnection->getTableName('wallee_payment_method_configuration'));
+        return $this->resourceConnection->getConnection()->isTableExists(
+            $this->resourceConnection->getTableName('wallee_payment_method_configuration'));
+    }
+
+    private function getTemplate()
+    {
+        if ($this->template == null) {
+            $templatePath = $this->moduleReader->getModuleDir(\Magento\Framework\Module\Dir::MODULE_ETC_DIR,
+                'Wallee_Payment') . '/adminhtml/system-method-template.xml';
+            $this->template = $this->driverPool->getDriver(DriverPool::FILE)->fileGetContents($templatePath);
+        }
+        return $this->template;
     }
 }

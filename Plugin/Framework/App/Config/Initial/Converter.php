@@ -36,55 +36,67 @@ class Converter
      *
      * @var PaymentMethodConfigurationRepositoryInterface
      */
-    protected $_paymentMethodConfigurationRepository;
+    private $paymentMethodConfigurationRepository;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var FilterBuilder
      */
-    protected $_filterBuilder;
+    private $filterBuilder;
 
     /**
      *
      * @var FilterGroupBuilder
      */
-    protected $_filterGroupBuilder;
+    private $filterGroupBuilder;
 
     /**
      *
      * @var StoreManagerInterface
      */
-    protected $_storeManager;
+    private $storeManager;
 
     /**
      *
      * @var ScopeConfigInterface
      */
-    protected $_scopeConfig;
+    private $scopeConfig;
 
     /**
      *
      * @var ResourceConnection
      */
-    protected $_resourceConnection;
+    private $resourceConnection;
 
     /**
      *
      * @var DomFactory
      */
-    protected $_domFactory;
+    private $domFactory;
 
     /**
      *
      * @var SchemaLocator
      */
-    protected $_schemaFile;
+    private $schemaFile;
+
+    /**
+     *
+     * @var ModuleDirReader
+     */
+    private $moduleReader;
+
+    /**
+     *
+     * @var DriverPool
+     */
+    private $driverPool;
 
     /**
      *
@@ -112,19 +124,17 @@ class Converter
         ResourceConnection $resourceConnection, DomFactory $domFactory, SchemaLocator $schemaLocator,
         ModuleDirReader $moduleReader, DriverPool $driverPool)
     {
-        $this->_paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_filterBuilder = $filterBuilder;
-        $this->_filterGroupBuilder = $filterGroupBuilder;
-        $this->_storeManager = $storeManager;
-        $this->_scopeConfig = $scopeConfig;
-        $this->_resourceConnection = $resourceConnection;
-        $this->_domFactory = $domFactory;
-        $this->_schemaFile = $schemaLocator->getSchema();
-
-        $templatePath = $moduleReader->getModuleDir(\Magento\Framework\Module\Dir::MODULE_ETC_DIR,
-            'Wallee_Payment') . '/config-method-template.xml';
-        $this->template = $driverPool->getDriver(DriverPool::FILE)->fileGetContents($templatePath);
+        $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->filterBuilder = $filterBuilder;
+        $this->filterGroupBuilder = $filterGroupBuilder;
+        $this->storeManager = $storeManager;
+        $this->scopeConfig = $scopeConfig;
+        $this->resourceConnection = $resourceConnection;
+        $this->domFactory = $domFactory;
+        $this->schemaFile = $schemaLocator->getSchema();
+        $this->moduleReader = $moduleReader;
+        $this->driverPool = $driverPool;
     }
 
     public function beforeConvert(\Magento\Framework\App\Config\Initial\Converter $subject, $source)
@@ -135,29 +145,28 @@ class Converter
             ];
         }
 
-        $configMerger = $this->_domFactory->createDom(
+        $configMerger = $this->domFactory->createDom(
             [
                 'xml' => Dom::CONFIG_INITIAL_CONTENT,
-                'schemaFile' => $this->_schemaFile
+                'schemaFile' => $this->schemaFile
             ]);
         $configMerger->setDom($source);
 
-        $stateFilter = $this->_filterBuilder->setConditionType('in')
+        $stateFilter = $this->filterBuilder->setConditionType('in')
             ->setField(PaymentMethodConfigurationInterface::STATE)
-            ->setValue(
-            [
-                PaymentMethodConfiguration::STATE_ACTIVE,
-                PaymentMethodConfiguration::STATE_INACTIVE
-            ])
+            ->setValue([
+            PaymentMethodConfiguration::STATE_ACTIVE,
+            PaymentMethodConfiguration::STATE_INACTIVE
+        ])
             ->create();
-        $filterGroup = $this->_filterGroupBuilder->setFilters([
+        $filterGroup = $this->filterGroupBuilder->setFilters([
             $stateFilter
         ])->create();
-        $searchCriteria = $this->_searchCriteriaBuilder->setFilterGroups([
+        $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
             $filterGroup
         ])->create();
 
-        $configurations = $this->_paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
+        $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
         foreach ($configurations as $configuration) {
             $configMerger->merge($this->generateXml($configuration));
         }
@@ -167,17 +176,16 @@ class Converter
         ];
     }
 
-    protected function generateXml(PaymentMethodConfigurationInterface $configuration)
+    private function generateXml(PaymentMethodConfigurationInterface $configuration)
     {
-        return \str_replace(
-            [
-                '{id}',
-                '{active}',
-                '{title}',
-                '{description}',
-                '{sortOrder}',
-                '{spaceId}'
-            ],
+        return \str_replace([
+            '{id}',
+            '{active}',
+            '{title}',
+            '{description}',
+            '{sortOrder}',
+            '{spaceId}'
+        ],
             [
                 $configuration->getEntityId(),
                 $configuration->getState() == PaymentMethodConfiguration::STATE_ACTIVE ? 1 : 0,
@@ -185,7 +193,7 @@ class Converter
                 $this->translate($configuration->getDescription(), LocaleHelper::DEFAULT_LANGUAGE),
                 1,
                 $configuration->getSpaceId()
-            ], $this->template);
+            ], $this->getTemplate());
     }
 
     /**
@@ -193,16 +201,16 @@ class Converter
      *
      * @return boolean
      */
-    protected function isTableExists()
+    private function isTableExists()
     {
         try {
-            $this->_resourceConnection->getConnection();
+            $this->resourceConnection->getConnection();
         } catch (\Exception $e) {
             return false;
         }
 
-        return $this->_resourceConnection->getConnection()->isTableExists(
-            $this->_resourceConnection->getTableName('wallee_payment_method_configuration'));
+        return $this->resourceConnection->getConnection()->isTableExists(
+            $this->resourceConnection->getTableName('wallee_payment_method_configuration'));
     }
 
     /**
@@ -214,7 +222,7 @@ class Converter
      * @param string $language
      * @return string
      */
-    protected function getTranslatedTitle(PaymentMethodConfiguration $configuration, $language)
+    private function getTranslatedTitle(PaymentMethodConfiguration $configuration, $language)
     {
         $translatedTitle = $this->translate($configuration->getTitle(), $language);
         if (! empty($translatedTitle)) {
@@ -224,7 +232,7 @@ class Converter
         }
     }
 
-    protected function translate($translatedString, $language)
+    private function translate($translatedString, $language)
     {
         $language = \str_replace('_', '-', $language);
         if (isset($translatedString[$language])) {
@@ -236,5 +244,15 @@ class Converter
         }
 
         return null;
+    }
+
+    private function getTemplate()
+    {
+        if ($this->template == null) {
+            $templatePath = $this->moduleReader->getModuleDir(\Magento\Framework\Module\Dir::MODULE_ETC_DIR,
+                'Wallee_Payment') . '/config-method-template.xml';
+            $this->template = $this->driverPool->getDriver(DriverPool::FILE)->fileGetContents($templatePath);
+        }
+        return $this->template;
     }
 }

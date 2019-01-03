@@ -28,7 +28,7 @@ class RegisterInvoice implements ObserverInterface
      *
      * @var TransactionService
      */
-    protected $_transactionService;
+    private $transactionService;
 
     /**
      *
@@ -36,7 +36,7 @@ class RegisterInvoice implements ObserverInterface
      */
     public function __construct(TransactionService $transactionService)
     {
-        $this->_transactionService = $transactionService;
+        $this->transactionService = $transactionService;
     }
 
     public function execute(Observer $observer)
@@ -61,7 +61,7 @@ class RegisterInvoice implements ObserverInterface
 
                     if (! $order->getWalleeInvoiceAllowManipulation()) {
                         // The invoice can only be created by the merchant if the transaction is in state 'AUTHORIZED'.
-                        $transaction = $this->_transactionService->getTransaction(
+                        $transaction = $this->transactionService->getTransaction(
                             $order->getWalleeSpaceId(),
                             $order->getWalleeTransactionId());
                         if ($transaction->getState() != TransactionState::AUTHORIZED) {
@@ -69,7 +69,7 @@ class RegisterInvoice implements ObserverInterface
                                 \__('The invoice cannot be created.'));
                         }
 
-                        $this->_transactionService->updateLineItems($invoice, $invoice->getGrandTotal());
+                        $this->transactionService->updateLineItems($invoice, $invoice->getGrandTotal());
                     }
                 }
             }

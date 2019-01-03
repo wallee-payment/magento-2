@@ -32,19 +32,19 @@ class Locale extends AbstractHelper
      *
      * @var LocaleManager
      */
-    protected $_backendLocaleManager;
+    private $backendLocaleManager;
 
     /**
      *
      * @var Data
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
      * @var LanguageProvider
      */
-    protected $_languageProvider;
+    private $languageProvider;
 
     /**
      *
@@ -57,9 +57,9 @@ class Locale extends AbstractHelper
         LanguageProvider $languageProvider)
     {
         parent::__construct($context);
-        $this->_backendLocaleManager = $backendLocaleManager;
-        $this->_helper = $helper;
-        $this->_languageProvider = $languageProvider;
+        $this->backendLocaleManager = $backendLocaleManager;
+        $this->helper = $helper;
+        $this->languageProvider = $languageProvider;
     }
 
     /**
@@ -71,13 +71,13 @@ class Locale extends AbstractHelper
      */
     public function translate($translatedString, $language = null)
     {
-        if (!\is_array($translatedString)) {
+        if (! \is_array($translatedString)) {
             return $translatedString;
         }
 
         if ($language == null) {
-            if ($this->_helper->isAdminArea()) {
-                $language = $this->_backendLocaleManager->getUserInterfaceLocale();
+            if ($this->helper->isAdminArea()) {
+                $language = $this->backendLocaleManager->getUserInterfaceLocale();
             } else {
                 $language = $this->scopeConfig->getValue('general/locale/code',
                     \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
@@ -90,7 +90,7 @@ class Locale extends AbstractHelper
         }
 
         try {
-            $primaryLanguage = $this->_languageProvider->findPrimary($language);
+            $primaryLanguage = $this->languageProvider->findPrimary($language);
             if ($primaryLanguage !== false && isset($translatedString[$primaryLanguage->getIetfCode()])) {
                 return $translatedString[$primaryLanguage->getIetfCode()];
             }

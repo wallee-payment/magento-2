@@ -31,31 +31,31 @@ class InitializeCommand implements CommandInterface
      *
      * @var CartRepositoryInterface
      */
-    protected $_quoteRepository;
+    private $quoteRepository;
 
     /**
      *
      * @var Random
      */
-    protected $_random;
+    private $random;
 
     /**
      *
      * @var Helper
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
      * @var TransactionService
      */
-    protected $_transactionService;
+    private $transactionService;
 
     /**
      *
      * @var TokenInfoRepositoryInterface
      */
-    protected $_tokenInfoRepository;
+    private $tokenInfoRepository;
 
     /**
      *
@@ -68,11 +68,11 @@ class InitializeCommand implements CommandInterface
     public function __construct(CartRepositoryInterface $quoteRepository, Random $random, Helper $helper,
         TransactionService $transactionService, TokenInfoRepositoryInterface $tokenInfoRepository)
     {
-        $this->_quoteRepository = $quoteRepository;
-        $this->_random = $random;
-        $this->_helper = $helper;
-        $this->_transactionService = $transactionService;
-        $this->_tokenInfoRepository = $tokenInfoRepository;
+        $this->quoteRepository = $quoteRepository;
+        $this->random = $random;
+        $this->helper = $helper;
+        $this->transactionService = $transactionService;
+        $this->tokenInfoRepository = $tokenInfoRepository;
     }
 
     /**
@@ -96,29 +96,29 @@ class InitializeCommand implements CommandInterface
         $payment->setBaseAmountAuthorized($order->getBaseTotalDue());
 
         /** @var \Magento\Quote\Model\Quote $quote */
-        $quote = $this->_quoteRepository->get($order->getQuoteId());
+        $quote = $this->quoteRepository->get($order->getQuoteId());
 
         $order->setWalleeSpaceId($quote->getWalleeSpaceId());
         $order->setWalleeTransactionId($quote->getWalleeTransactionId());
-        $order->setWalleeSecurityToken($this->_random->getUniqueHash());
+        $order->setWalleeSecurityToken($this->random->getUniqueHash());
 
         $stateObject->setState(Order::STATE_PENDING_PAYMENT);
         $stateObject->setStatus('pending_payment');
         $stateObject->setIsNotified(false);
 
-        if ($this->_helper->isAdminArea()) {
+        if ($this->helper->isAdminArea()) {
             // Tell the order to apply the charge flow after it is saved.
             $order->setWalleeChargeFlow(true);
             $order->setWalleeToken($this->getToken($quote));
         }
     }
 
-    protected function getToken(Quote $quote)
+    private function getToken(Quote $quote)
     {
-        if ($this->_helper->isAdminArea()) {
+        if ($this->helper->isAdminArea()) {
             $tokenInfoId = $quote->getPayment()->getData('wallee_token');
             if ($tokenInfoId) {
-                $tokenInfo = $this->_tokenInfoRepository->get($tokenInfoId);
+                $tokenInfo = $this->tokenInfoRepository->get($tokenInfoId);
                 $token = new Token();
                 $token->setId($tokenInfo->getTokenId());
                 return $token;

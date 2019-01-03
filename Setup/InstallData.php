@@ -28,11 +28,10 @@ class InstallData implements InstallDataInterface
                 'label' => \__('Hold Delivery')
             ]
         ];
-        $setup->getConnection()->insertArray($setup->getTable('sales_order_status'),
-            [
-                'status',
-                'label'
-            ], $data);
+        $setup->getConnection()->insertArray($setup->getTable('sales_order_status'), [
+            'status',
+            'label'
+        ], $data);
 
         $data = [
             [

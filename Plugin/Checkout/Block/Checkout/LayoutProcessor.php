@@ -29,37 +29,37 @@ class LayoutProcessor
      *
      * @var PaymentMethodConfigurationRepositoryInterface
      */
-    protected $_paymentMethodConfigurationRepository;
+    private $paymentMethodConfigurationRepository;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var FilterBuilder
      */
-    protected $_filterBuilder;
+    private $filterBuilder;
 
     /**
      *
      * @var FilterGroupBuilder
      */
-    protected $_filterGroupBuilder;
+    private $filterGroupBuilder;
 
     /**
      *
      * @var StoreManagerInterface
      */
-    protected $_storeManager;
+    private $storeManager;
 
     /**
      *
      * @var ResourceConnection
      */
-    protected $_resourceConnection;
+    private $resourceConnection;
 
     /**
      *
@@ -75,12 +75,12 @@ class LayoutProcessor
         FilterGroupBuilder $filterGroupBuilder, StoreManagerInterface $storeManager,
         ResourceConnection $resourceConnection)
     {
-        $this->_paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_filterBuilder = $filterBuilder;
-        $this->_filterGroupBuilder = $filterGroupBuilder;
-        $this->_storeManager = $storeManager;
-        $this->_resourceConnection = $resourceConnection;
+        $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->filterBuilder = $filterBuilder;
+        $this->filterGroupBuilder = $filterGroupBuilder;
+        $this->storeManager = $storeManager;
+        $this->resourceConnection = $resourceConnection;
     }
 
     public function beforeProcess(\Magento\Checkout\Block\Checkout\LayoutProcessor $subject, $jsLayout)
@@ -93,26 +93,24 @@ class LayoutProcessor
 
         if (isset(
             $jsLayout['components']['checkout']['children']['steps']['children']['billing-step']['children']['payment']['children']['renders']['children']['wallee_payment']['methods'])) {
-            $stateFilter = $this->_filterBuilder->setConditionType('in')
+            $stateFilter = $this->filterBuilder->setConditionType('in')
                 ->setField(PaymentMethodConfigurationInterface::STATE)
-                ->setValue(
-                [
-                    PaymentMethodConfiguration::STATE_ACTIVE,
-                    PaymentMethodConfiguration::STATE_INACTIVE
-                ])
+                ->setValue([
+                PaymentMethodConfiguration::STATE_ACTIVE,
+                PaymentMethodConfiguration::STATE_INACTIVE
+            ])
                 ->create();
-            $filterGroup = $this->_filterGroupBuilder->setFilters([
+            $filterGroup = $this->filterGroupBuilder->setFilters([
                 $stateFilter
             ])->create();
-            $searchCriteria = $this->_searchCriteriaBuilder->setFilterGroups(
-                [
-                    $filterGroup
-                ])->create();
+            $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
+                $filterGroup
+            ])->create();
 
-            $configurations = $this->_paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
+            $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
             foreach ($configurations as $configuration) {
                 $jsLayout['components']['checkout']['children']['steps']['children']['billing-step']['children']['payment']['children']['renders']['children']['wallee_payment']['methods']['wallee_payment_' .
-                    $configuration->getEntityId()] = $this->getMethodData($configuration);
+                    $configuration->getEntityId()] = $this->getMethodData();
             }
         }
 
@@ -121,7 +119,7 @@ class LayoutProcessor
         ];
     }
 
-    protected function getMethodData(PaymentMethodConfigurationInterface $configuration)
+    private function getMethodData()
     {
         return [
             'isBillingAddressRequired' => true
@@ -133,9 +131,9 @@ class LayoutProcessor
      *
      * @return boolean
      */
-    protected function isTableExists()
+    private function isTableExists()
     {
-        return $this->_resourceConnection->getConnection()->isTableExists(
-            $this->_resourceConnection->getTableName('wallee_payment_method_configuration'));
+        return $this->resourceConnection->getConnection()->isTableExists(
+            $this->resourceConnection->getTableName('wallee_payment_method_configuration'));
     }
 }

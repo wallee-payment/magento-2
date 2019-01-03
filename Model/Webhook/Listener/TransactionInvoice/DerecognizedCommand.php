@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\TransactionInvoice;
 
+use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
 
@@ -18,6 +19,21 @@ use Magento\Sales\Model\Order\Invoice;
  */
 class DerecognizedCommand extends AbstractCommand
 {
+
+    /**
+     *
+     * @var OrderRepositoryInterface
+     */
+    private $orderRepository;
+
+    /**
+     *
+     * @param OrderRepositoryInterface $orderRepository
+     */
+    public function __construct(OrderRepositoryInterface $orderRepository)
+    {
+        $this->orderRepository = $orderRepository;
+    }
 
     /**
      *
@@ -47,7 +63,7 @@ class DerecognizedCommand extends AbstractCommand
                 $order->addStatusToHistory(true);
             }
 
-            $this->_orderRepository->save($order);
+            $this->orderRepository->save($order);
         }
     }
 }

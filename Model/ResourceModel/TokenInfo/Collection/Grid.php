@@ -29,7 +29,7 @@ class Grid extends \Wallee\Payment\Model\ResourceModel\TokenInfo\Collection
      *
      * @var Registry
      */
-    protected $_registry;
+    private $registry;
 
     /**
      *
@@ -45,7 +45,7 @@ class Grid extends \Wallee\Payment\Model\ResourceModel\TokenInfo\Collection
         FetchStrategyInterface $fetchStrategy, EventManager $eventManager, ResourceModel $resource, Registry $registry,
         DBAdapter $connection = null)
     {
-        $this->_registry = $registry;
+        $this->registry = $registry;
         parent::__construct($entityFactory, $logger, $fetchStrategy, $eventManager, $connection, $resource);
     }
 
@@ -57,7 +57,7 @@ class Grid extends \Wallee\Payment\Model\ResourceModel\TokenInfo\Collection
     protected function _initSelect()
     {
         parent::_initSelect();
-        $this->addCustomerIdFilter($this->_registry->registry(RegistryConstants::CURRENT_CUSTOMER_ID))
+        $this->addCustomerIdFilter($this->registry->registry(RegistryConstants::CURRENT_CUSTOMER_ID))
             ->resetSortOrder();
         $this->join([
             'payment_method' => 'wallee_payment_method_configuration'

@@ -31,6 +31,18 @@ class LineItemService extends AbstractLineItemService
 
     /**
      *
+     * @var Helper
+     */
+    private $helper;
+
+    /**
+     *
+     * @var LineItemHelper
+     */
+    private $lineItemHelper;
+
+    /**
+     *
      * @param Helper $helper
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
@@ -48,6 +60,8 @@ class LineItemService extends AbstractLineItemService
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
             $groupRegistry, $eventManager, $productRepository);
+        $this->helper = $helper;
+        $this->lineItemHelper = $lineItemHelper;
     }
 
     /**
@@ -58,7 +72,7 @@ class LineItemService extends AbstractLineItemService
      */
     public function convertOrderLineItems(Order $order)
     {
-        return $this->_lineItemHelper->correctLineItems($this->convertLineItems($order), $order->getGrandTotal(),
+        return $this->lineItemHelper->correctLineItems($this->convertLineItems($order), $order->getGrandTotal(),
             $this->getCurrencyCode($order));
     }
 
@@ -78,8 +92,8 @@ class LineItemService extends AbstractLineItemService
             }
 
             $attribute = new LineItemAttributeCreate();
-            $attribute->setLabel($this->_helper->fixLength($this->_helper->getFirstLine($option['label']), 512));
-            $attribute->setValue($this->_helper->fixLength($this->_helper->getFirstLine($value), 512));
+            $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($option['label']), 512));
+            $attribute->setValue($this->helper->fixLength($this->helper->getFirstLine($value), 512));
             $attributes[$this->getAttributeKey($option)] = $attribute;
         }
 

@@ -26,7 +26,7 @@ class Document extends AbstractHelper
      *
      * @var Data
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
@@ -36,7 +36,7 @@ class Document extends AbstractHelper
     public function __construct(Context $context, Data $helper)
     {
         parent::__construct($context);
-        $this->_helper = $helper;
+        $this->helper = $helper;
     }
 
     /**
@@ -57,7 +57,7 @@ class Document extends AbstractHelper
             return false;
         }
 
-        if (! $this->_helper->isAdminArea() && ! $this->scopeConfig->getValue(
+        if (! $this->helper->isAdminArea() && ! $this->scopeConfig->getValue(
             'wallee_payment/document/customer_download_invoice', ScopeInterface::SCOPE_STORE, $storeId)) {
             return false;
         }
@@ -78,7 +78,7 @@ class Document extends AbstractHelper
             return false;
         }
 
-        if (! $this->_helper->isAdminArea() && ! $this->scopeConfig->getValue(
+        if (! $this->helper->isAdminArea() && ! $this->scopeConfig->getValue(
             'wallee_payment/document/customer_download_packing_slip', ScopeInterface::SCOPE_STORE,
             $storeId)) {
             return false;
@@ -96,7 +96,7 @@ class Document extends AbstractHelper
      */
     public function isRefundDownloadAllowed(TransactionInfo $transaction, $storeId = null)
     {
-        if (! $this->_helper->isAdminArea() && ! $this->scopeConfig->getValue(
+        if (! $this->helper->isAdminArea() && ! $this->scopeConfig->getValue(
             'wallee_payment/document/customer_download_refund', ScopeInterface::SCOPE_STORE, $storeId)) {
             return false;
         }

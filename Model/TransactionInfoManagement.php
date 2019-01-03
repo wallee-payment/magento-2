@@ -35,25 +35,25 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
      *
      * @var Helper
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
      * @var TransactionInfoRepositoryInterface
      */
-    protected $_transactionInfoRepository;
+    private $transactionInfoRepository;
 
     /**
      *
      * @var TransactionInfoFactory
      */
-    protected $_transactionInfoFactory;
+    private $transactionInfoFactory;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -65,19 +65,19 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
     public function __construct(Helper $helper, TransactionInfoRepositoryInterface $transactionInfoRepository,
         TransactionInfoFactory $transactionInfoFactory, ApiClient $apiClient)
     {
-        $this->_helper = $helper;
-        $this->_transactionInfoRepository = $transactionInfoRepository;
-        $this->_transactionInfoFactory = $transactionInfoFactory;
-        $this->_apiClient = $apiClient;
+        $this->helper = $helper;
+        $this->transactionInfoRepository = $transactionInfoRepository;
+        $this->transactionInfoFactory = $transactionInfoFactory;
+        $this->apiClient = $apiClient;
     }
 
     public function update(Transaction $transaction, Order $order)
     {
         try {
-            $info = $this->_transactionInfoRepository->getByTransactionId($transaction->getLinkedSpaceId(),
+            $info = $this->transactionInfoRepository->getByTransactionId($transaction->getLinkedSpaceId(),
                 $transaction->getId());
         } catch (NoSuchEntityException $e) {
-            $info = $this->_transactionInfoFactory->create();
+            $info = $this->transactionInfoFactory->create();
         }
         $info->setData(TransactionInfoInterface::TRANSACTION_ID, $transaction->getId());
         $info->setData(TransactionInfoInterface::AUTHORIZATION_AMOUNT, $transaction->getAuthorizationAmount());
@@ -102,7 +102,7 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
                 $transaction->getFailureReason() instanceof FailureReason ? $transaction->getFailureReason()
                     ->getDescription() : null);
         }
-        $this->_transactionInfoRepository->save($info);
+        $this->transactionInfoRepository->save($info);
         return $info;
     }
 
@@ -112,7 +112,7 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
      * @param Transaction $transaction
      * @return string[]
      */
-    protected function getTransactionLabels(Transaction $transaction)
+    private function getTransactionLabels(Transaction $transaction)
     {
         $chargeAttempt = $this->getChargeAttempt($transaction);
         if ($chargeAttempt != null) {
@@ -133,19 +133,19 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
      * @param Transaction $transaction
      * @return \Wallee\Sdk\Model\ChargeAttempt
      */
-    protected function getChargeAttempt(Transaction $transaction)
+    private function getChargeAttempt(Transaction $transaction)
     {
         $query = new EntityQuery();
         $filter = new EntityQueryFilter();
         $filter->setType(EntityQueryFilterType::_AND);
         $filter->setChildren(
             array(
-                $this->_helper->createEntityFilter('charge.transaction.id', $transaction->getId()),
-                $this->_helper->createEntityFilter('state', ChargeAttemptState::SUCCESSFUL)
+                $this->helper->createEntityFilter('charge.transaction.id', $transaction->getId()),
+                $this->helper->createEntityFilter('state', ChargeAttemptState::SUCCESSFUL)
             ));
         $query->setFilter($filter);
         $query->setNumberOfEntities(1);
-        $result = $this->_apiClient->getService(ChargeAttemptService::class)->search($transaction->getLinkedSpaceId(),
+        $result = $this->apiClient->getService(ChargeAttemptService::class)->search($transaction->getLinkedSpaceId(),
             $query);
         if ($result != null && ! empty($result)) {
             return \current($result);
@@ -161,7 +161,7 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
      * @param Order $order
      * @return string
      */
-    protected function getPaymentMethodImage(Transaction $transaction, Order $order)
+    private function getPaymentMethodImage(Transaction $transaction, Order $order)
     {
         if ($transaction->getPaymentConnectorConfiguration() != null &&
             $transaction->getPaymentConnectorConfiguration()->getPaymentMethodConfiguration() != null) {
@@ -183,7 +183,7 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
      * @param string $resolvedImageUrl
      * @return string
      */
-    protected function extractImagePath($resolvedImageUrl)
+    private function extractImagePath($resolvedImageUrl)
     {
         $index = \strpos($resolvedImageUrl, 'resource/');
         return \substr($resolvedImageUrl, $index + \strlen('resource/'));

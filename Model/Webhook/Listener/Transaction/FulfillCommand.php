@@ -10,10 +10,8 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\Transaction;
 
-use Magento\Framework\DB\TransactionFactory as DBTransactionFactory;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
 
 /**
  * Webhook listener command to handle fulfilled transactions.
@@ -23,22 +21,25 @@ class FulfillCommand extends AbstractCommand
 
     /**
      *
-     * @var AuthorizedCommand
+     * @var OrderRepositoryInterface
      */
-    protected $_authorizedCommand;
+    private $orderRepository;
 
     /**
      *
-     * @param DBTransactionFactory $dbTransactionFactory
+     * @var AuthorizedCommand
+     */
+    private $authorizedCommand;
+
+    /**
+     *
      * @param OrderRepositoryInterface $orderRepository
-     * @param OrderEmailSender $orderEmailSender
      * @param AuthorizedCommand $authorizedCommand
      */
-    public function __construct(DBTransactionFactory $dbTransactionFactory, OrderRepositoryInterface $orderRepository,
-        OrderEmailSender $orderEmailSender, AuthorizedCommand $authorizedCommand)
+    public function __construct(OrderRepositoryInterface $orderRepository, AuthorizedCommand $authorizedCommand)
     {
-        parent::__construct($dbTransactionFactory, $orderRepository, $orderEmailSender);
-        $this->_authorizedCommand = $authorizedCommand;
+        $this->orderRepository = $orderRepository;
+        $this->authorizedCommand = $authorizedCommand;
     }
 
     /**
@@ -48,7 +49,7 @@ class FulfillCommand extends AbstractCommand
      */
     public function execute($entity, Order $order)
     {
-        $this->_authorizedCommand->execute($entity, $order);
+        $this->authorizedCommand->execute($entity, $order);
 
         if ($order->getState() == Order::STATE_PAYMENT_REVIEW) {
             /** @var \Magento\Sales\Model\Order\Payment $payment */
@@ -59,6 +60,6 @@ class FulfillCommand extends AbstractCommand
             $order->setState(Order::STATE_PROCESSING);
             $order->addStatusToHistory(true, \__('The order can be fulfilled now.'));
         }
-        $this->_orderRepository->save($order);
+        $this->orderRepository->save($order);
     }
 }

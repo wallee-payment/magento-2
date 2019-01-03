@@ -24,7 +24,7 @@ class DenyPaymentCommand implements CommandInterface
      *
      * @var TransactionService
      */
-    protected $_orderTransactionService;
+    private $orderTransactionService;
 
     /**
      *
@@ -32,7 +32,7 @@ class DenyPaymentCommand implements CommandInterface
      */
     public function __construct(TransactionService $orderTransactionService)
     {
-        $this->_orderTransactionService = $orderTransactionService;
+        $this->orderTransactionService = $orderTransactionService;
     }
 
     public function execute(array $commandSubject)
@@ -40,7 +40,7 @@ class DenyPaymentCommand implements CommandInterface
         /** @var \Magento\Sales\Model\Order\Payment $payment */
         $payment = SubjectReader::readPayment($commandSubject)->getPayment();
 
-        $this->_orderTransactionService->deny($payment->getOrder());
+        $this->orderTransactionService->deny($payment->getOrder());
         $payment->getOrder()->setWalleeInvoiceAllowManipulation(true);
     }
 }

@@ -26,7 +26,7 @@ class Factory
      *
      * @var ObjectManagerInterface
      */
-    protected $_objectManager = null;
+    private $objectManager = null;
 
     /**
      *
@@ -34,7 +34,7 @@ class Factory
      */
     public function __construct(ObjectManagerInterface $objectManager)
     {
-        $this->_objectManager = $objectManager;
+        $this->objectManager = $objectManager;
     }
 
     public function beforeCreate(\Magento\Payment\Model\Method\Factory $subject, $classname, $data = [])
@@ -44,8 +44,8 @@ class Factory
             $data['code'] = 'wallee_payment_' . $configurationId;
             $data['paymentMethodConfigurationId'] = $configurationId;
             $data['valueHandlerPool'] = $this->getValueHandlerPool($configurationId);
-            $data['commandPool'] = $this->_objectManager->get('WalleePaymentGatewayCommandPool');
-            $data['validatorPool'] = $this->_objectManager->get('WalleePaymentGatewayValidatorPool');
+            $data['commandPool'] = $this->objectManager->get('WalleePaymentGatewayCommandPool');
+            $data['validatorPool'] = $this->objectManager->get('WalleePaymentGatewayValidatorPool');
             return [
                 Adapter::class,
                 $data
@@ -55,19 +55,18 @@ class Factory
         }
     }
 
-    protected function getValueHandlerPool($configurationId)
+    private function getValueHandlerPool($configurationId)
     {
-        $configInterface = $this->_objectManager->create(Config::class,
+        $configInterface = $this->objectManager->create(Config::class,
             [
                 'methodCode' => 'wallee_payment_' . $configurationId
             ]);
-        $valueHandler = $this->_objectManager->create(ConfigValueHandler::class,
+        $valueHandler = $this->objectManager->create(ConfigValueHandler::class,
             [
                 'configInterface' => $configInterface
             ]);
-        return $this->_objectManager->create(ValueHandlerPool::class,
-            [
-                'handler' => $valueHandler
-            ]);
+        return $this->objectManager->create(ValueHandlerPool::class, [
+            'handler' => $valueHandler
+        ]);
     }
 }

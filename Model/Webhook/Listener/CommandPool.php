@@ -32,11 +32,10 @@ class CommandPool implements CommandPoolInterface
      */
     public function __construct(TMapFactory $tmapFactory, array $commands = [])
     {
-        $this->commands = $tmapFactory->create(
-            [
-                'array' => $commands,
-                'type' => CommandInterface::class
-            ]);
+        $this->commands = $tmapFactory->create([
+            'array' => $commands,
+            'type' => CommandInterface::class
+        ]);
     }
 
     /**

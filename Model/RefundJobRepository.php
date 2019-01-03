@@ -32,31 +32,31 @@ class RefundJobRepository implements RefundJobRepositoryInterface
      *
      * @var RefundJobFactory
      */
-    protected $_refundJobFactory;
+    private $refundJobFactory;
 
     /**
      *
      * @var RefundJobCollectionFactory
      */
-    protected $_refundJobCollectionFactory;
+    private $refundJobCollectionFactory;
 
     /**
      *
      * @var RefundJobSearchResultsInterfaceFactory
      */
-    protected $_searchResultsFactory;
+    private $searchResultsFactory;
 
     /**
      *
      * @var RefundJobResource
      */
-    protected $_resource;
+    private $resource;
 
     /**
      *
      * @var CollectionProcessorInterface
      */
-    protected $_collectionProcessor;
+    private $collectionProcessor;
 
     /**
      *
@@ -71,11 +71,11 @@ class RefundJobRepository implements RefundJobRepositoryInterface
         RefundJobSearchResultsInterfaceFactory $searchResultsFactory, RefundJobResource $resource,
         CollectionProcessorInterface $collectionProcessor)
     {
-        $this->_refundJobFactory = $refundJobFactory;
-        $this->_refundJobCollectionFactory = $refundJobCollectionFactory;
-        $this->_searchResultsFactory = $searchResultsFactory;
-        $this->_resource = $resource;
-        $this->_collectionProcessor = $collectionProcessor;
+        $this->refundJobFactory = $refundJobFactory;
+        $this->refundJobCollectionFactory = $refundJobCollectionFactory;
+        $this->searchResultsFactory = $searchResultsFactory;
+        $this->resource = $resource;
+        $this->collectionProcessor = $collectionProcessor;
     }
 
     /**
@@ -88,7 +88,7 @@ class RefundJobRepository implements RefundJobRepositoryInterface
     public function save(RefundJobInterface $object)
     {
         try {
-            $this->_resource->save($object);
+            $this->resource->save($object);
         } catch (\Exception $exception) {
             throw new CouldNotSaveException(\__('Could not save the refund job: %1', $exception->getMessage()),
                 $exception);
@@ -112,7 +112,7 @@ class RefundJobRepository implements RefundJobRepositoryInterface
 
         /** @var RefundJob $object */
         $object = $this->refundJobFactory->create();
-        $this->_resource->load($object, $entityId);
+        $this->resource->load($object, $entityId);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -133,8 +133,8 @@ class RefundJobRepository implements RefundJobRepositoryInterface
         }
 
         /** @var RefundJob $object */
-        $object = $this->_refundJobFactory->create();
-        $this->_resource->load($object, $orderId, RefundJobInterface::ORDER_ID);
+        $object = $this->refundJobFactory->create();
+        $this->resource->load($object, $orderId, RefundJobInterface::ORDER_ID);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -155,8 +155,8 @@ class RefundJobRepository implements RefundJobRepositoryInterface
         }
 
         /** @var RefundJob $object */
-        $object = $this->_refundJobFactory->create();
-        $this->_resource->load($object, $externalId, RefundJobInterface::EXTERNAL_ID);
+        $object = $this->refundJobFactory->create();
+        $this->resource->load($object, $externalId, RefundJobInterface::EXTERNAL_ID);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -166,12 +166,12 @@ class RefundJobRepository implements RefundJobRepositoryInterface
     public function getList(SearchCriteriaInterface $searchCriteria)
     {
         /** @var \Wallee\Payment\Model\ResourceModel\RefundJob\Collection $collection */
-        $collection = $this->_refundJobCollectionFactory->create();
+        $collection = $this->refundJobCollectionFactory->create();
 
-        $this->_collectionProcessor->process($searchCriteria, $collection);
+        $this->collectionProcessor->process($searchCriteria, $collection);
 
         /** @var \Wallee\Payment\Api\Data\RefundJobSearchResultsInterface $searchResults */
-        $searchResults = $this->_searchResultsFactory->create();
+        $searchResults = $this->searchResultsFactory->create();
         $searchResults->setSearchCriteria($searchCriteria);
         $searchResults->setItems($collection->getItems());
         $searchResults->setTotalCount($collection->getSize());
@@ -181,7 +181,7 @@ class RefundJobRepository implements RefundJobRepositoryInterface
     public function delete(RefundJobInterface $object)
     {
         try {
-            $this->_resource->delete($object);
+            $this->resource->delete($object);
         } catch (\Exception $exception) {
             throw new CouldNotDeleteException(\__('Could not delete the refund job: %1', $exception->getMessage()));
         }

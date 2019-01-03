@@ -24,7 +24,7 @@ class PaymentMethodConfigurationListener implements ListenerInterface
      *
      * @var PaymentMethodConfigurationManagementInterface
      */
-    protected $_paymentMethodConfigurationManagement;
+    private $paymentMethodConfigurationManagement;
 
     /**
      *
@@ -32,11 +32,11 @@ class PaymentMethodConfigurationListener implements ListenerInterface
      */
     public function __construct(PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement)
     {
-        $this->_paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
+        $this->paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
     }
 
     public function execute(Request $request)
     {
-        $this->_paymentMethodConfigurationManagement->synchronize();
+        $this->paymentMethodConfigurationManagement->synchronize();
     }
 }

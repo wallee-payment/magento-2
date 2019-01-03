@@ -30,7 +30,7 @@ class TransactionInvoiceListener extends AbstractOrderRelatedListener
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    protected $apiClient;
 
     /**
      *
@@ -50,7 +50,7 @@ class TransactionInvoiceListener extends AbstractOrderRelatedListener
     {
         parent::__construct($resource, $logger, $orderRepository, $searchCriteriaBuilder, $commandPool,
             $transactionInfoRepository, $transactionInfoManagement);
-        $this->_apiClient = $apiClient;
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -61,7 +61,7 @@ class TransactionInvoiceListener extends AbstractOrderRelatedListener
      */
     protected function loadEntity(Request $request)
     {
-        return $this->_apiClient->getService(TransactionInvoiceService::class)->read($request->getSpaceId(),
+        return $this->apiClient->getService(TransactionInvoiceService::class)->read($request->getSpaceId(),
             $request->getEntityId());
     }
 

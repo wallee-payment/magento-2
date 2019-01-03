@@ -14,6 +14,7 @@ use Magento\Customer\Model\Customer;
 use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Store\Model\ScopeInterface;
@@ -34,43 +35,49 @@ abstract class AbstractTransactionService
      *
      * @var ResourceConnection
      */
-    protected $_resource;
+    private $resource;
 
     /**
      *
      * @var Helper
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
      * @var ScopeConfigInterface
      */
-    protected $_scopeConfig;
+    private $scopeConfig;
 
     /**
      *
      * @var CustomerRegistry
      */
-    protected $_customerRegistry;
+    private $customerRegistry;
 
     /**
      *
      * @var CartRepositoryInterface
      */
-    protected $_quoteRepository;
+    private $quoteRepository;
+
+    /**
+     *
+     * @var TimezoneInterface
+     */
+    private $timezone;
 
     /**
      *
      * @var PaymentMethodConfigurationManagementInterface
      */
-    protected $_paymentMethodConfigurationManagement;
+    private $paymentMethodConfigurationManagement;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -79,20 +86,22 @@ abstract class AbstractTransactionService
      * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
      * @param CartRepositoryInterface $quoteRepository
+     * @param TimezoneInterface $timezone
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
      */
     public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
-        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository,
+        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient)
     {
-        $this->_resource = $resource;
-        $this->_helper = $helper;
-        $this->_scopeConfig = $scopeConfig;
-        $this->_customerRegistry = $customerRegistry;
-        $this->_quoteRepository = $quoteRepository;
-        $this->_paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
-        $this->_apiClient = $apiClient;
+        $this->resource = $resource;
+        $this->helper = $helper;
+        $this->scopeConfig = $scopeConfig;
+        $this->customerRegistry = $customerRegistry;
+        $this->quoteRepository = $quoteRepository;
+        $this->timezone = $timezone;
+        $this->paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -103,7 +112,7 @@ abstract class AbstractTransactionService
     protected function updatePaymentMethodConfigurations($paymentMethods)
     {
         foreach ($paymentMethods as $paymentMethod) {
-            $this->_paymentMethodConfigurationManagement->update($paymentMethod);
+            $this->paymentMethodConfigurationManagement->update($paymentMethod);
         }
     }
 
@@ -116,7 +125,7 @@ abstract class AbstractTransactionService
      */
     public function getTransaction($spaceId, $transactionId)
     {
-        return $this->_apiClient->getService(TransactionService::class)->read($spaceId, $transactionId);
+        return $this->apiClient->getService(TransactionService::class)->read($spaceId, $transactionId);
     }
 
     /**
@@ -127,7 +136,7 @@ abstract class AbstractTransactionService
      */
     protected function updateQuote(Quote $quote, Transaction $transaction)
     {
-        $this->_resource->getConnection()->update($this->_resource->getTableName('quote'),
+        $this->resource->getConnection()->update($this->resource->getTableName('quote'),
             [
                 'wallee_space_id' => $transaction->getLinkedSpaceId(),
                 'wallee_transaction_id' => $transaction->getId()
@@ -148,7 +157,7 @@ abstract class AbstractTransactionService
         if ($taxNumber !== null) {
             return $taxNumber;
         } elseif (! empty($customerId)) {
-            return $this->_customerRegistry->retrieve($customerId)->getTaxvat();
+            return $this->customerRegistry->retrieve($customerId)->getTaxvat();
         } else {
             return null;
         }
@@ -164,7 +173,7 @@ abstract class AbstractTransactionService
     protected function getGender($gender, $customerId)
     {
         if ($gender == null && ! empty($customerId)) {
-            $gender = $this->_customerRegistry->retrieve($customerId)->getGender();
+            $gender = $this->customerRegistry->retrieve($customerId)->getGender();
         }
 
         if ($gender == 1) {
@@ -188,7 +197,7 @@ abstract class AbstractTransactionService
         if ($customerEmailAddress != null) {
             return $customerEmailAddress;
         } elseif (! empty($customerId)) {
-            $customer = $this->_customerRegistry->retrieve($customerId);
+            $customer = $this->customerRegistry->retrieve($customerId);
             $customerMail = $customer->getEmail();
             if (! empty($customerMail)) {
                 return $customerMail;
@@ -208,13 +217,12 @@ abstract class AbstractTransactionService
     protected function getDateOfBirth($dateOfBirth, $customerId)
     {
         if ($dateOfBirth === null && ! empty($customerId)) {
-            $customer = $this->_customerRegistry->retrieve($customerId);
+            $customer = $this->customerRegistry->retrieve($customerId);
             $dateOfBirth = $customer->getDob();
         }
 
         if ($dateOfBirth !== null) {
-            $date = new \DateTime($dateOfBirth);
-            return $date->format(\DateTime::W3C);
+            return $this->timezone->date($dateOfBirth)->format(\DateTime::W3C);
         }
     }
 
@@ -226,7 +234,7 @@ abstract class AbstractTransactionService
      */
     protected function collectCustomerMetaData(Customer $customer)
     {
-        $attributeCodesConfig = $this->_scopeConfig->getValue(
+        $attributeCodesConfig = $this->scopeConfig->getValue(
             'wallee_payment/meta_data/customer_attributes', ScopeInterface::SCOPE_STORE,
             $customer->getStoreId());
         if (! empty($attributeCodesConfig)) {

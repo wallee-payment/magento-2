@@ -32,9 +32,21 @@ class LineItemService extends AbstractLineItemService
 
     /**
      *
+     * @var Helper
+     */
+    private $helper;
+
+    /**
+     *
+     * @var LineItemHelper
+     */
+    private $lineItemHelper;
+
+    /**
+     *
      * @var ProductConfigurationHelper
      */
-    protected $_productConfigurationHelper;
+    private $productConfigurationHelper;
 
     /**
      *
@@ -56,7 +68,9 @@ class LineItemService extends AbstractLineItemService
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
             $groupRegistry, $eventManager, $productRepository);
-        $this->_productConfigurationHelper = $productConfigurationHelper;
+        $this->helper = $helper;
+        $this->lineItemHelper = $lineItemHelper;
+        $this->productConfigurationHelper = $productConfigurationHelper;
     }
 
     /**
@@ -67,7 +81,7 @@ class LineItemService extends AbstractLineItemService
      */
     public function convertQuoteLineItems(Quote $quote)
     {
-        return $this->_lineItemHelper->correctLineItems($this->convertLineItems($quote), $quote->getGrandTotal(),
+        return $this->lineItemHelper->correctLineItems($this->convertLineItems($quote), $quote->getGrandTotal(),
             $this->getCurrencyCode($quote));
     }
 
@@ -80,23 +94,21 @@ class LineItemService extends AbstractLineItemService
     protected function getAttributes($entityItem)
     {
         $attributes = [];
-        foreach ($this->_productConfigurationHelper->getOptions($entityItem) as $option) {
+        foreach ($this->productConfigurationHelper->getOptions($entityItem) as $option) {
             $value = $option['value'];
             if (\is_array($value)) {
                 $value = \current($value);
             }
 
             $attribute = new LineItemAttributeCreate();
-            $attribute->setLabel($this->_helper->fixLength($this->_helper->getFirstLine($option['label']), 512));
-            $attribute->setValue($this->_helper->fixLength($this->_helper->getFirstLine($value), 512));
+            $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($option['label']), 512));
+            $attribute->setValue($this->helper->fixLength($this->helper->getFirstLine($value), 512));
             $attributes[$this->getAttributeKey($option)] = $attribute;
         }
 
         return \array_merge($attributes,
             $this->getCustomAttributes($entityItem->getProductId(), $entityItem->getQuote()
                 ->getStoreId()));
-
-        return $attributes;
     }
 
     /**

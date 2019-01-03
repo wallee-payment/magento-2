@@ -25,7 +25,7 @@ class CapturePayment implements ObserverInterface
      *
      * @var Registry
      */
-    protected $_registry;
+    private $registry;
 
     /**
      *
@@ -33,12 +33,12 @@ class CapturePayment implements ObserverInterface
      */
     public function __construct(Registry $registry)
     {
-        $this->_registry = $registry;
+        $this->registry = $registry;
     }
 
     public function execute(Observer $observer)
     {
-        $this->_registry->unregister(Adapter::CAPTURE_INVOICE_REGISTRY_KEY);
-        $this->_registry->register(Adapter::CAPTURE_INVOICE_REGISTRY_KEY, $observer->getInvoice());
+        $this->registry->unregister(Adapter::CAPTURE_INVOICE_REGISTRY_KEY);
+        $this->registry->register(Adapter::CAPTURE_INVOICE_REGISTRY_KEY, $observer->getInvoice());
     }
 }

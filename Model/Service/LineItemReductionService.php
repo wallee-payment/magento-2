@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Service;
 
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order\Creditmemo;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
@@ -37,25 +38,25 @@ class LineItemReductionService
      *
      * @var Helper
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
      * @var LineItemReductionHelper
      */
-    protected $_reductionHelper;
+    private $reductionHelper;
 
     /**
      *
      * @var LineItemHelper
      */
-    protected $_lineItemHelper;
+    private $lineItemHelper;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -67,10 +68,10 @@ class LineItemReductionService
     public function __construct(Helper $helper, LineItemReductionHelper $reductionHelper, LineItemHelper $lineItemHelper,
         ApiClient $apiClient)
     {
-        $this->_helper = $helper;
-        $this->_reductionHelper = $reductionHelper;
-        $this->_lineItemHelper = $lineItemHelper;
-        $this->_apiClient = $apiClient;
+        $this->helper = $helper;
+        $this->reductionHelper = $reductionHelper;
+        $this->lineItemHelper = $lineItemHelper;
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -103,7 +104,7 @@ class LineItemReductionService
      * @param Creditmemo\Item $creditmemoItem
      * @return boolean
      */
-    protected function isIncludeItem(Creditmemo\Item $creditmemoItem)
+    private function isIncludeItem(Creditmemo\Item $creditmemoItem)
     {
         if ($creditmemoItem->getParentItemId() != null && $creditmemoItem->getParentItem()->getProductType() ==
             \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE) {
@@ -126,7 +127,7 @@ class LineItemReductionService
      * @param Creditmemo $creditmemo
      * @return LineItemReductionCreate[]
      */
-    protected function convertItem(Creditmemo\Item $creditmemoItem, Creditmemo $creditmemo)
+    private function convertItem(Creditmemo\Item $creditmemoItem, Creditmemo $creditmemo)
     {
         $reduction = new LineItemReductionCreate();
         $reduction->setLineItemUniqueId($creditmemoItem->getOrderItem()
@@ -142,7 +143,7 @@ class LineItemReductionService
      * @param Creditmemo $creditmemo
      * @return LineItemReductionCreate
      */
-    protected function convertShipping(Creditmemo $creditmemo)
+    private function convertShipping(Creditmemo $creditmemo)
     {
         if ($creditmemo->getShippingAmount() > 0) {
             $reduction = new LineItemReductionCreate();
@@ -154,7 +155,7 @@ class LineItemReductionService
             } else {
                 $reduction->setQuantityReduction(0);
                 $reduction->setUnitPriceReduction(
-                    $this->_helper->roundAmount($creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
+                    $this->helper->roundAmount($creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
                         $creditmemo->getOrderCurrencyCode()));
             }
             return $reduction;
@@ -171,17 +172,17 @@ class LineItemReductionService
      * @param Creditmemo $creditmemo
      * @return LineItemReductionCreate[]
      */
-    protected function fixReductions(array $reductions, Creditmemo $creditmemo)
+    private function fixReductions(array $reductions, Creditmemo $creditmemo)
     {
         /** @var \Wallee\Sdk\Model\LineItem[] $baseLineItems */
-        $baseLineItems = $this->getBaseLineItems(
-            $creditmemo->getOrder()
-                ->getWalleeSpaceId(),
-            $creditmemo->getOrder()
-                ->getWalleeTransactionId());
-        $reducedAmount = $this->_reductionHelper->getReducedAmount($baseLineItems, $reductions, $creditmemo->getOrderCurrencyCode());
-        if ($reducedAmount != $this->_helper->roundAmount($creditmemo->getGrandTotal(), $creditmemo->getOrderCurrencyCode())) {
-            $baseAmount = $this->_lineItemHelper->getTotalAmountIncludingTax($baseLineItems);
+        $baseLineItems = $this->getBaseLineItems($creditmemo->getOrder()
+            ->getWalleeSpaceId(), $creditmemo->getOrder()
+            ->getWalleeTransactionId());
+        $reducedAmount = $this->reductionHelper->getReducedAmount($baseLineItems, $reductions,
+            $creditmemo->getOrderCurrencyCode());
+        if ($reducedAmount !=
+            $this->helper->roundAmount($creditmemo->getGrandTotal(), $creditmemo->getOrderCurrencyCode())) {
+            $baseAmount = $this->lineItemHelper->getTotalAmountIncludingTax($baseLineItems);
             $rate = $creditmemo->getGrandTotal() / $baseAmount;
             $fixedReductions = [];
             foreach ($baseLineItems as $lineItem) {
@@ -190,15 +191,17 @@ class LineItemReductionService
                     $reduction->setLineItemUniqueId($lineItem->getUniqueId());
                     $reduction->setQuantityReduction(0);
                     $reduction->setUnitPriceReduction(
-                        $this->_helper->roundAmount(
+                        $this->helper->roundAmount(
                             $lineItem->getAmountIncludingTax() * $rate / $lineItem->getQuantity(),
                             $creditmemo->getOrderCurrencyCode()));
                     $fixedReductions[] = $reduction;
                 }
             }
-            $fixedReductionAmount = $this->_reductionHelper->getReducedAmount($baseLineItems, $fixedReductions, $creditmemo->getOrderCurrencyCode());
+            $fixedReductionAmount = $this->reductionHelper->getReducedAmount($baseLineItems, $fixedReductions,
+                $creditmemo->getOrderCurrencyCode());
             $roundingDifference = $creditmemo->getGrandTotal() - $fixedReductionAmount;
-            return $this->distributeRoundingDifference($fixedReductions, 0, $roundingDifference, $baseLineItems, $creditmemo->getOrderCurrencyCode());
+            return $this->distributeRoundingDifference($fixedReductions, 0, $roundingDifference, $baseLineItems,
+                $creditmemo->getOrderCurrencyCode());
         } else {
             return $reductions;
         }
@@ -214,8 +217,10 @@ class LineItemReductionService
      * @throws \Exception
      * @return LineItemReductionCreate[]
      */
-    private function distributeRoundingDifference(array $reductions, $index, $remainder, array $baseLineItems, $currencyCode){
-        $digits = $this->_helper->getCurrencyFractionDigits($currencyCode);
+    private function distributeRoundingDifference(array $reductions, $index, $remainder, array $baseLineItems,
+        $currencyCode)
+    {
+        $digits = $this->helper->getCurrencyFractionDigits($currencyCode);
         $currentReduction = $reductions[$index];
         $delta = $remainder;
         $change = false;
@@ -225,20 +230,26 @@ class LineItemReductionService
         if ($currentReduction->getUnitPriceReduction() != 0 && $currentReduction->getQuantityReduction() == 0) {
             $lineItem = $this->getLineItemByUniqueId($baseLineItems, $currentReduction->getLineItemUniqueId());
             if ($lineItem != null) {
-                while($delta != 0){
+                while ($delta != 0) {
                     if ($currentReduction->getUnitPriceReduction() < 0) {
-                        $newReduction = $this->_helper->roundAmount($currentReduction->getUnitPriceReduction() - ($delta / $lineItem->getQuantity()), $currencyCode);
+                        $newReduction = $this->helper->roundAmount(
+                            $currentReduction->getUnitPriceReduction() - ($delta / $lineItem->getQuantity()),
+                            $currencyCode);
                     } else {
-                        $newReduction = $this->_helper->roundAmount($currentReduction->getUnitPriceReduction() + ($delta / $lineItem->getQuantity()), $currencyCode);
+                        $newReduction = $this->helper->roundAmount(
+                            $currentReduction->getUnitPriceReduction() + ($delta / $lineItem->getQuantity()),
+                            $currencyCode);
                     }
-                    $appliedDelta = ($newReduction - $currentReduction->getUnitPriceReduction()) * $lineItem->getQuantity();
-                    if ($appliedDelta <= $delta && $this->compareAmounts($newReduction, $lineItem->getUnitPriceIncludingTax(), $currencyCode) <= 0) {
+                    $appliedDelta = ($newReduction - $currentReduction->getUnitPriceReduction()) *
+                        $lineItem->getQuantity();
+                    if ($appliedDelta <= $delta &&
+                        $this->compareAmounts($newReduction, $lineItem->getUnitPriceIncludingTax(), $currencyCode) <= 0) {
                         $change = true;
                         break;
                     }
 
-                    $newDelta = \round((\abs($delta) - \pow(0.1, $digits+1)) * ($positive ? 1 : -1), 10);
-                    if(($positive xor $newDelta > 0) && $delta != 0){
+                    $newDelta = \round((\abs($delta) - \pow(0.1, $digits + 1)) * ($positive ? 1 : - 1), 10);
+                    if (($positive xor $newDelta > 0) && $delta != 0) {
                         break;
                     }
                     $delta = $newDelta;
@@ -246,18 +257,19 @@ class LineItemReductionService
             }
         }
 
-        if($change){
+        if ($change) {
             $currentReduction->setUnitPriceReduction($newReduction);
             $newRemainder = $remainder - $appliedDelta;
         } else {
             $newRemainder = $remainder;
         }
 
-        if($index + 1 < \count($reductions) && $newRemainder != 0){
-            return $this->distributeRoundingDifference($reductions, $index+1, $newRemainder, $baseLineItems, $currencyCode);
+        if ($index + 1 < \count($reductions) && $newRemainder != 0) {
+            return $this->distributeRoundingDifference($reductions, $index + 1, $newRemainder, $baseLineItems,
+                $currencyCode);
         } else {
-            if($newRemainder != 0){
-                throw new \Exception('Could not distribute the rounding difference.');
+            if ($newRemainder != 0) {
+                throw new LocalizedException('Could not distribute the rounding difference.');
             } else {
                 return $reductions;
             }
@@ -271,11 +283,12 @@ class LineItemReductionService
      * @param string $currencyCode
      * @return number
      */
-    private function compareAmounts($amount1, $amount2, $currencyCode) {
-        $roundedAmount1 = $this->_helper->roundAmount($amount1, $currencyCode);
-        $roundedAmount2 = $this->_helper->roundAmount($amount2, $currencyCode);
+    private function compareAmounts($amount1, $amount2, $currencyCode)
+    {
+        $roundedAmount1 = $this->helper->roundAmount($amount1, $currencyCode);
+        $roundedAmount2 = $this->helper->roundAmount($amount2, $currencyCode);
         if ($roundedAmount1 < $roundedAmount2) {
-            return -1;
+            return - 1;
         } elseif ($roundedAmount1 > $roundedAmount2) {
             return 1;
         } else {
@@ -288,7 +301,8 @@ class LineItemReductionService
      * @param \Wallee\Sdk\Model\LineItem[] $lineItems
      * @param string $uniqueId
      */
-    private function getLineItemByUniqueId(array $lineItems, $uniqueId) {
+    private function getLineItemByUniqueId(array $lineItems, $uniqueId)
+    {
         foreach ($lineItems as $lineItem) {
             if ($lineItem->getUniqueId() == $uniqueId) {
                 return $lineItem;
@@ -325,24 +339,24 @@ class LineItemReductionService
      * @throws \Exception
      * @return \Wallee\Sdk\Model\TransactionInvoice
      */
-    protected function getTransactionInvoice($spaceId, $transactionId)
+    private function getTransactionInvoice($spaceId, $transactionId)
     {
         $query = new EntityQuery();
         $filter = new EntityQueryFilter();
         $filter->setType(EntityQueryFilterType::_AND);
         $filter->setChildren(
             array(
-                $this->_helper->createEntityFilter('state', TransactionInvoiceState::CANCELED,
+                $this->helper->createEntityFilter('state', TransactionInvoiceState::CANCELED,
                     CriteriaOperator::NOT_EQUALS),
-                $this->_helper->createEntityFilter('completion.lineItemVersion.transaction.id', $transactionId)
+                $this->helper->createEntityFilter('completion.lineItemVersion.transaction.id', $transactionId)
             ));
         $query->setFilter($filter);
         $query->setNumberOfEntities(1);
-        $result = $this->_apiClient->getService(TransactionInvoiceService::class)->search($spaceId, $query);
+        $result = $this->apiClient->getService(TransactionInvoiceService::class)->search($spaceId, $query);
         if (! empty($result)) {
             return $result[0];
         } else {
-            throw new \Exception('The transaction invoice could not be found.');
+            throw new LocalizedException('The transaction invoice could not be found.');
         }
     }
 
@@ -354,26 +368,25 @@ class LineItemReductionService
      * @param Refund $refund
      * @return Refund
      */
-    protected function getLastSuccessfulRefund($spaceId, $transactionId, Refund $refund = null)
+    private function getLastSuccessfulRefund($spaceId, $transactionId, Refund $refund = null)
     {
         $query = new EntityQuery();
         $filter = new EntityQueryFilter();
         $filter->setType(EntityQueryFilterType::_AND);
         $filters = [
-            $this->_helper->createEntityFilter('state', RefundState::SUCCESSFUL),
-            $this->_helper->createEntityFilter('transaction.id', $transactionId)
+            $this->helper->createEntityFilter('state', RefundState::SUCCESSFUL),
+            $this->helper->createEntityFilter('transaction.id', $transactionId)
         ];
         if ($refund != null) {
-            $filters[] = $this->_helper->createEntityFilter('id', $refund->getId(), CriteriaOperator::NOT_EQUALS);
+            $filters[] = $this->helper->createEntityFilter('id', $refund->getId(), CriteriaOperator::NOT_EQUALS);
         }
         $filter->setChildren($filters);
         $query->setFilter($filter);
-        $query->setOrderBys(
-            [
-                $this->_helper->createEntityOrderBy('createdOn', EntityQueryOrderByType::DESC)
-            ]);
+        $query->setOrderBys([
+            $this->helper->createEntityOrderBy('createdOn', EntityQueryOrderByType::DESC)
+        ]);
         $query->setNumberOfEntities(1);
-        $result = $this->_apiClient->getService(RefundService::class)->search($spaceId, $query);
+        $result = $this->apiClient->getService(RefundService::class)->search($spaceId, $query);
         if (! empty($result)) {
             return $result[0];
         }

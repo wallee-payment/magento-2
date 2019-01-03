@@ -25,6 +25,12 @@ class Success extends \Wallee\Payment\Controller\Transaction
 
     /**
      *
+     * @var TransactionService
+     */
+    private $transactionService;
+
+    /**
+     *
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
      * @param TransactionService $transactionService
@@ -32,14 +38,15 @@ class Success extends \Wallee\Payment\Controller\Transaction
     public function __construct(Context $context, OrderRepositoryInterface $orderRepository,
         TransactionService $transactionService)
     {
-        parent::__construct($context, $orderRepository, $transactionService);
+        parent::__construct($context, $orderRepository);
+        $this->transactionService = $transactionService;
     }
 
     public function execute()
     {
         $order = $this->getOrder();
 
-        $this->_transactionService->waitForTransactionState($order,
+        $this->transactionService->waitForTransactionState($order,
             [
                 TransactionState::AUTHORIZED,
                 TransactionState::COMPLETED,
@@ -55,7 +62,7 @@ class Success extends \Wallee\Payment\Controller\Transaction
      * @param Order $order
      * @return string
      */
-    protected function getSuccessRedirectionPath(Order $order)
+    private function getSuccessRedirectionPath(Order $order)
     {
         $response = new DataObject();
         $response->setPath('checkout/onepage/success');

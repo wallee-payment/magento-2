@@ -26,13 +26,13 @@ class SaveConfig implements ObserverInterface
      *
      * @var ScopeConfigInterface
      */
-    protected $_scopeConfig;
+    private $scopeConfig;
 
     /**
      *
      * @var EventManager
      */
-    protected $_eventManager;
+    private $eventManager;
 
     /**
      *
@@ -41,19 +41,19 @@ class SaveConfig implements ObserverInterface
      */
     public function __construct(ScopeConfigInterface $scopeConfig, EventManager $eventManager)
     {
-        $this->_scopeConfig = $scopeConfig;
-        $this->_eventManager = $eventManager;
+        $this->scopeConfig = $scopeConfig;
+        $this->eventManager = $eventManager;
     }
 
     public function execute(Observer $observer)
     {
-        $userId = $this->_scopeConfig->getValue('wallee_payment/general/api_user_id',
+        $userId = $this->scopeConfig->getValue('wallee_payment/general/api_user_id',
             ScopeInterface::SCOPE_STORE);
-        $applicationKey = $this->_scopeConfig->getValue('wallee_payment/general/api_user_id',
+        $applicationKey = $this->scopeConfig->getValue('wallee_payment/general/api_user_id',
             ScopeInterface::SCOPE_STORE);
         if ($userId && $applicationKey) {
             try {
-                $this->_eventManager->dispatch('wallee_payment_config_synchronize');
+                $this->eventManager->dispatch('wallee_payment_config_synchronize');
             } catch (\Exception $exception) {
                 throw new \Magento\Framework\Exception\LocalizedException(
                     \__('Synchronizing with wallee failed: %1', $exception->getMessage()));

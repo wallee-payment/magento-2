@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\Transaction;
 
+use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 
 /**
@@ -17,6 +18,21 @@ use Magento\Sales\Model\Order;
  */
 class DeclineCommand extends AbstractCommand
 {
+
+    /**
+     *
+     * @var OrderRepositoryInterface
+     */
+    private $orderRepository;
+
+    /**
+     *
+     * @param OrderRepositoryInterface $orderRepository
+     */
+    public function __construct(OrderRepositoryInterface $orderRepository)
+    {
+        $this->orderRepository = $orderRepository;
+    }
 
     /**
      *
@@ -32,6 +48,6 @@ class DeclineCommand extends AbstractCommand
             $payment->setIsTransactionDenied(true);
             $payment->update(false);
         }
-        $this->_orderRepository->save($order);
+        $this->orderRepository->save($order);
     }
 }

@@ -24,7 +24,7 @@ class InstallWebhook implements ObserverInterface
      *
      * @var WebhookService
      */
-    protected $_webhookService;
+    private $webhookService;
 
     /**
      *
@@ -32,11 +32,11 @@ class InstallWebhook implements ObserverInterface
      */
     public function __construct(WebhookService $webhookService)
     {
-        $this->_webhookService = $webhookService;
+        $this->webhookService = $webhookService;
     }
 
     public function execute(Observer $observer)
     {
-        $this->_webhookService->install();
+        $this->webhookService->install();
     }
 }

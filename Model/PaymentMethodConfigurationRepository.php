@@ -32,31 +32,31 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
      *
      * @var PaymentMethodConfigurationFactory
      */
-    protected $_paymentMethodConfigurationFactory;
+    private $paymentMethodConfigurationFactory;
 
     /**
      *
      * @var PaymentMethodConfigurationCollectionFactory
      */
-    protected $_paymentMethodConfigurationCollectionFactory;
+    private $paymentMethodConfigurationCollectionFactory;
 
     /**
      *
      * @var PaymentMethodConfigurationSearchResultsInterfaceFactory
      */
-    protected $_searchResultsFactory;
+    private $searchResultsFactory;
 
     /**
      *
      * @var PaymentMethodConfigurationResource
      */
-    protected $_resource;
+    private $resource;
 
     /**
      *
      * @var CollectionProcessorInterface
      */
-    protected $_collectionProcessor;
+    private $collectionProcessor;
 
     /**
      *
@@ -71,11 +71,11 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
         PaymentMethodConfigurationSearchResultsInterfaceFactory $searchResultsFactory,
         PaymentMethodConfigurationResource $resource, CollectionProcessorInterface $collectionProcessor)
     {
-        $this->_paymentMethodConfigurationFactory = $paymentMethodConfigurationFactory;
-        $this->_paymentMethodConfigurationCollectionFactory = $paymentMethodConfigurationCollectionFactory;
-        $this->_searchResultsFactory = $searchResultsFactory;
-        $this->_resource = $resource;
-        $this->_collectionProcessor = $collectionProcessor;
+        $this->paymentMethodConfigurationFactory = $paymentMethodConfigurationFactory;
+        $this->paymentMethodConfigurationCollectionFactory = $paymentMethodConfigurationCollectionFactory;
+        $this->searchResultsFactory = $searchResultsFactory;
+        $this->resource = $resource;
+        $this->collectionProcessor = $collectionProcessor;
     }
 
     /**
@@ -88,7 +88,7 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
     public function save(PaymentMethodConfigurationInterface $object)
     {
         try {
-            $this->_resource->save($object);
+            $this->resource->save($object);
         } catch (\Exception $exception) {
             throw new CouldNotSaveException(
                 \__('Could not save the payment method configuration: %1', $exception->getMessage()), $exception);
@@ -111,8 +111,8 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
         }
 
         /** @var PaymentMethodConfiguration $object */
-        $object = $this->_paymentMethodConfigurationFactory->create();
-        $this->_resource->load($object, $entityId);
+        $object = $this->paymentMethodConfigurationFactory->create();
+        $this->resource->load($object, $entityId);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -138,8 +138,8 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
         }
 
         /** @var PaymentMethodConfiguration $object */
-        $object = $this->_paymentMethodConfigurationFactory->create();
-        $this->_resource->loadByConfigurationId($object, $spaceId, $configurationId);
+        $object = $this->paymentMethodConfigurationFactory->create();
+        $this->resource->loadByConfigurationId($object, $spaceId, $configurationId);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -149,12 +149,12 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
     public function getList(SearchCriteriaInterface $searchCriteria)
     {
         /** @var \Wallee\Payment\Model\ResourceModel\PaymentMethodConfiguration\Collection $collection */
-        $collection = $this->_paymentMethodConfigurationCollectionFactory->create();
+        $collection = $this->paymentMethodConfigurationCollectionFactory->create();
 
-        $this->_collectionProcessor->process($searchCriteria, $collection);
+        $this->collectionProcessor->process($searchCriteria, $collection);
 
         /** @var \Wallee\Payment\Api\Data\PaymentMethodConfigurationSearchResultsInterface $searchResults */
-        $searchResults = $this->_searchResultsFactory->create();
+        $searchResults = $this->searchResultsFactory->create();
         $searchResults->setSearchCriteria($searchCriteria);
         $searchResults->setItems($collection->getItems());
         $searchResults->setTotalCount($collection->getSize());
@@ -164,7 +164,7 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
     public function delete(PaymentMethodConfigurationInterface $object)
     {
         try {
-            $this->_resource->delete($object);
+            $this->resource->delete($object);
         } catch (\Exception $exception) {
             throw new CouldNotDeleteException(
                 \__('Could not delete the payment method configuration: %1', $exception->getMessage()));

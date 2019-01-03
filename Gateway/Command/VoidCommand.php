@@ -26,13 +26,13 @@ class VoidCommand implements CommandInterface
      *
      * @var LocaleHelper
      */
-    protected $_localeHelper;
+    private $localeHelper;
 
     /**
      *
      * @var TransactionService
      */
-    protected $_orderTransactionService;
+    private $orderTransactionService;
 
     /**
      *
@@ -41,8 +41,8 @@ class VoidCommand implements CommandInterface
      */
     public function __construct(LocaleHelper $localeHelper, TransactionService $orderTransactionService)
     {
-        $this->_localeHelper = $localeHelper;
-        $this->_orderTransactionService = $orderTransactionService;
+        $this->localeHelper = $localeHelper;
+        $this->orderTransactionService = $orderTransactionService;
     }
 
     public function execute(array $commandSubject)
@@ -50,13 +50,12 @@ class VoidCommand implements CommandInterface
         /** @var \Magento\Sales\Model\Order\Payment $payment */
         $payment = SubjectReader::readPayment($commandSubject)->getPayment();
 
-        $void = $this->_orderTransactionService->void($payment->getOrder());
+        $void = $this->orderTransactionService->void($payment->getOrder());
         if ($void->getState() == TransactionVoidState::FAILED) {
             throw new \Magento\Framework\Exception\LocalizedException(
                 \__('The void of the payment failed on the gateway: %1',
-                    $this->_localeHelper->translate(
-                        $void->getFailureReason()
-                            ->getDescription())));
+                    $this->localeHelper->translate($void->getFailureReason()
+                        ->getDescription())));
         }
     }
 }

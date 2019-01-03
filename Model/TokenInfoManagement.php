@@ -35,31 +35,31 @@ class TokenInfoManagement implements TokenInfoManagementInterface
      *
      * @var Helper
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
      * @var TokenInfoRepositoryInterface
      */
-    protected $_tokenInfoRepository;
+    private $tokenInfoRepository;
 
     /**
      *
      * @var TokenInfoFactory
      */
-    protected $_tokenInfoFactory;
+    private $tokenInfoFactory;
 
     /**
      *
      * @var PaymentMethodConfigurationRepositoryInterface
      */
-    protected $_paymentMethodConfigurationRepository;
+    private $paymentMethodConfigurationRepository;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -73,16 +73,16 @@ class TokenInfoManagement implements TokenInfoManagementInterface
         TokenInfoFactory $tokenInfoFactory,
         PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository, ApiClient $apiClient)
     {
-        $this->_helper = $helper;
-        $this->_tokenInfoRepository = $tokenInfoRepository;
-        $this->_tokenInfoFactory = $tokenInfoFactory;
-        $this->_paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->_apiClient = $apiClient;
+        $this->helper = $helper;
+        $this->tokenInfoRepository = $tokenInfoRepository;
+        $this->tokenInfoFactory = $tokenInfoFactory;
+        $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
+        $this->apiClient = $apiClient;
     }
 
     public function updateTokenVersion($spaceId, $tokenVersionId)
     {
-        $tokenVersion = $this->_apiClient->getService(TokenVersionService::class)->read($spaceId, $tokenVersionId);
+        $tokenVersion = $this->apiClient->getService(TokenVersionService::class)->read($spaceId, $tokenVersionId);
         $this->updateTokenVersionInfo($tokenVersion);
     }
 
@@ -93,18 +93,18 @@ class TokenInfoManagement implements TokenInfoManagementInterface
         $filter->setType(EntityQueryFilterType::_AND);
         $filter->setChildren(
             [
-                $this->_helper->createEntityFilter('token.id', $tokenId),
-                $this->_helper->createEntityFilter('state', TokenVersionState::ACTIVE)
+                $this->helper->createEntityFilter('token.id', $tokenId),
+                $this->helper->createEntityFilter('state', TokenVersionState::ACTIVE)
             ]);
         $query->setFilter($filter);
         $query->setNumberOfEntities(1);
-        $tokenVersions = $this->_apiClient->getService(TokenVersionService::class)->search($spaceId, $query);
+        $tokenVersions = $this->apiClient->getService(TokenVersionService::class)->search($spaceId, $query);
         if (! empty($tokenVersions)) {
             $this->updateTokenVersionInfo($tokenVersions[0]);
         } else {
             try {
-                $tokenInfo = $this->_tokenInfoRepository->getByTokenId($spaceId, $tokenId);
-                $this->_tokenInfoRepository->delete($tokenInfo);
+                $tokenInfo = $this->tokenInfoRepository->getByTokenId($spaceId, $tokenId);
+                $this->tokenInfoRepository->delete($tokenInfo);
             } catch (NoSuchEntityException $e) {}
         }
     }
@@ -112,11 +112,11 @@ class TokenInfoManagement implements TokenInfoManagementInterface
     protected function updateTokenVersionInfo(TokenVersion $tokenVersion)
     {
         try {
-            $tokenInfo = $this->_tokenInfoRepository->getByTokenId($tokenVersion->getLinkedSpaceId(),
+            $tokenInfo = $this->tokenInfoRepository->getByTokenId($tokenVersion->getLinkedSpaceId(),
                 $tokenVersion->getToken()
                     ->getId());
         } catch (NoSuchEntityException $e) {
-            $tokenInfo = $this->_tokenInfoFactory->create();
+            $tokenInfo = $this->tokenInfoFactory->create();
         }
 
         if (! \in_array($tokenVersion->getToken()->getState(),
@@ -125,15 +125,14 @@ class TokenInfoManagement implements TokenInfoManagementInterface
                 CreationEntityState::INACTIVE
             ])) {
             if ($tokenInfo->getId()) {
-                $this->_tokenInfoRepository->delete($tokenInfo);
+                $this->tokenInfoRepository->delete($tokenInfo);
             }
         } else {
-            $tokenInfo->setData(TokenInfoInterface::CUSTOMER_ID,
-                $tokenVersion->getToken()
-                    ->getCustomerId());
+            $tokenInfo->setData(TokenInfoInterface::CUSTOMER_ID, $tokenVersion->getToken()
+                ->getCustomerId());
             $tokenInfo->setData(TokenInfoInterface::NAME, $tokenVersion->getName());
             $tokenInfo->setData(TokenInfoInterface::PAYMENT_METHOD_ID,
-                $this->_paymentMethodConfigurationRepository->getByConfigurationId($tokenVersion->getLinkedSpaceId(),
+                $this->paymentMethodConfigurationRepository->getByConfigurationId($tokenVersion->getLinkedSpaceId(),
                     $tokenVersion->getPaymentConnectorConfiguration()
                         ->getPaymentMethodConfiguration()
                         ->getId())
@@ -146,13 +145,13 @@ class TokenInfoManagement implements TokenInfoManagementInterface
                 ->getState());
             $tokenInfo->setData(TokenInfoInterface::TOKEN_ID, $tokenVersion->getToken()
                 ->getId());
-            $this->_tokenInfoRepository->save($tokenInfo);
+            $this->tokenInfoRepository->save($tokenInfo);
         }
     }
 
     public function deleteToken(TokenInfo $token)
     {
-        $this->_apiClient->getService(TokenService::class)->delete($token->getSpaceId(), $token->getTokenId());
-        $this->_tokenInfoRepository->delete($token);
+        $this->apiClient->getService(TokenService::class)->delete($token->getSpaceId(), $token->getTokenId());
+        $this->tokenInfoRepository->delete($token);
     }
 }

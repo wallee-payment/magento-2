@@ -10,7 +10,7 @@
  */
 namespace Wallee\Payment\Controller\Transaction;
 
-use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Checkout\Model\Session\Proxy as CheckoutSession;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Action\Context;
 use Magento\Sales\Api\OrderRepositoryInterface;
@@ -26,9 +26,15 @@ class Failure extends \Wallee\Payment\Controller\Transaction
 
     /**
      *
+     * @var TransactionService
+     */
+    private $transactionService;
+
+    /**
+     *
      * @var CheckoutSession
      */
-    protected $_checkoutSession;
+    private $checkoutSession;
 
     /**
      *
@@ -40,15 +46,16 @@ class Failure extends \Wallee\Payment\Controller\Transaction
     public function __construct(Context $context, OrderRepositoryInterface $orderRepository,
         TransactionService $transactionService, CheckoutSession $checkoutSession)
     {
-        parent::__construct($context, $orderRepository, $transactionService);
-        $this->_checkoutSession = $checkoutSession;
+        parent::__construct($context, $orderRepository);
+        $this->transactionService = $transactionService;
+        $this->checkoutSession = $checkoutSession;
     }
 
     public function execute()
     {
         $order = $this->getOrder();
 
-        $this->_checkoutSession->restoreQuote();
+        $this->checkoutSession->restoreQuote();
 
         $this->messageManager->addErrorMessage($this->getFailureMessage($order));
         return $this->_redirect($this->getFailureRedirectionPath($order));
@@ -60,10 +67,10 @@ class Failure extends \Wallee\Payment\Controller\Transaction
      * @param Order $order
      * @return string
      */
-    protected function getFailureMessage(Order $order)
+    private function getFailureMessage(Order $order)
     {
         try {
-            $transaction = $this->_transactionService->getTransaction($order->getWalleeSpaceId(),
+            $transaction = $this->transactionService->getTransaction($order->getWalleeSpaceId(),
                 $order->getWalleeTransactionId());
             if ($transaction instanceof Transaction && $transaction->getUserFailureMessage() != null) {
                 return $transaction->getUserFailureMessage();
@@ -78,7 +85,7 @@ class Failure extends \Wallee\Payment\Controller\Transaction
      * @param Order $order
      * @return string
      */
-    protected function getFailureRedirectionPath(Order $order)
+    private function getFailureRedirectionPath(Order $order)
     {
         $response = new DataObject();
         $response->setPath('checkout/cart');

@@ -35,31 +35,31 @@ class CreditmemoService
      *
      * @var LoggerInterface
      */
-    protected $_logger;
+    private $logger;
 
     /**
      *
      * @var LineItemReductionService
      */
-    protected $_lineItemReductionService;
+    private $lineItemReductionService;
 
     /**
      *
      * @var RefundJobFactory
      */
-    protected $_refundJobFactory;
+    private $refundJobFactory;
 
     /**
      *
      * @var RefundJobRepositoryInterface
      */
-    protected $_refundJobRepository;
+    private $refundJobRepository;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -72,11 +72,11 @@ class CreditmemoService
     public function __construct(LoggerInterface $logger, LineItemReductionService $lineItemReductionService,
         RefundJobFactory $refundJobFactory, RefundJobRepositoryInterface $refundJobRepository, ApiClient $apiClient)
     {
-        $this->_logger = $logger;
-        $this->_lineItemReductionService = $lineItemReductionService;
-        $this->_refundJobFactory = $refundJobFactory;
-        $this->_refundJobRepository = $refundJobRepository;
-        $this->_apiClient = $apiClient;
+        $this->logger = $logger;
+        $this->lineItemReductionService = $lineItemReductionService;
+        $this->refundJobFactory = $refundJobFactory;
+        $this->refundJobRepository = $refundJobRepository;
+        $this->apiClient = $apiClient;
     }
 
     public function aroundRefund(\Magento\Sales\Model\Service\CreditmemoService $subject, callable $proceed,
@@ -87,8 +87,8 @@ class CreditmemoService
         } catch (\Exception $e) {
             if ($creditmemo->getWalleeKeepRefundJob() !== true) {
                 try {
-                    $this->_refundJobRepository->delete(
-                        $this->_refundJobRepository->getByOrderId($creditmemo->getOrderId()));
+                    $this->refundJobRepository->delete(
+                        $this->refundJobRepository->getByOrderId($creditmemo->getOrderId()));
                 } catch (NoSuchEntityException $e) {}
             }
             throw $e;
@@ -110,7 +110,7 @@ class CreditmemoService
                 $this->handleExistingRefundJob($creditmemo->getOrder());
 
                 $refundCreate = $this->createRefund($creditmemo);
-                $refundJob = $this->createRefundJob($creditmemo->getInvoice(), $refundCreate);
+                $this->createRefundJob($creditmemo->getInvoice(), $refundCreate);
             } catch (\Exception $e) {
                 throw new \Magento\Framework\Exception\LocalizedException(\__($e->getMessage()));
             }
@@ -123,15 +123,15 @@ class CreditmemoService
      * @param Order $order
      * @throws \Exception
      */
-    protected function handleExistingRefundJob(Order $order)
+    private function handleExistingRefundJob(Order $order)
     {
         try {
-            $existingRefundJob = $this->_refundJobRepository->getByOrderId($order->getId());
+            $existingRefundJob = $this->refundJobRepository->getByOrderId($order->getId());
             try {
-                $refund = $this->_apiClient->getService(RefundService::class)->refund(
+                $this->apiClient->getService(RefundService::class)->refund(
                     $order->getWalleeSpaceId(), $existingRefundJob->getRefund());
             } catch (\Exception $e) {
-                $this->_logger->critical($e);
+                $this->logger->critical($e);
             }
 
             throw new \Magento\Framework\Exception\LocalizedException(
@@ -146,17 +146,16 @@ class CreditmemoService
      * @param RefundCreate $refund
      * @return \Wallee\Payment\Model\RefundJob
      */
-    protected function createRefundJob(Invoice $invoice, RefundCreate $refund)
+    private function createRefundJob(Invoice $invoice, RefundCreate $refund)
     {
-        $entity = $this->_refundJobFactory->create();
+        $entity = $this->refundJobFactory->create();
         $entity->setData(RefundJobInterface::ORDER_ID, $invoice->getOrderId());
         $entity->setData(RefundJobInterface::INVOICE_ID, $invoice->getId());
-        $entity->setData(RefundJobInterface::SPACE_ID,
-            $invoice->getOrder()
-                ->getWalleeSpaceId());
+        $entity->setData(RefundJobInterface::SPACE_ID, $invoice->getOrder()
+            ->getWalleeSpaceId());
         $entity->setData(RefundJobInterface::EXTERNAL_ID, $refund->getExternalId());
         $entity->setData(RefundJobInterface::REFUND, $refund);
-        return $this->_refundJobRepository->save($entity);
+        return $this->refundJobRepository->save($entity);
     }
 
     /**
@@ -165,11 +164,11 @@ class CreditmemoService
      * @param Creditmemo $creditmemo
      * @return RefundCreate
      */
-    protected function createRefund(Creditmemo $creditmemo)
+    private function createRefund(Creditmemo $creditmemo)
     {
         $refund = new RefundCreate();
         $refund->setExternalId(\uniqid($creditmemo->getOrderId() . '-'));
-        $refund->setReductions($this->_lineItemReductionService->convertCreditmemo($creditmemo));
+        $refund->setReductions($this->lineItemReductionService->convertCreditmemo($creditmemo));
         $refund->setTransaction($creditmemo->getOrder()
             ->getWalleeTransactionId());
         $refund->setType(RefundType::MERCHANT_INITIATED_ONLINE);

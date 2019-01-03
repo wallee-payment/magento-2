@@ -17,9 +17,10 @@ class Create
 
     public function beforeCreateOrder(\Magento\Sales\Model\AdminOrder\Create $subject)
     {
-        if ($subject->getQuote()->getPayment()->getMethodInstance() instanceof Adapter) {
+        if ($subject->getQuote()
+            ->getPayment()
+            ->getMethodInstance() instanceof Adapter) {
             $subject->setSendConfirmation(false);
         }
     }
-
 }

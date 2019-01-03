@@ -36,55 +36,55 @@ abstract class AbstractLineItemService
      *
      * @var Helper
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
      * @var LineItemHelper
      */
-    protected $_lineItemHelper;
+    private $lineItemHelper;
 
     /**
      *
      * @var ScopeConfigInterface
      */
-    protected $_scopeConfig;
+    private $scopeConfig;
 
     /**
      *
      * @var TaxClassRepositoryInterface
      */
-    protected $_taxClassRepository;
+    private $taxClassRepository;
 
     /**
      *
      * @var TaxHelper
      */
-    protected $_taxHelper;
+    private $taxHelper;
 
     /**
      *
      * @var TaxCalculation
      */
-    protected $_taxCalculation;
+    private $taxCalculation;
 
     /**
      *
      * @var CustomerGroupRegistry
      */
-    protected $_groupRegistry;
+    private $groupRegistry;
 
     /**
      *
      * @var EventManagerInterface
      */
-    protected $_eventManager;
+    private $eventManager;
 
     /**
      *
      * @var ProductRepositoryInterface
      */
-    protected $_productRepository;
+    private $productRepository;
 
     /**
      *
@@ -103,15 +103,15 @@ abstract class AbstractLineItemService
         CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
         ProductRepositoryInterface $productRepository)
     {
-        $this->_helper = $helper;
-        $this->_lineItemHelper = $lineItemHelper;
-        $this->_scopeConfig = $scopeConfig;
-        $this->_taxClassRepository = $taxClassRepository;
-        $this->_taxHelper = $taxHelper;
-        $this->_taxCalculation = $taxCalculation;
-        $this->_groupRegistry = $groupRegistry;
-        $this->_eventManager = $eventManager;
-        $this->_productRepository = $productRepository;
+        $this->helper = $helper;
+        $this->lineItemHelper = $lineItemHelper;
+        $this->scopeConfig = $scopeConfig;
+        $this->taxClassRepository = $taxClassRepository;
+        $this->taxHelper = $taxHelper;
+        $this->taxCalculation = $taxCalculation;
+        $this->groupRegistry = $groupRegistry;
+        $this->eventManager = $eventManager;
+        $this->productRepository = $productRepository;
     }
 
     /**
@@ -138,7 +138,7 @@ abstract class AbstractLineItemService
         $transport = new DataObject([
             'items' => $items
         ]);
-        $this->_eventManager->dispatch('wallee_payment_convert_line_items',
+        $this->eventManager->dispatch('wallee_payment_convert_line_items',
             [
                 'transport' => $transport,
                 'entity' => $entity
@@ -152,7 +152,7 @@ abstract class AbstractLineItemService
      * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
      * @return boolean
      */
-    protected function isIncludeItem($entityItem)
+    private function isIncludeItem($entityItem)
     {
         if ($entityItem->getParentItemId() != null && $entityItem->getParentItem()->getProductType() ==
             \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE) {
@@ -175,7 +175,7 @@ abstract class AbstractLineItemService
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
      * @return LineItemCreate
      */
-    protected function convertItem($entityItem, $entity)
+    private function convertItem($entityItem, $entity)
     {
         $amountIncludingTax = $entityItem->getRowTotal() - $entityItem->getDiscountAmount() + $entityItem->getTaxAmount() +
             $entityItem->getDiscountTaxCompensationAmount();
@@ -184,11 +184,11 @@ abstract class AbstractLineItemService
         $productItem->setType(LineItemType::PRODUCT);
         $productItem->setUniqueId($this->getUniqueId($entityItem));
         $productItem->setAmountIncludingTax(
-            $this->_helper->roundAmount($amountIncludingTax, $this->getCurrencyCode($entity)));
-        $productItem->setName($this->_helper->fixLength($entityItem->getName(), 150));
+            $this->helper->roundAmount($amountIncludingTax, $this->getCurrencyCode($entity)));
+        $productItem->setName($this->helper->fixLength($entityItem->getName(), 150));
         $productItem->setQuantity($entityItem->getQty() ? $entityItem->getQty() : $entityItem->getQtyOrdered());
         $productItem->setShippingRequired(! $entityItem->getIsVirtual());
-        $productItem->setSku($this->_helper->fixLength($entityItem->getSku(), 200));
+        $productItem->setSku($this->helper->fixLength($entityItem->getSku(), 200));
         $tax = $this->getTax($entityItem);
         if ($tax instanceof TaxCreate) {
             $productItem->setTaxes([
@@ -211,9 +211,9 @@ abstract class AbstractLineItemService
     protected function getAttributeKey($option)
     {
         if (isset($option['option_id']) && ! empty($option['option_id'])) {
-            return $this->_helper->fixLength('option_' . $option['option_id'], 40);
+            return $this->helper->fixLength('option_' . $option['option_id'], 40);
         } else {
-            return $this->_helper->fixLength(\preg_replace('/[^a-z0-9]/', '', strtolower($option['label'])), 40);
+            return $this->helper->fixLength(\preg_replace('/[^a-z0-9]/', '', strtolower($option['label'])), 40);
         }
     }
 
@@ -228,7 +228,7 @@ abstract class AbstractLineItemService
         if ($entityItem->getTaxAmount() > 0 && $entityItem->getTaxPercent() > 0) {
             $taxClassId = $entityItem->getProduct()->getTaxClassId();
             if ($taxClassId > 0) {
-                $taxClass = $this->_taxClassRepository->get($taxClassId);
+                $taxClass = $this->taxClassRepository->get($taxClassId);
 
                 $tax = new TaxCreate();
                 $tax->setRate($entityItem->getTaxPercent());
@@ -258,10 +258,10 @@ abstract class AbstractLineItemService
     protected function getCustomAttributes($productId, $storeId)
     {
         $attributes = [];
-        $productAttributeCodeConfig = $this->_scopeConfig->getValue(
+        $productAttributeCodeConfig = $this->scopeConfig->getValue(
             'wallee_payment/line_items/product_attributes', ScopeInterface::SCOPE_STORE, $storeId);
         if (! empty($productAttributeCodeConfig)) {
-            $product = $this->_productRepository->getById($productId, false, $storeId);
+            $product = $this->productRepository->getById($productId, false, $storeId);
             $productAttributeCodes = \explode(',', $productAttributeCodeConfig);
             foreach ($productAttributeCodes as $productAttributeCode) {
                 $productAttribute = $product->getResource()->getAttribute($productAttributeCode);
@@ -269,8 +269,8 @@ abstract class AbstractLineItemService
                 $value = $productAttribute->getFrontend()->getValue($product);
                 if ($value !== null && $value !== "" && $value !== false) {
                     $attribute = new LineItemAttributeCreate();
-                    $attribute->setLabel($this->_helper->fixLength($this->_helper->getFirstLine($label), 512));
-                    $attribute->setValue($this->_helper->fixLength($this->_helper->getFirstLine($value), 512));
+                    $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($label), 512));
+                    $attribute->setValue($this->helper->fixLength($this->helper->getFirstLine($value), 512));
                     $attributes['product_' . $productAttributeCode] = $attribute;
                 }
             }
@@ -327,17 +327,17 @@ abstract class AbstractLineItemService
             $shippingItem->setType(LineItemType::SHIPPING);
             $shippingItem->setUniqueId('shipping');
             $shippingItem->setAmountIncludingTax(
-                $this->_helper->roundAmount($shippingAmount + $shippingTaxAmount - $shippingDiscountAmount,
+                $this->helper->roundAmount($shippingAmount + $shippingTaxAmount - $shippingDiscountAmount,
                     $this->getCurrencyCode($entity)));
-            if ($this->_scopeConfig->getValue('wallee_payment/line_items/overwrite_shipping_description',
+            if ($this->scopeConfig->getValue('wallee_payment/line_items/overwrite_shipping_description',
                 ScopeInterface::SCOPE_STORE, $entity->getStoreId())) {
                 $shippingItem->setName(
-                    $this->_helper->fixLength(
-                        $this->_scopeConfig->getValue(
+                    $this->helper->fixLength(
+                        $this->scopeConfig->getValue(
                             'wallee_payment/line_items/custom_shipping_description',
                             ScopeInterface::SCOPE_STORE, $entity->getStoreId()), 150));
             } else {
-                $shippingItem->setName($this->_helper->fixLength($shippingDescription, 150));
+                $shippingItem->setName($this->helper->fixLength($shippingDescription, 150));
             }
             $shippingItem->setQuantity(1);
             $shippingItem->setSku('shipping');
@@ -363,16 +363,16 @@ abstract class AbstractLineItemService
      */
     protected function getShippingTax($entity)
     {
-        $customerGroup = $this->_groupRegistry->retrieve($entity->getCustomerGroupId());
-        $taxRateRequest = $this->_taxCalculation->getRateRequest($entity->getShippingAddress(),
+        $customerGroup = $this->groupRegistry->retrieve($entity->getCustomerGroupId());
+        $taxRateRequest = $this->taxCalculation->getRateRequest($entity->getShippingAddress(),
             $entity->getBillingAddress(), $customerGroup->getTaxClassId(), $entity->getStore());
-        $shippingTaxClassId = $this->_scopeConfig->getValue(
+        $shippingTaxClassId = $this->scopeConfig->getValue(
             \Magento\Tax\Model\Config::CONFIG_XML_PATH_SHIPPING_TAX_CLASS, ScopeInterface::SCOPE_STORE,
             $entity->getStoreId());
         if ($shippingTaxClassId > 0) {
-            $shippingTaxClass = $this->_taxClassRepository->get($shippingTaxClassId);
+            $shippingTaxClass = $this->taxClassRepository->get($shippingTaxClassId);
             $taxRateRequest->setProductClassId($shippingTaxClassId);
-            $rate = $this->_taxCalculation->getRate($taxRateRequest);
+            $rate = $this->taxCalculation->getRate($taxRateRequest);
             if ($rate > 0) {
                 $tax = new TaxCreate();
                 $tax->setRate($rate);

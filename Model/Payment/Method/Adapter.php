@@ -38,31 +38,31 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
      *
      * @var LoggerInterface
      */
-    protected $_logger;
+    private $logger;
 
     /**
      *
      * @var ScopeConfigInterface
      */
-    protected $_scopeConfig;
+    private $scopeConfig;
 
     /**
      *
      * @var PaymentMethodConfigurationRepositoryInterface
      */
-    protected $_paymentMethodConfigurationRepository;
+    private $paymentMethodConfigurationRepository;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
      * @var TransactionService
      */
-    protected $_transactionService;
+    private $transactionService;
 
     /**
      *
@@ -102,11 +102,11 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
     {
         parent::__construct($eventManager, $valueHandlerPool, $paymentDataObjectFactory, $code, Form::class, Info::class,
             $commandPool, $validatorPool, $commandExecutor, $logger);
-        $this->_logger = $logger;
-        $this->_scopeConfig = $scopeConfig;
-        $this->_paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->_apiClient = $apiClient;
-        $this->_transactionService = $transactionService;
+        $this->logger = $logger;
+        $this->scopeConfig = $scopeConfig;
+        $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
+        $this->apiClient = $apiClient;
+        $this->transactionService = $transactionService;
         $this->paymentMethodConfigurationId = $paymentMethodConfigurationId;
     }
 
@@ -128,7 +128,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
     public function getPaymentMethodConfiguration()
     {
         if ($this->paymentMethodConfiguration == null) {
-            $this->paymentMethodConfiguration = $this->_paymentMethodConfigurationRepository->get(
+            $this->paymentMethodConfiguration = $this->paymentMethodConfigurationRepository->get(
                 $this->paymentMethodConfigurationId);
         }
         return $this->paymentMethodConfiguration;
@@ -144,17 +144,17 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
             return false;
         }
 
-        if ($quote != null && $this->_apiClient->checkApiClientData()) {
-            $spaceId = $this->_scopeConfig->getValue('wallee_payment/general/space_id',
+        if ($quote != null && $this->apiClient->checkApiClientData()) {
+            $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
                 ScopeInterface::SCOPE_STORE, $quote->getStoreId());
             if (! empty($spaceId)) {
                 try {
-                    $possiblePaymentMethods = $this->_transactionService->getPossiblePaymentMethods($quote);
+                    $possiblePaymentMethods = $this->transactionService->getPossiblePaymentMethods($quote);
                     if (! $this->isPaymentMethodPossible($possiblePaymentMethods)) {
                         return false;
                     }
                 } catch (\Exception $e) {
-                    $this->_logger->critical($e);
+                    $this->logger->critical($e);
                     return false;
                 }
             } else {
@@ -173,7 +173,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
      * @param \Wallee\Sdk\Model\PaymentMethodConfiguration[] $possiblePaymentMethods
      * @return boolean
      */
-    protected function isPaymentMethodPossible(array $possiblePaymentMethods)
+    private function isPaymentMethodPossible(array $possiblePaymentMethods)
     {
         foreach ($possiblePaymentMethods as $possiblePaymentMethod) {
             if ($possiblePaymentMethod->getId() == $this->getPaymentMethodConfiguration()->getConfigurationId()) {

@@ -24,7 +24,7 @@ class ManualTaskListener implements ListenerInterface
      *
      * @var ManualTaskService
      */
-    protected $_manualTaskService;
+    private $manualTaskService;
 
     /**
      *
@@ -32,11 +32,11 @@ class ManualTaskListener implements ListenerInterface
      */
     public function __construct(ManualTaskService $manualTaskService)
     {
-        $this->_manualTaskService = $manualTaskService;
+        $this->manualTaskService = $manualTaskService;
     }
 
     public function execute(Request $request)
     {
-        $this->_manualTaskService->update();
+        $this->manualTaskService->update();
     }
 }

@@ -22,12 +22,19 @@ class LabelDescriptorGroupProvider extends AbstractProvider
 
     /**
      *
+     * @var ApiClient
+     */
+    private $apiClient;
+
+    /**
+     *
      * @param FrontendInterface $cache
      * @param ApiClient $apiClient
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, $apiClient, 'wallee_payment_label_descriptor_groups');
+        parent::__construct($cache, 'wallee_payment_label_descriptor_groups');
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -53,7 +60,7 @@ class LabelDescriptorGroupProvider extends AbstractProvider
 
     protected function fetchData()
     {
-        return $this->_apiClient->getService(LabelDescriptionGroupService::class)->all();
+        return $this->apiClient->getService(LabelDescriptionGroupService::class)->all();
     }
 
     protected function getId($entry)

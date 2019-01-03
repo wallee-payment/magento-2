@@ -23,7 +23,7 @@ class LineItemReduction extends AbstractHelper
      *
      * @var Data
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
@@ -33,7 +33,7 @@ class LineItemReduction extends AbstractHelper
     public function __construct(Context $context, Data $helper)
     {
         parent::__construct($context);
-        $this->_helper = $helper;
+        $this->helper = $helper;
     }
 
     /**
@@ -59,6 +59,6 @@ class LineItemReduction extends AbstractHelper
                 ($lineItem->getQuantity() - $reduction->getQuantityReduction());
         }
 
-        return $this->_helper->roundAmount($amount, $currency);
+        return $this->helper->roundAmount($amount, $currency);
     }
 }

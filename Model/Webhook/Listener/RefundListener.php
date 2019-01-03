@@ -30,7 +30,7 @@ class RefundListener extends AbstractOrderRelatedListener
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -50,7 +50,7 @@ class RefundListener extends AbstractOrderRelatedListener
     {
         parent::__construct($resource, $logger, $orderRepository, $searchCriteriaBuilder, $commandPool,
             $transactionInfoRepository, $transactionInfoManagement);
-        $this->_apiClient = $apiClient;
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -61,7 +61,7 @@ class RefundListener extends AbstractOrderRelatedListener
      */
     protected function loadEntity(Request $request)
     {
-        return $this->_apiClient->getService(RefundService::class)->read($request->getSpaceId(), $request->getEntityId());
+        return $this->apiClient->getService(RefundService::class)->read($request->getSpaceId(), $request->getEntityId());
     }
 
     /**

@@ -10,18 +10,15 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\Refund;
 
-use Magento\Framework\DB\TransactionFactory as DBTransactionFactory;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Sales\Api\CreditmemoManagementInterface;
 use Magento\Sales\Api\CreditmemoRepositoryInterface;
 use Magento\Sales\Api\InvoiceRepositoryInterface;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\CreditmemoFactory;
 use Magento\Sales\Model\Order\Invoice;
-use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
+use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Payment\Model\RefundJobRepository;
 use Wallee\Payment\Model\Service\LineItemReductionService;
 use Wallee\Sdk\Model\LineItemType;
 use Wallee\Sdk\Model\Refund;
@@ -34,46 +31,49 @@ class SuccessfulCommand extends AbstractCommand
 
     /**
      *
+     * @var RefundJobRepositoryInterface
+     */
+    private $refundJobRepository;
+
+    /**
+     *
      * @var CreditmemoRepositoryInterface
      */
-    protected $_creditmemoRepository;
+    private $creditmemoRepository;
 
     /**
      *
      * @var CreditmemoFactory
      */
-    protected $_creditmemoFactory;
+    private $creditmemoFactory;
 
     /**
      *
      * @var CreditmemoManagementInterface
      */
-    protected $_creditmemoManagement;
+    private $creditmemoManagement;
 
     /**
      *
      * @var InvoiceRepositoryInterface
      */
-    protected $_invoiceRepository;
+    private $invoiceRepository;
 
     /**
      *
      * @var LineItemReductionService
      */
-    protected $_lineItemReductionService;
+    private $lineItemReductionService;
 
     /**
      *
      * @var Helper
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
-     * @param DBTransactionFactory $dbTransactionFactory
-     * @param OrderRepositoryInterface $orderRepository
-     * @param OrderEmailSender $orderEmailSender
-     * @param RefundJobRepository $refundJobRepository
+     * @param RefundJobRepositoryInterface $refundJobRepository
      * @param CreditmemoRepositoryInterface $creditmemoRepository
      * @param CreditmemoFactory $creditmemoFactory
      * @param CreditmemoManagementInterface $creditmemoManagement
@@ -81,19 +81,19 @@ class SuccessfulCommand extends AbstractCommand
      * @param LineItemReductionService $lineItemReductionService
      * @param Helper $helper
      */
-    public function __construct(DBTransactionFactory $dbTransactionFactory, OrderRepositoryInterface $orderRepository,
-        OrderEmailSender $orderEmailSender, RefundJobRepository $refundJobRepository,
+    public function __construct(RefundJobRepositoryInterface $refundJobRepository,
         CreditmemoRepositoryInterface $creditmemoRepository, CreditmemoFactory $creditmemoFactory,
         CreditmemoManagementInterface $creditmemoManagement, InvoiceRepositoryInterface $invoiceRepository,
         LineItemReductionService $lineItemReductionService, Helper $helper)
     {
-        parent::__construct($dbTransactionFactory, $orderRepository, $orderEmailSender, $refundJobRepository);
-        $this->_creditmemoRepository = $creditmemoRepository;
-        $this->_creditmemoFactory = $creditmemoFactory;
-        $this->_creditmemoManagement = $creditmemoManagement;
-        $this->_invoiceRepository = $invoiceRepository;
-        $this->_lineItemReductionService = $lineItemReductionService;
-        $this->_helper = $helper;
+        parent::__construct($refundJobRepository);
+        $this->refundJobRepository = $refundJobRepository;
+        $this->creditmemoRepository = $creditmemoRepository;
+        $this->creditmemoFactory = $creditmemoFactory;
+        $this->creditmemoManagement = $creditmemoManagement;
+        $this->invoiceRepository = $invoiceRepository;
+        $this->lineItemReductionService = $lineItemReductionService;
+        $this->helper = $helper;
     }
 
     /**
@@ -104,7 +104,7 @@ class SuccessfulCommand extends AbstractCommand
     public function execute($entity, Order $order)
     {
         /** @var \Magento\Sales\Model\Order\Creditmemo $creditmemo */
-        $creditmemo = $this->_creditmemoRepository->create()->load($entity->getExternalId(),
+        $creditmemo = $this->creditmemoRepository->create()->load($entity->getExternalId(),
             'wallee_external_id');
         if (! $creditmemo->getId()) {
             $this->registerRefund($entity, $order);
@@ -112,29 +112,29 @@ class SuccessfulCommand extends AbstractCommand
         $this->deleteRefundJob($entity);
     }
 
-    protected function registerRefund(Refund $refund, Order $order)
+    private function registerRefund(Refund $refund, Order $order)
     {
         $creditmemoData = $this->collectCreditmemoData($refund, $order);
         try {
-            $refundJob = $this->_refundJobRepository->getByOrderId($order->getId());
-            $invoice = $this->_invoiceRepository->get($refundJob->getInvoiceId());
-            $creditmemo = $this->_creditmemoFactory->createByInvoice($invoice, $creditmemoData);
+            $refundJob = $this->refundJobRepository->getByOrderId($order->getId());
+            $invoice = $this->invoiceRepository->get($refundJob->getInvoiceId());
+            $creditmemo = $this->creditmemoFactory->createByInvoice($invoice, $creditmemoData);
         } catch (NoSuchEntityException $e) {
             $paidInvoices = $order->getInvoiceCollection()->addFieldToFilter('state', Invoice::STATE_PAID);
             if ($paidInvoices->count() == 1) {
-                $creditmemo = $this->_creditmemoFactory->createByInvoice($paidInvoices->getFirstItem(), $creditmemoData);
+                $creditmemo = $this->creditmemoFactory->createByInvoice($paidInvoices->getFirstItem(), $creditmemoData);
             } else {
-                $creditmemo = $this->_creditmemoFactory->createByOrder($order, $creditmemoData);
+                $creditmemo = $this->creditmemoFactory->createByOrder($order, $creditmemoData);
             }
         }
         $creditmemo->setPaymentRefundDisallowed(false);
         $creditmemo->setAutomaticallyCreated(true);
         $creditmemo->addComment(\__('The credit memo has been created automatically.'));
         $creditmemo->setWalleeExternalId($refund->getExternalId());
-        $this->_creditmemoManagement->refund($creditmemo);
+        $this->creditmemoManagement->refund($creditmemo);
     }
 
-    protected function collectCreditmemoData(Refund $refund, Order $order)
+    private function collectCreditmemoData(Refund $refund, Order $order)
     {
         $orderItemMap = array();
         foreach ($order->getAllItems() as $orderItem) {
@@ -147,7 +147,7 @@ class SuccessfulCommand extends AbstractCommand
         }
 
         $baseLineItems = array();
-        foreach ($this->_lineItemReductionService->getBaseLineItems($order->getWalleeSpaceId(),
+        foreach ($this->lineItemReductionService->getBaseLineItems($order->getWalleeSpaceId(),
             $refund->getTransaction()
                 ->getId(), $refund) as $lineItem) {
             $baseLineItems[$lineItem->getUniqueId()] = $lineItem;
@@ -166,8 +166,7 @@ class SuccessfulCommand extends AbstractCommand
                 case LineItemType::PRODUCT:
                     if ($reduction->getQuantityReduction() > 0) {
                         $refundQuantities[$orderItemMap[$reduction->getLineItemUniqueId()]->getId()] = $reduction->getQuantityReduction();
-                        $creditmemoAmount += $reduction->getQuantityReduction() *
-                            ($orderItemMap[$reduction->getLineItemUniqueId()]->getRowTotal() +
+                        $creditmemoAmount += $reduction->getQuantityReduction() * ($orderItemMap[$reduction->getLineItemUniqueId()]->getRowTotal() +
                             $orderItemMap[$reduction->getLineItemUniqueId()]->getTaxAmount() -
                             $orderItemMap[$reduction->getLineItemUniqueId()]->getDiscountAmount() +
                             $orderItemMap[$reduction->getLineItemUniqueId()]->getDiscountTaxCompensationAmount()) /
@@ -193,13 +192,16 @@ class SuccessfulCommand extends AbstractCommand
                     }
 
                     if ($order->getShippingDiscountAmount() > 0) {
-                        $shippingAmount += ($shippingAmount / $order->getShippingAmount()) * $order->getShippingDiscountAmount();
+                        $shippingAmount += ($shippingAmount / $order->getShippingAmount()) *
+                            $order->getShippingDiscountAmount();
                     }
                     break;
             }
         }
 
-        $roundedCreditmemoAmount = $this->_helper->roundAmount($creditmemoAmount, $refund->getTransaction()->getCurrency());
+        $roundedCreditmemoAmount = $this->helper->roundAmount($creditmemoAmount,
+            $refund->getTransaction()
+                ->getCurrency());
 
         $positiveAdjustment = 0;
         $negativeAdjustment = 0;

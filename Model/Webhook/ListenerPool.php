@@ -32,11 +32,10 @@ class ListenerPool implements ListenerPoolInterface
      */
     public function __construct(TMapFactory $tmapFactory, array $listeners = [])
     {
-        $this->listeners = $tmapFactory->create(
-            [
-                'array' => $listeners,
-                'type' => ListenerInterface::class
-            ]);
+        $this->listeners = $tmapFactory->create([
+            'array' => $listeners,
+            'type' => ListenerInterface::class
+        ]);
     }
 
     /**

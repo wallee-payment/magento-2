@@ -25,7 +25,7 @@ class DomFactory
      *
      * @var ObjectManagerInterface
      */
-    protected $_objectManager;
+    private $objectManager;
 
     /**
      *
@@ -33,7 +33,7 @@ class DomFactory
      */
     public function __construct(ObjectManagerInterface $objectManger)
     {
-        $this->_objectManager = $objectManger;
+        $this->objectManager = $objectManger;
     }
 
     /**
@@ -44,6 +44,6 @@ class DomFactory
      */
     public function createDom(array $arguments = [])
     {
-        return $this->_objectManager->create(self::CLASS_NAME, $arguments);
+        return $this->objectManager->create(self::CLASS_NAME, $arguments);
     }
 }

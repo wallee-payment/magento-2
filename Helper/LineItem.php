@@ -23,7 +23,7 @@ class LineItem extends AbstractHelper
      *
      * @var Data
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
@@ -33,7 +33,7 @@ class LineItem extends AbstractHelper
     public function __construct(Context $context, Data $helper)
     {
         parent::__construct($context);
-        $this->_helper = $helper;
+        $this->helper = $helper;
     }
 
     /**
@@ -62,8 +62,8 @@ class LineItem extends AbstractHelper
      */
     public function correctLineItems(array $items, $expectedAmount, $currencyCode)
     {
-        $effectiveAmount = $this->_helper->roundAmount($this->getTotalAmountIncludingTax($items), $currencyCode);
-        $difference = $this->_helper->roundAmount($expectedAmount, $currencyCode) - $effectiveAmount;
+        $effectiveAmount = $this->helper->roundAmount($this->getTotalAmountIncludingTax($items), $currencyCode);
+        $difference = $this->helper->roundAmount($expectedAmount, $currencyCode) - $effectiveAmount;
         if ($difference != 0) {
             throw new \Exception(
                 'The line item total amount of ' . $effectiveAmount . ' does not match the expected amount of ' .

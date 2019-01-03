@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\DeliveryIndication;
 
+use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 
 /**
@@ -18,12 +19,27 @@ use Magento\Sales\Model\Order;
 class ManualCheckRequiredCommand extends AbstractCommand
 {
 
+    /**
+     *
+     * @var OrderRepositoryInterface
+     */
+    private $orderRepository;
+
+    /**
+     *
+     * @param OrderRepositoryInterface $orderRepository
+     */
+    public function __construct(OrderRepositoryInterface $orderRepository)
+    {
+        $this->orderRepository = $orderRepository;
+    }
+
     public function execute($entity, Order $order)
     {
         if ($order->getState() != Order::STATE_PAYMENT_REVIEW) {
             $order->setState(Order::STATE_PAYMENT_REVIEW);
             $order->addStatusToHistory(true, \__('A manual decision about whether to accept the payment is required.'));
         }
-        $this->_orderRepository->save($order);
+        $this->orderRepository->save($order);
     }
 }

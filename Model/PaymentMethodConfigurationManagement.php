@@ -35,55 +35,55 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
      *
      * @var PaymentMethodConfigurationFactory
      */
-    protected $_paymentMethodConfigurationFactory;
+    private $paymentMethodConfigurationFactory;
 
     /**
      *
      * @var PaymentMethodConfigurationRepositoryInterface
      */
-    protected $_paymentMethodConfigurationRepository;
+    private $paymentMethodConfigurationRepository;
 
     /**
      *
      * @var LocaleHelper
      */
-    protected $_localeHelper;
+    private $localeHelper;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var StoreManagerInterface
      */
-    protected $_storeManager;
+    private $storeManager;
 
     /**
      *
      * @var ScopeConfigInterface
      */
-    protected $_scopeConfig;
+    private $scopeConfig;
 
     /**
      *
      * @var StorageWriter
      */
-    protected $_configWriter;
+    private $configWriter;
 
     /**
      *
      * @var CacheTypeList
      */
-    protected $_cacheTypeList;
+    private $cacheTypeList;
 
     /**
      *
@@ -102,21 +102,21 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         ApiClient $apiClient, SearchCriteriaBuilder $searchCriteriaBuilder, StoreManagerInterface $storeManager,
         ScopeConfigInterface $scopeConfig, StorageWriter $configWriter, CacheTypeList $cacheTypeList)
     {
-        $this->_paymentMethodConfigurationFactory = $paymentMethodConfigurationFactory;
-        $this->_paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->_localeHelper = $localeHelper;
-        $this->_apiClient = $apiClient;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_storeManager = $storeManager;
-        $this->_scopeConfig = $scopeConfig;
-        $this->_configWriter = $configWriter;
-        $this->_cacheTypeList = $cacheTypeList;
+        $this->paymentMethodConfigurationFactory = $paymentMethodConfigurationFactory;
+        $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
+        $this->localeHelper = $localeHelper;
+        $this->apiClient = $apiClient;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->storeManager = $storeManager;
+        $this->scopeConfig = $scopeConfig;
+        $this->configWriter = $configWriter;
+        $this->cacheTypeList = $cacheTypeList;
     }
 
     public function synchronize()
     {
-        $existingConfigurations = $this->_paymentMethodConfigurationRepository->getList(
-            $this->_searchCriteriaBuilder->create())
+        $existingConfigurations = $this->paymentMethodConfigurationRepository->getList(
+            $this->searchCriteriaBuilder->create())
             ->getItems();
         foreach ($existingConfigurations as $existingConfiguration) {
             /** @var PaymentMethodConfiguration $existingConfiguration */
@@ -127,11 +127,11 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         $spaceIds = [];
         $existingFound = [];
         $createdEntities = [];
-        foreach ($this->_storeManager->getWebsites() as $website) {
-            $spaceId = $this->_scopeConfig->getValue('wallee_payment/general/space_id',
+        foreach ($this->storeManager->getWebsites() as $website) {
+            $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
                 ScopeInterface::SCOPE_WEBSITE, $website->getId());
             if ($spaceId && ! in_array($spaceId, $spaceIds)) {
-                $configurations = $this->_apiClient->getService(PaymentMethodConfigurationService::class)->search(
+                $configurations = $this->apiClient->getService(PaymentMethodConfigurationService::class)->search(
                     $spaceId, new EntityQuery());
                 foreach ($configurations as $configuration) {
                     /** @var PaymentMethodConfiguration $entity */
@@ -147,7 +147,7 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
                     }
 
                     if ($entity == null) {
-                        $entity = $this->_paymentMethodConfigurationFactory->create();
+                        $entity = $this->paymentMethodConfigurationFactory->create();
                         $createdEntities[] = $entity;
                     }
 
@@ -162,7 +162,7 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
                     $entity->setData(PaymentMethodConfigurationInterface::IMAGE,
                         $this->extractImagePath($configuration->getResolvedImageUrl()));
                     $entity->setData(PaymentMethodConfigurationInterface::SORT_ORDER, $configuration->getSortOrder());
-                    $this->_paymentMethodConfigurationRepository->save($entity);
+                    $this->paymentMethodConfigurationRepository->save($entity);
                 }
             }
         }
@@ -175,49 +175,49 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
             if (! in_array($existingConfiguration->getId(), $existingFound)) {
                 $existingConfiguration->setData(PaymentMethodConfigurationInterface::STATE,
                     PaymentMethodConfiguration::STATE_HIDDEN);
-                $this->_paymentMethodConfigurationRepository->save($existingConfiguration);
+                $this->paymentMethodConfigurationRepository->save($existingConfiguration);
             }
         }
 
         $this->clearCache();
     }
 
-    protected function clearCache()
+    private function clearCache()
     {
-        $this->_cacheTypeList->cleanType(\Magento\Framework\App\Cache\Type\Config::TYPE_IDENTIFIER);
+        $this->cacheTypeList->cleanType(\Magento\Framework\App\Cache\Type\Config::TYPE_IDENTIFIER);
     }
 
-    protected function storeConfigValues(PaymentMethodConfigurationInterface $configuration)
+    private function storeConfigValues(PaymentMethodConfigurationInterface $configuration)
     {
-        $defaultLocale = $this->_scopeConfig->getValue('general/locale/code');
+        $defaultLocale = $this->scopeConfig->getValue('general/locale/code');
 
         $this->storeConfigValue($configuration, 'title', $this->getTranslatedTitle($configuration, $defaultLocale));
         $this->storeConfigValue($configuration, 'description',
-            $this->_localeHelper->translate($configuration->getDescription(), $defaultLocale));
+            $this->localeHelper->translate($configuration->getDescription(), $defaultLocale));
 
-        $stores = $this->_storeManager->getStores();
-        foreach ($this->_storeManager->getWebsites() as $website) {
-            $websiteLocale = $this->_scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_WEBSITES,
+        $stores = $this->storeManager->getStores();
+        foreach ($this->storeManager->getWebsites() as $website) {
+            $websiteLocale = $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_WEBSITES,
                 $website->getId());
             if ($websiteLocale != $defaultLocale) {
                 $this->storeConfigValue($configuration, 'title',
                     $this->getTranslatedTitle($configuration, $websiteLocale), ScopeInterface::SCOPE_WEBSITES,
                     $website->getId());
                 $this->storeConfigValue($configuration, 'description',
-                    $this->_localeHelper->translate($configuration->getDescription(), $websiteLocale),
+                    $this->localeHelper->translate($configuration->getDescription(), $websiteLocale),
                     ScopeInterface::SCOPE_WEBSITES, $website->getId());
             }
 
             foreach ($stores as $store) {
                 if ($store->getWebsiteId() == $website->getId()) {
-                    $storeLocale = $this->_scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORES,
+                    $storeLocale = $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORES,
                         $store->getId());
                     if ($storeLocale != $websiteLocale) {
                         $this->storeConfigValue($configuration, 'title',
                             $this->getTranslatedTitle($configuration, $storeLocale), ScopeInterface::SCOPE_STORES,
                             $store->getId());
                         $this->storeConfigValue($configuration, 'description',
-                            $this->_localeHelper->translate($configuration->getDescription(), $storeLocale),
+                            $this->localeHelper->translate($configuration->getDescription(), $storeLocale),
                             ScopeInterface::SCOPE_STORES, $store->getId());
                     }
                 }
@@ -225,12 +225,11 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         }
     }
 
-    protected function storeConfigValue(PaymentMethodConfigurationInterface $configuration, $key, $value,
+    private function storeConfigValue(PaymentMethodConfigurationInterface $configuration, $key, $value,
         $scope = ScopeConfigInterface::SCOPE_TYPE_DEFAULT, $scopeId = 0)
     {
-        $this->_configWriter->save(
-            'payment/wallee_payment_' . $configuration->getEntityId() . '/' . $key, $value, $scope,
-            $scopeId);
+        $this->configWriter->save('payment/wallee_payment_' . $configuration->getEntityId() . '/' . $key,
+            $value, $scope, $scopeId);
     }
 
     /**
@@ -242,9 +241,9 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
      * @param string $language
      * @return string
      */
-    protected function getTranslatedTitle(PaymentMethodConfiguration $configuration, $language)
+    private function getTranslatedTitle(PaymentMethodConfiguration $configuration, $language)
     {
-        $translatedTitle = $this->_localeHelper->translate($configuration->getTitle(), $language);
+        $translatedTitle = $this->localeHelper->translate($configuration->getTitle(), $language);
         if (! empty($translatedTitle)) {
             return $translatedTitle;
         } else {
@@ -255,7 +254,7 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
     public function update(\Wallee\Sdk\Model\PaymentMethodConfiguration $configuration)
     {
         try {
-            $entity = $this->_paymentMethodConfigurationRepository->getByConfigurationId($configuration->getSpaceId(),
+            $entity = $this->paymentMethodConfigurationRepository->getByConfigurationId($configuration->getSpaceId(),
                 $configuration->getId());
             if ($this->hasConfigurationChanged($configuration, $entity)) {
                 $entity->setData(PaymentMethodConfigurationInterface::CONFIGURATION_NAME, $configuration->getName());
@@ -265,13 +264,12 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
                 $entity->setData(PaymentMethodConfigurationInterface::IMAGE,
                     $this->extractImagePath($configuration->getResolvedImageUrl()));
                 $entity->setData(PaymentMethodConfigurationInterface::SORT_ORDER, $configuration->getSortOrder());
-                $this->_paymentMethodConfigurationRepository->save($entity);
+                $this->paymentMethodConfigurationRepository->save($entity);
             }
         } catch (NoSuchEntityException $e) {}
     }
 
-    protected function hasConfigurationChanged(
-        \Wallee\Sdk\Model\PaymentMethodConfiguration $configuration,
+    private function hasConfigurationChanged(\Wallee\Sdk\Model\PaymentMethodConfiguration $configuration,
         PaymentMethodConfigurationInterface $entity)
     {
         if ($configuration->getName() != $entity->getConfigurationName()) {
@@ -303,7 +301,7 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
      * @param string $resolvedImageUrl
      * @return string
      */
-    protected function extractImagePath($resolvedImageUrl)
+    private function extractImagePath($resolvedImageUrl)
     {
         $index = \strpos($resolvedImageUrl, 'resource/');
         return \substr($resolvedImageUrl, $index + \strlen('resource/'));
@@ -315,7 +313,7 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
      * @param string $state
      * @return number
      */
-    protected function toConfigurationState($state)
+    private function toConfigurationState($state)
     {
         switch ($state) {
             case CreationEntityState::ACTIVE:

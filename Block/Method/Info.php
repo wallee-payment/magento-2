@@ -33,49 +33,49 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @var PriceCurrencyInterface
      */
-    protected $_priceCurrency;
+    private $priceCurrency;
 
     /**
      *
      * @var Registry
      */
-    protected $_registry;
+    private $registry;
 
     /**
      *
      * @var Helper
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
      * @var LocaleHelper
      */
-    protected $_localeHelper;
+    private $localeHelper;
 
     /**
      *
      * @var DocumentHelper
      */
-    protected $_documentHelper;
+    private $documentHelper;
 
     /**
      *
      * @var TransactionInfoRepositoryInterface
      */
-    protected $_transactionInfoRepository;
+    private $transactionInfoRepository;
 
     /**
      *
      * @var LabelDescriptorProvider
      */
-    protected $_labelDescriptorProvider;
+    private $labelDescriptorProvider;
 
     /**
      *
      * @var LabelDescriptorGroupProvider
      */
-    protected $_labelDescriptorGroupProvider;
+    private $labelDescriptorGroupProvider;
 
     /**
      *
@@ -108,14 +108,14 @@ class Info extends \Magento\Payment\Block\Info
         LabelDescriptorGroupProvider $labelDescriptorGroupProvider, array $data = [])
     {
         parent::__construct($context, $data);
-        $this->_priceCurrency = $priceCurrency;
-        $this->_registry = $registry;
-        $this->_helper = $helper;
-        $this->_localeHelper = $localeHelper;
-        $this->_documentHelper = $documentHelper;
-        $this->_transactionInfoRepository = $transactionInfoRepository;
-        $this->_labelDescriptorProvider = $labelDescriptorProvider;
-        $this->_labelDescriptorGroupProvider = $labelDescriptorGroupProvider;
+        $this->priceCurrency = $priceCurrency;
+        $this->registry = $registry;
+        $this->helper = $helper;
+        $this->localeHelper = $localeHelper;
+        $this->documentHelper = $documentHelper;
+        $this->transactionInfoRepository = $transactionInfoRepository;
+        $this->labelDescriptorProvider = $labelDescriptorProvider;
+        $this->labelDescriptorGroupProvider = $labelDescriptorGroupProvider;
     }
 
     /**
@@ -125,7 +125,7 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function isCreditmemo()
     {
-        return $this->_helper->isAdminArea() && \strstr($this->getRequest()->getControllerName(), 'creditmemo') !== false;
+        return $this->helper->isAdminArea() && \strstr($this->getRequest()->getControllerName(), 'creditmemo') !== false;
     }
 
     /**
@@ -135,7 +135,7 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function isInvoice()
     {
-        return $this->_helper->isAdminArea() && \strstr($this->getRequest()->getControllerName(), 'invoice') !== false;
+        return $this->helper->isAdminArea() && \strstr($this->getRequest()->getControllerName(), 'invoice') !== false;
     }
 
     /**
@@ -145,7 +145,7 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function isShipment()
     {
-        return $this->_helper->isAdminArea() && \strstr($this->getRequest()->getControllerName(), 'shipment') !== false;
+        return $this->helper->isAdminArea() && \strstr($this->getRequest()->getControllerName(), 'shipment') !== false;
     }
 
     /**
@@ -157,7 +157,7 @@ class Info extends \Magento\Payment\Block\Info
     {
         $transaction = $this->getTransaction();
         if ($transaction && $transaction->getImage()) {
-            return $this->_helper->getResourceUrl($transaction->getImage(), $transaction->getLanguage(),
+            return $this->helper->getResourceUrl($transaction->getImage(), $transaction->getLanguage(),
                 $transaction->getSpaceId(), $transaction->getSpaceViewId());
         }
     }
@@ -205,9 +205,8 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function formatAmount($amount)
     {
-        return $this->_priceCurrency->format($amount, null, null, null,
-            $this->getTransaction()
-                ->getCurrency());
+        return $this->priceCurrency->format($amount, null, null, null, $this->getTransaction()
+            ->getCurrency());
     }
 
     /**
@@ -235,9 +234,8 @@ class Info extends \Magento\Payment\Block\Info
                 /** @var Payment $payment */
                 $payment = $this->getInfo();
                 try {
-                    $this->transaction = $this->_transactionInfoRepository->getByOrderId(
-                        $payment->getOrder()
-                            ->getId());
+                    $this->transaction = $this->transactionInfoRepository->getByOrderId($payment->getOrder()
+                        ->getId());
                 } catch (NoSuchEntityException $e) {}
             }
         }
@@ -281,7 +279,7 @@ class Info extends \Magento\Payment\Block\Info
     {
         return $this->getUrl('wallee_payment/order/downloadRefund',
             [
-                'creditmemo_id' => $this->_registry->registry('current_creditmemo')
+                'creditmemo_id' => $this->registry->registry('current_creditmemo')
                     ->getId()
             ]);
     }
@@ -300,7 +298,7 @@ class Info extends \Magento\Payment\Block\Info
                 $payment = $this->getInfo();
                 $storeId = $payment->getOrder()->getStoreId();
             }
-            return $this->_documentHelper->isInvoiceDownloadAllowed($this->getTransaction(), $storeId);
+            return $this->documentHelper->isInvoiceDownloadAllowed($this->getTransaction(), $storeId);
         } else {
             return false;
         }
@@ -320,7 +318,7 @@ class Info extends \Magento\Payment\Block\Info
                 $payment = $this->getInfo();
                 $storeId = $payment->getOrder()->getStoreId();
             }
-            return $this->_documentHelper->isPackingSlipDownloadAllowed($this->getTransaction(), $storeId);
+            return $this->documentHelper->isPackingSlipDownloadAllowed($this->getTransaction(), $storeId);
         } else {
             return false;
         }
@@ -333,7 +331,7 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function isRefundDownloadAllowed()
     {
-        $creditmemo = $this->_registry->registry('current_creditmemo');
+        $creditmemo = $this->registry->registry('current_creditmemo');
         if ($this->getTransaction() && $creditmemo != null && $creditmemo->getWalleeExternalId() != null) {
             $storeId = null;
             if ($this->getInfo() instanceof Payment) {
@@ -341,7 +339,7 @@ class Info extends \Magento\Payment\Block\Info
                 $payment = $this->getInfo();
                 $storeId = $payment->getOrder()->getStoreId();
             }
-            return $this->_documentHelper->isRefundDownloadAllowed($this->getTransaction(), $storeId);
+            return $this->documentHelper->isRefundDownloadAllowed($this->getTransaction(), $storeId);
         } else {
             return false;
         }
@@ -357,7 +355,7 @@ class Info extends \Magento\Payment\Block\Info
         if ($this->getTransaction() && $this->getTransaction()->getLabels()) {
             $labelsByGroupId = [];
             foreach ($this->getTransaction()->getLabels() as $descriptorId => $value) {
-                $descriptor = $this->_labelDescriptorProvider->find($descriptorId);
+                $descriptor = $this->labelDescriptorProvider->find($descriptorId);
                 if ($descriptor) {
                     $labelsByGroupId[$descriptor->getGroup()][] = new Label($descriptor, $value);
                 }
@@ -365,20 +363,18 @@ class Info extends \Magento\Payment\Block\Info
 
             $labelsByGroup = [];
             foreach ($labelsByGroupId as $groupId => $labels) {
-                $group = $this->_labelDescriptorGroupProvider->find($groupId);
+                $group = $this->labelDescriptorGroupProvider->find($groupId);
                 if ($group) {
-                    \usort($labels,
-                        function ($a, $b) {
-                            return $a->getWeight() - $b->getWeight();
-                        });
+                    \usort($labels, function ($a, $b) {
+                        return $a->getWeight() - $b->getWeight();
+                    });
                     $labelsByGroup[] = new LabelGroup($group, $labels);
                 }
             }
 
-            \usort($labelsByGroup,
-                function ($a, $b) {
-                    return $a->getWeight() - $b->getWeight();
-                });
+            \usort($labelsByGroup, function ($a, $b) {
+                return $a->getWeight() - $b->getWeight();
+            });
             return $labelsByGroup;
         } else {
             return [];
@@ -393,6 +389,6 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function translate($translatedString)
     {
-        return $this->_localeHelper->translate($translatedString);
+        return $this->localeHelper->translate($translatedString);
     }
 }

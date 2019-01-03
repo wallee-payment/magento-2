@@ -26,13 +26,13 @@ class View extends Template
      *
      * @var Registry
      */
-    protected $_coreRegistry;
+    private $coreRegistry;
 
     /**
      *
      * @var RefundJobRepositoryInterface
      */
-    protected $_refundJobRepository;
+    private $refundJobRepository;
 
     /**
      *
@@ -45,8 +45,8 @@ class View extends Template
         RefundJobRepositoryInterface $refundJobRepository, array $data = [])
     {
         parent::__construct($context, $data);
-        $this->_coreRegistry = $coreRegistry;
-        $this->_refundJobRepository = $refundJobRepository;
+        $this->coreRegistry = $coreRegistry;
+        $this->refundJobRepository = $refundJobRepository;
     }
 
     /**
@@ -57,7 +57,7 @@ class View extends Template
     public function hasPendingRefund()
     {
         try {
-            $this->_refundJobRepository->getByOrderId($this->getOrder()
+            $this->refundJobRepository->getByOrderId($this->getOrder()
                 ->getId());
             return true;
         } catch (NoSuchEntityException $e) {
@@ -72,11 +72,10 @@ class View extends Template
      */
     public function getRefundUrl()
     {
-        return $this->getUrl('wallee_payment/order/refund',
-            [
-                'order_id' => $this->getOrder()
-                    ->getId()
-            ]);
+        return $this->getUrl('wallee_payment/order/refund', [
+            'order_id' => $this->getOrder()
+                ->getId()
+        ]);
     }
 
     /**
@@ -86,6 +85,6 @@ class View extends Template
      */
     public function getOrder()
     {
-        return $this->_coreRegistry->registry('sales_order');
+        return $this->coreRegistry->registry('sales_order');
     }
 }

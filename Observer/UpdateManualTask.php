@@ -24,7 +24,7 @@ class UpdateManualTask implements ObserverInterface
      *
      * @var ManualTaskService
      */
-    protected $_manualTaskService;
+    private $manualTaskService;
 
     /**
      *
@@ -32,11 +32,11 @@ class UpdateManualTask implements ObserverInterface
      */
     public function __construct(ManualTaskService $manualTaskService)
     {
-        $this->_manualTaskService = $manualTaskService;
+        $this->manualTaskService = $manualTaskService;
     }
 
     public function execute(Observer $observer)
     {
-        $this->_manualTaskService->update();
+        $this->manualTaskService->update();
     }
 }

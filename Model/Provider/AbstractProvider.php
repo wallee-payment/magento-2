@@ -11,7 +11,6 @@
 namespace Wallee\Payment\Model\Provider;
 
 use Magento\Framework\Cache\FrontendInterface;
-use Wallee\Payment\Model\ApiClient;
 
 /**
  * Abstract implementation of a provider.
@@ -23,38 +22,30 @@ abstract class AbstractProvider
      *
      * @var FrontendInterface
      */
-    protected $_cache;
-
-    /**
-     *
-     * @var ApiClient
-     */
-    protected $_apiClient;
+    private $cache;
 
     /**
      * Cache key.
      *
      * @var string
      */
-    protected $cacheKey;
+    private $cacheKey;
 
     /**
      * Data.
      *
      * @var array
      */
-    protected $data;
+    private $data;
 
     /**
      *
      * @param FrontendInterface $cache
-     * @param ApiClient $apiClient
      * @param string $cacheKey
      */
-    public function __construct(FrontendInterface $cache, ApiClient $apiClient, $cacheKey)
+    public function __construct(FrontendInterface $cache, $cacheKey)
     {
-        $this->_cache = $cache;
-        $this->_apiClient = $apiClient;
+        $this->cache = $cache;
         $this->cacheKey = $cacheKey;
     }
 
@@ -105,7 +96,7 @@ abstract class AbstractProvider
 
     private function loadData()
     {
-        $cachedData = $this->_cache->load($this->cacheKey);
+        $cachedData = $this->cache->load($this->cacheKey);
         if ($cachedData) {
             $this->data = \unserialize($cachedData);
         } else {
@@ -113,7 +104,7 @@ abstract class AbstractProvider
             foreach ($this->fetchData() as $entry) {
                 $this->data[$this->getId($entry)] = $entry;
             }
-            $this->_cache->save(\serialize($this->data), $this->cacheKey);
+            $this->cache->save(\serialize($this->data), $this->cacheKey);
         }
     }
 }

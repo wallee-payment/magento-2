@@ -29,9 +29,21 @@ class TransactionListener extends AbstractOrderRelatedListener
 
     /**
      *
+     * @var TransactionInfoRepositoryInterface
+     */
+    private $transactionInfoRepository;
+
+    /**
+     *
+     * @var TransactionInfoManagementInterface
+     */
+    private $transactionInfoManagement;
+
+    /**
+     *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -51,7 +63,9 @@ class TransactionListener extends AbstractOrderRelatedListener
     {
         parent::__construct($resource, $logger, $orderRepository, $searchCriteriaBuilder, $commandPool,
             $transactionInfoRepository, $transactionInfoManagement);
-        $this->_apiClient = $apiClient;
+        $this->transactionInfoRepository = $transactionInfoRepository;
+        $this->transactionInfoManagement = $transactionInfoManagement;
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -62,11 +76,11 @@ class TransactionListener extends AbstractOrderRelatedListener
      */
     protected function process($entity, Order $order)
     {
-        $transactionInfo = $this->_transactionInfoRepository->getByOrderId($order->getId());
+        $transactionInfo = $this->transactionInfoRepository->getByOrderId($order->getId());
         if ($transactionInfo->getState() != $entity->getState()) {
             parent::process($entity, $order);
         }
-        $this->_transactionInfoManagement->update($entity, $order);
+        $this->transactionInfoManagement->update($entity, $order);
     }
 
     /**
@@ -77,7 +91,7 @@ class TransactionListener extends AbstractOrderRelatedListener
      */
     protected function loadEntity(Request $request)
     {
-        return $this->_apiClient->getService(TransactionService::class)->read($request->getSpaceId(),
+        return $this->apiClient->getService(TransactionService::class)->read($request->getSpaceId(),
             $request->getEntityId());
     }
 

@@ -45,7 +45,7 @@ class RefundJob extends AbstractDb
      *
      * @var ObjectSerializer
      */
-    protected $_objectSerializer;
+    private $objectSerializer;
 
     /**
      *
@@ -56,7 +56,7 @@ class RefundJob extends AbstractDb
     public function __construct(Context $context, ObjectSerializer $objectSerializer, $connectionName = null)
     {
         parent::__construct($context, $connectionName);
-        $this->_objectSerializer = $objectSerializer;
+        $this->objectSerializer = $objectSerializer;
     }
 
     /**
@@ -78,7 +78,7 @@ class RefundJob extends AbstractDb
             } else {
                 $object->setData($field,
                     $this->getSerializer()
-                        ->serialize($this->_objectSerializer->sanitizeForSerialization($value) ?: $defaultValue));
+                        ->serialize($this->objectSerializer->sanitizeForSerialization($value) ?: $defaultValue));
             }
 
             return $this;
@@ -96,7 +96,7 @@ class RefundJob extends AbstractDb
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     throw new \InvalidArgumentException('Unable to unserialize value.');
                 }
-                $value = $this->_objectSerializer->deserialize($rawValue,
+                $value = $this->objectSerializer->deserialize($rawValue,
                     '\Wallee\Sdk\Model\RefundCreate');
                 if (empty($value)) {
                     $object->setData($field, $defaultValue);

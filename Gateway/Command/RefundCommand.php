@@ -31,37 +31,37 @@ class RefundCommand implements CommandInterface
      *
      * @var LoggerInterface
      */
-    protected $_logger;
+    private $logger;
 
     /**
      *
      * @var LocaleHelper
      */
-    protected $_localeHelper;
+    private $localeHelper;
 
     /**
      *
      * @var LineItemReductionService
      */
-    protected $_lineItemReductionService;
+    private $lineItemReductionService;
 
     /**
      *
      * @var RefundJobFactory
      */
-    protected $_refundJobFactory;
+    private $refundJobFactory;
 
     /**
      *
      * @var RefundJobRepositoryInterface
      */
-    protected $_refundJobRepository;
+    private $refundJobRepository;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -76,12 +76,12 @@ class RefundCommand implements CommandInterface
         LineItemReductionService $lineItemReductionService, RefundJobFactory $refundJobFactory,
         RefundJobRepositoryInterface $refundJobRepository, ApiClient $apiClient)
     {
-        $this->_logger = $logger;
-        $this->_localeHelper = $localeHelper;
-        $this->_lineItemReductionService = $lineItemReductionService;
-        $this->_refundJobFactory = $refundJobFactory;
-        $this->_refundJobRepository = $refundJobRepository;
-        $this->_apiClient = $apiClient;
+        $this->logger = $logger;
+        $this->localeHelper = $localeHelper;
+        $this->lineItemReductionService = $lineItemReductionService;
+        $this->refundJobFactory = $refundJobFactory;
+        $this->refundJobRepository = $refundJobRepository;
+        $this->apiClient = $apiClient;
     }
 
     public function execute(array $commandSubject)
@@ -91,33 +91,32 @@ class RefundCommand implements CommandInterface
         $creditmemo = $payment->getCreditmemo();
 
         if ($creditmemo->getWalleeExternalId() == null) {
-            $refundJob = $this->_refundJobRepository->getByOrderId($payment->getOrder()
+            $refundJob = $this->refundJobRepository->getByOrderId($payment->getOrder()
                 ->getId());
             try {
-                $refund = $this->_apiClient->getService(RefundService::class)->refund(
+                $refund = $this->apiClient->getService(RefundService::class)->refund(
                     $creditmemo->getOrder()
                         ->getWalleeSpaceId(), $refundJob->getRefund());
             } catch (\Wallee\Sdk\ApiException $e) {
                 if ($e->getResponseObject() instanceof \Wallee\Sdk\Model\ClientError) {
-                    $this->_refundJobRepository->delete($refundJob);
-                    throw new \Magento\Framework\Exception\LocalizedException(
-                        \__($e->getResponseObject()->getMessage()));
+                    $this->refundJobRepository->delete($refundJob);
+                    throw new \Magento\Framework\Exception\LocalizedException(\__($e->getResponseObject()->getMessage()));
                 } else {
                     $creditmemo->setWalleeKeepRefundJob(true);
-                    $this->_logger->critical($e);
+                    $this->logger->critical($e);
                     throw new \Magento\Framework\Exception\LocalizedException(
                         \__('There has been an error while sending the refund to the gateway.'));
                 }
             } catch (\Exception $e) {
                 $creditmemo->setWalleeKeepRefundJob(true);
-                $this->_logger->critical($e);
+                $this->logger->critical($e);
                 throw new \Magento\Framework\Exception\LocalizedException(
                     \__('There has been an error while sending the refund to the gateway.'));
             }
 
             if ($refund->getState() == RefundState::FAILED) {
                 throw new \Magento\Framework\Exception\LocalizedException(
-                    $this->_localeHelper->translate($refund->getFailureReason()
+                    $this->localeHelper->translate($refund->getFailureReason()
                         ->getDescription()));
             } elseif ($refund->getState() == RefundState::PENDING || $refund->getState() == RefundState::MANUAL_CHECK) {
                 $creditmemo->setWalleeKeepRefundJob(true);
@@ -126,7 +125,7 @@ class RefundCommand implements CommandInterface
             }
 
             $creditmemo->setWalleeExternalId($refund->getExternalId());
-            $this->_refundJobRepository->delete($refundJob);
+            $this->refundJobRepository->delete($refundJob);
         }
     }
 }

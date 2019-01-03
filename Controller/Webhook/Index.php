@@ -28,7 +28,7 @@ class Index extends \Wallee\Payment\Controller\Webhook implements CsrfAwareActio
      *
      * @var WebhookService
      */
-    protected $_webhookService;
+    private $webhookService;
 
     /**
      *
@@ -38,7 +38,7 @@ class Index extends \Wallee\Payment\Controller\Webhook implements CsrfAwareActio
     public function __construct(Context $context, WebhookService $webhookService)
     {
         parent::__construct($context);
-        $this->_webhookService = $webhookService;
+        $this->webhookService = $webhookService;
     }
 
     public function execute()
@@ -46,7 +46,7 @@ class Index extends \Wallee\Payment\Controller\Webhook implements CsrfAwareActio
         http_response_code(500);
         $this->getResponse()->setHttpResponseCode(500);
         try {
-            $this->_webhookService->execute($this->parseRequest());
+            $this->webhookService->execute($this->parseRequest());
         } catch (NotFoundException $e) {
             throw new \Exception($e);
         }
@@ -59,7 +59,7 @@ class Index extends \Wallee\Payment\Controller\Webhook implements CsrfAwareActio
      * @throws \InvalidArgumentException
      * @return \Wallee\Payment\Model\Webhook\Request
      */
-    protected function parseRequest()
+    private function parseRequest()
     {
         $jsonRequest = $this->getRequest()->getContent();
         if (empty($jsonRequest)) {
@@ -81,5 +81,4 @@ class Index extends \Wallee\Payment\Controller\Webhook implements CsrfAwareActio
     {
         return null;
     }
-
 }

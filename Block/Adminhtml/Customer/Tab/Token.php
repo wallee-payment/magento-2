@@ -15,15 +15,9 @@ class Token extends TabWrapper implements TabInterface
 
     /**
      *
-     * @var bool
-     */
-    protected $isAjaxLoaded = true;
-
-    /**
-     *
      * @var Registry
      */
-    protected $_registry = null;
+    private $registry = null;
 
     /**
      *
@@ -34,34 +28,29 @@ class Token extends TabWrapper implements TabInterface
     public function __construct(Context $context, Registry $registry, array $data = [])
     {
         parent::__construct($context, $data);
-        $this->_registry = $registry;
+        $this->registry = $registry;
     }
 
     public function canShowTab()
     {
-        return $this->_registry->registry(RegistryConstants::CURRENT_CUSTOMER_ID);
+        return $this->registry->registry(RegistryConstants::CURRENT_CUSTOMER_ID);
     }
 
-    /**
-     * Return Tab label
-     *
-     * @return \Magento\Framework\Phrase
-     */
+    public function isAjaxLoaded()
+    {
+        $flag = $this->getData('is_ajax_loaded');
+        return $flag !== null ? (bool) $flag : true;
+    }
+
     public function getTabLabel()
     {
         return \__('wallee Payment Tokens');
     }
 
-    /**
-     * Return URL link to Tab content
-     *
-     * @return string
-     */
     public function getTabUrl()
     {
-        return $this->getUrl('wallee_payment/customer/token',
-            [
-                '_current' => true
-            ]);
+        return $this->getUrl('wallee_payment/customer/token', [
+            '_current' => true
+        ]);
     }
 }

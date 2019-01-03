@@ -10,8 +10,16 @@
  */
 namespace Wallee\Payment\Controller\Order;
 
+use Magento\Framework\Registry;
+use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\App\Response\Http\FileFactory;
 use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\Controller\Result\ForwardFactory;
+use Magento\Sales\Controller\AbstractController\OrderLoaderInterface;
+use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
+use Wallee\Payment\Helper\Document as DocumentHelper;
+use Wallee\Payment\Model\ApiClient;
 use Wallee\Sdk\Service\TransactionService;
 
 /**
@@ -20,23 +28,90 @@ use Wallee\Sdk\Service\TransactionService;
 class DownloadInvoice extends \Wallee\Payment\Controller\Order
 {
 
+    /**
+     *
+     * @var ForwardFactory
+     */
+    private $resultForwardFactory;
+
+    /**
+     *
+     * @var FileFactory
+     */
+    private $fileFactory;
+
+    /**
+     *
+     * @var Registry
+     */
+    private $registry;
+
+    /**
+     *
+     * @var DocumentHelper
+     */
+    private $documentHelper;
+
+    /**
+     *
+     * @var OrderLoaderInterface
+     */
+    private $orderLoader;
+
+    /**
+     *
+     * @var TransactionInfoRepositoryInterface
+     */
+    private $transactionInfoRepository;
+
+    /**
+     *
+     * @var ApiClient
+     */
+    private $apiClient;
+
+    /**
+     *
+     * @param Context $context
+     * @param ForwardFactory $resultForwardFactory
+     * @param FileFactory $fileFactory
+     * @param Registry $registry
+     * @param DocumentHelper $documentHelper
+     * @param OrderLoaderInterface $orderLoader
+     * @param TransactionInfoRepositoryInterface $transactionInfoRepository
+     * @param ApiClient $apiClient
+     */
+    public function __construct(Context $context, ForwardFactory $resultForwardFactory, FileFactory $fileFactory,
+        Registry $registry, DocumentHelper $documentHelper, OrderLoaderInterface $orderLoader,
+        TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient)
+    {
+        parent::__construct($context);
+        $this->resultForwardFactory = $resultForwardFactory;
+        $this->fileFactory = $fileFactory;
+        $this->registry = $registry;
+        $this->documentHelper = $documentHelper;
+        $this->orderLoader = $orderLoader;
+        $this->transactionInfoRepository = $transactionInfoRepository;
+        $this->apiClient = $apiClient;
+    }
+
     public function execute()
     {
-        $result = $this->_orderLoader->load($this->_request);
+        $result = $this->orderLoader->load($this->_request);
         if ($result instanceof ResultInterface) {
             return $result;
         }
 
         /** @var \Magento\Sales\Model\Order $order */
-        $order = $this->_registry->registry('current_order');
-        $transaction = $this->_transactionInfoRepository->getByOrderId($order->getId());
-        if ($this->_documentHelper->isInvoiceDownloadAllowed($transaction, $order->getStoreId())) {
-            $document = $this->_apiClient->getService(TransactionService::class)->getInvoiceDocument(
+        $order = $this->registry->registry('current_order');
+        $transaction = $this->transactionInfoRepository->getByOrderId($order->getId());
+        if ($this->documentHelper->isInvoiceDownloadAllowed($transaction, $order->getStoreId())) {
+            $document = $this->apiClient->getService(TransactionService::class)->getInvoiceDocument(
                 $transaction->getSpaceId(), $transaction->getTransactionId());
-            return $this->_fileFactory->create($document->getTitle() . '.pdf', \base64_decode($document->getData()),
+            return $this->fileFactory->create($document->getTitle() . '.pdf', \base64_decode($document->getData()),
                 DirectoryList::VAR_DIR, 'application/pdf');
         } else {
-            return $this->_resultForwardFactory->create()->forward('noroute');
+            return $this->resultForwardFactory->create()->forward('noroute');
         }
     }
 }

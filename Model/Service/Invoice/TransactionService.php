@@ -14,6 +14,7 @@ use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Payment;
@@ -40,27 +41,33 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @var ApiClient
+     */
+    private $apiClient;
+
+    /**
+     *
      * @var LocaleHelper
      */
-    protected $_localeHelper;
+    private $localeHelper;
 
     /**
      *
      * @var LineItemService
      */
-    protected $_lineItemService;
+    private $lineItemService;
 
     /**
      *
      * @var TransactionInfoRepositoryInterface
      */
-    protected $_transactionInfoRepository;
+    private $transactionInfoRepository;
 
     /**
      *
      * @var OrderTransactionService
      */
-    protected $_orderTransactionService;
+    private $orderTransactionService;
 
     /**
      *
@@ -76,18 +83,19 @@ class TransactionService extends AbstractTransactionService
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param OrderTransactionService $orderTransactionService
      */
-    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
-        CartRepositoryInterface $quoteRepository,
+    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
+        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
         LocaleHelper $localeHelper, LineItemService $lineItemService,
         TransactionInfoRepositoryInterface $transactionInfoRepository, OrderTransactionService $orderTransactionService)
     {
-        parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository,
+        parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
             $paymentMethodConfigurationManagement, $apiClient);
-        $this->_localeHelper = $localeHelper;
-        $this->_lineItemService = $lineItemService;
-        $this->_transactionInfoRepository = $transactionInfoRepository;
-        $this->_orderTransactionService = $orderTransactionService;
+        $this->apiClient = $apiClient;
+        $this->localeHelper = $localeHelper;
+        $this->lineItemService = $lineItemService;
+        $this->transactionInfoRepository = $transactionInfoRepository;
+        $this->orderTransactionService = $orderTransactionService;
     }
 
     /**
@@ -98,14 +106,14 @@ class TransactionService extends AbstractTransactionService
      */
     public function updateLineItems(Invoice $invoice, $expectedAmount)
     {
-        $transactionInfo = $this->_transactionInfoRepository->getByOrderId($invoice->getOrderId());
+        $transactionInfo = $this->transactionInfoRepository->getByOrderId($invoice->getOrderId());
         if ($transactionInfo->getState() == TransactionState::AUTHORIZED) {
-            $lineItems = $this->_lineItemService->convertInvoiceLineItems($invoice, $expectedAmount);
+            $lineItems = $this->lineItemService->convertInvoiceLineItems($invoice, $expectedAmount);
 
             $updateRequest = new TransactionLineItemUpdateRequest();
             $updateRequest->setTransactionId($transactionInfo->getTransactionId());
             $updateRequest->setNewLineItems($lineItems);
-            $this->_apiClient->getService(TransactionApiService::class)->updateTransactionLineItems(
+            $this->apiClient->getService(TransactionApiService::class)->updateTransactionLineItems(
                 $transactionInfo->getSpaceId(), $updateRequest);
         }
     }
@@ -122,18 +130,17 @@ class TransactionService extends AbstractTransactionService
     {
         $this->updateLineItems($invoice, $amount);
 
-        $completion = $this->_orderTransactionService->complete($invoice->getOrder());
+        $completion = $this->orderTransactionService->complete($invoice->getOrder());
         if (! ($completion instanceof TransactionCompletion) ||
             $completion->getState() == TransactionCompletionState::FAILED) {
             throw new \Magento\Framework\Exception\LocalizedException(
                 \__('The capture of the invoice failed on the gateway: %1.',
-                    $this->_localeHelper->translate(
-                        $completion->getFailureReason()
-                            ->getDescription())));
+                    $this->localeHelper->translate($completion->getFailureReason()
+                        ->getDescription())));
         }
 
         try {
-            $transactionInvoice = $this->_orderTransactionService->getTransactionInvoice($invoice->getOrder());
+            $transactionInvoice = $this->orderTransactionService->getTransactionInvoice($invoice->getOrder());
             if ($transactionInvoice instanceof TransactionInvoice &&
                 $transactionInvoice->getState() != TransactionInvoiceState::PAID &&
                 $transactionInvoice->getState() != TransactionInvoiceState::NOT_APPLICABLE) {

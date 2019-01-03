@@ -13,6 +13,7 @@ namespace Wallee\Payment\Model\Service\Quote;
 use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Address;
@@ -40,9 +41,33 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @var Helper
+     */
+    private $helper;
+
+    /**
+     *
+     * @var ScopeConfigInterface
+     */
+    private $scopeConfig;
+
+    /**
+     *
+     * @var CustomerRegistry
+     */
+    private $customerRegistry;
+
+    /**
+     *
+     * @var ApiClient
+     */
+    private $apiClient;
+
+    /**
+     *
      * @var LineItemService
      */
-    protected $_lineItemService;
+    private $lineItemService;
 
     /**
      *
@@ -68,13 +93,17 @@ class TransactionService extends AbstractTransactionService
      * @param LineItemService $lineItemService
      */
     public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
-        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository,
+        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
         LineItemService $lineItemService)
     {
-        parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository,
+        parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
             $paymentMethodConfigurationManagement, $apiClient);
-        $this->_lineItemService = $lineItemService;
+        $this->helper = $helper;
+        $this->scopeConfig = $scopeConfig;
+        $this->customerRegistry = $customerRegistry;
+        $this->apiClient = $apiClient;
+        $this->lineItemService = $lineItemService;
     }
 
     /**
@@ -86,7 +115,7 @@ class TransactionService extends AbstractTransactionService
     public function getJavaScriptUrl(Quote $quote)
     {
         $transaction = $this->getTransactionByQuote($quote);
-        return $this->_apiClient->getService(TransactionApiService::class)->buildJavaScriptUrl(
+        return $this->apiClient->getService(TransactionApiService::class)->buildJavaScriptUrl(
             $transaction->getLinkedSpaceId(), $transaction->getId());
     }
 
@@ -99,7 +128,7 @@ class TransactionService extends AbstractTransactionService
     public function getPaymentPageUrl(Quote $quote)
     {
         $transaction = $this->getTransactionByQuote($quote);
-        return $this->_apiClient->getService(TransactionApiService::class)->buildPaymentPageUrl(
+        return $this->apiClient->getService(TransactionApiService::class)->buildPaymentPageUrl(
             $transaction->getLinkedSpaceId(), $transaction->getId());
     }
 
@@ -115,7 +144,7 @@ class TransactionService extends AbstractTransactionService
             $this->possiblePaymentMethodCache[$quote->getId()] == null) {
             $transaction = $this->getTransactionByQuote($quote);
             try {
-                $paymentMethods = $this->_apiClient->getService(TransactionApiService::class)->fetchPossiblePaymentMethods(
+                $paymentMethods = $this->apiClient->getService(TransactionApiService::class)->fetchPossiblePaymentMethods(
                     $transaction->getLinkedSpaceId(), $transaction->getId());
             } catch (ApiException $e) {
                 $this->possiblePaymentMethodCache[$quote->getId()] = [];
@@ -155,16 +184,16 @@ class TransactionService extends AbstractTransactionService
      * @param Quote $quote
      * @return Transaction
      */
-    protected function createTransactionByQuote(Quote $quote)
+    private function createTransactionByQuote(Quote $quote)
     {
-        $spaceId = $this->_scopeConfig->getValue('wallee_payment/general/space_id',
+        $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
             ScopeInterface::SCOPE_STORE, $quote->getStoreId());
 
         $createTransaction = new TransactionCreate();
         $createTransaction->setCustomersPresence(CustomersPresence::VIRTUAL_PRESENT);
         $createTransaction->setAutoConfirmationEnabled(false);
         $this->assembleTransactionDataFromQuote($createTransaction, $quote);
-        $transaction = $this->_apiClient->getService(TransactionApiService::class)->create($spaceId, $createTransaction);
+        $transaction = $this->apiClient->getService(TransactionApiService::class)->create($spaceId, $createTransaction);
         $this->updateQuote($quote, $transaction);
         return $transaction;
     }
@@ -176,11 +205,11 @@ class TransactionService extends AbstractTransactionService
      * @throws VersioningException
      * @return Transaction
      */
-    protected function updateTransactionByQuote(Quote $quote)
+    private function updateTransactionByQuote(Quote $quote)
     {
         for ($i = 0; $i < 5; $i ++) {
             try {
-                $transaction = $this->_apiClient->getService(TransactionApiService::class)->read(
+                $transaction = $this->apiClient->getService(TransactionApiService::class)->read(
                     $quote->getWalleeSpaceId(), $quote->getWalleeTransactionId());
                 if (! ($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
                     return $this->createTransactionByQuote($quote);
@@ -190,7 +219,7 @@ class TransactionService extends AbstractTransactionService
                 $pendingTransaction->setId($transaction->getId());
                 $pendingTransaction->setVersion($transaction->getVersion());
                 $this->assembleTransactionDataFromQuote($pendingTransaction, $quote);
-                return $this->_apiClient->getService(TransactionApiService::class)->update(
+                return $this->apiClient->getService(TransactionApiService::class)->update(
                     $quote->getWalleeSpaceId(), $pendingTransaction);
             } catch (VersioningException $e) {
                 // Try to update the transaction again, if a versioning exception occurred.
@@ -205,7 +234,7 @@ class TransactionService extends AbstractTransactionService
      * @param AbstractTransactionPending $transaction
      * @param Quote $quote
      */
-    protected function assembleTransactionDataFromQuote(AbstractTransactionPending $transaction, Quote $quote)
+    private function assembleTransactionDataFromQuote(AbstractTransactionPending $transaction, Quote $quote)
     {
         $transaction->setAllowedPaymentMethodConfigurations([]);
         $transaction->setCurrency($quote->getQuoteCurrencyCode());
@@ -214,23 +243,23 @@ class TransactionService extends AbstractTransactionService
         $transaction->setCustomerEmailAddress(
             $this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId()));
         $transaction->setLanguage(
-            $this->_scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $quote->getStoreId()));
-        $transaction->setLineItems($this->_lineItemService->convertQuoteLineItems($quote));
+            $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $quote->getStoreId()));
+        $transaction->setLineItems($this->lineItemService->convertQuoteLineItems($quote));
         if (! empty($quote->getCustomerId())) {
             $transaction->setCustomerId($quote->getCustomerId());
             $transaction->setMetaData(
-                $this->collectCustomerMetaData($this->_customerRegistry->retrieve($quote->getCustomerId())));
+                $this->collectCustomerMetaData($this->customerRegistry->retrieve($quote->getCustomerId())));
         }
         if ($quote->getShippingAddress()) {
             $transaction->setShippingMethod(
-                $this->_helper->fixLength(
-                    $this->_helper->getFirstLine($quote->getShippingAddress()
+                $this->helper->fixLength(
+                    $this->helper->getFirstLine($quote->getShippingAddress()
                         ->getShippingDescription()), 200));
         }
 
         if ($transaction instanceof TransactionCreate) {
             $transaction->setSpaceViewId(
-                $this->_scopeConfig->getValue('wallee_payment/general/store_view_id',
+                $this->scopeConfig->getValue('wallee_payment/general/store_view_id',
                     ScopeInterface::SCOPE_STORE, $quote->getStoreId()));
         }
     }
@@ -241,7 +270,7 @@ class TransactionService extends AbstractTransactionService
      * @param Quote $quote
      * @return \Wallee\Sdk\Model\AddressCreate
      */
-    protected function convertQuoteBillingAddress(Quote $quote)
+    private function convertQuoteBillingAddress(Quote $quote)
     {
         if (! $quote->getBillingAddress()) {
             return null;
@@ -261,7 +290,7 @@ class TransactionService extends AbstractTransactionService
      * @param Quote $quote
      * @return \Wallee\Sdk\Model\AddressCreate
      */
-    protected function convertQuoteShippingAddress(Quote $quote)
+    private function convertQuoteShippingAddress(Quote $quote)
     {
         if (! $quote->getShippingAddress()) {
             return null;
@@ -278,24 +307,24 @@ class TransactionService extends AbstractTransactionService
      * @param Address $customerAddress
      * @return AddressCreate
      */
-    protected function convertAddress(Address $customerAddress)
+    private function convertAddress(Address $customerAddress)
     {
         $address = new AddressCreate();
         $address->setSalutation(
-            $this->_helper->fixLength($this->_helper->removeLinebreaks($customerAddress->getPrefix()), 20));
-        $address->setCity($this->_helper->fixLength($this->_helper->removeLinebreaks($customerAddress->getCity()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPrefix()), 20));
+        $address->setCity($this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCity()), 100));
         $address->setCountry($customerAddress->getCountryId());
         $address->setFamilyName(
-            $this->_helper->fixLength($this->_helper->removeLinebreaks($customerAddress->getLastname()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getLastname()), 100));
         $address->setGivenName(
-            $this->_helper->fixLength($this->_helper->removeLinebreaks($customerAddress->getFirstname()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getFirstname()), 100));
         $address->setOrganizationName(
-            $this->_helper->fixLength($this->_helper->removeLinebreaks($customerAddress->getCompany()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCompany()), 100));
         $address->setPhoneNumber($customerAddress->getTelephone());
         $address->setPostalState($customerAddress->getRegionCode());
         $address->setPostCode(
-            $this->_helper->fixLength($this->_helper->removeLinebreaks($customerAddress->getPostcode()), 40));
-        $address->setStreet($this->_helper->fixLength($customerAddress->getStreetFull(), 300));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPostcode()), 40));
+        $address->setStreet($this->helper->fixLength($customerAddress->getStreetFull(), 300));
         return $address;
     }
 }

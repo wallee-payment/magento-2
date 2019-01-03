@@ -32,31 +32,31 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
      *
      * @var TokenInfoFactory
      */
-    protected $_tokenInfoFactory;
+    private $tokenInfoFactory;
 
     /**
      *
      * @var TokenInfoCollectionFactory
      */
-    protected $_tokenInfoCollectionFactory;
+    private $tokenInfoCollectionFactory;
 
     /**
      *
      * @var TokenInfoSearchResultsInterfaceFactory
      */
-    protected $_searchResultsFactory;
+    private $searchResultsFactory;
 
     /**
      *
      * @var TokenInfoResource
      */
-    protected $_resource;
+    private $resource;
 
     /**
      *
      * @var CollectionProcessorInterface
      */
-    protected $_collectionProcessor;
+    private $collectionProcessor;
 
     /**
      *
@@ -71,11 +71,11 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
         TokenInfoSearchResultsInterfaceFactory $searchResultsFactory, TokenInfoResource $resource,
         CollectionProcessorInterface $collectionProcessor)
     {
-        $this->_tokenInfoFactory = $tokenInfoFactory;
-        $this->_tokenInfoCollectionFactory = $tokenInfoCollectionFactory;
-        $this->_searchResultsFactory = $searchResultsFactory;
-        $this->_resource = $resource;
-        $this->_collectionProcessor = $collectionProcessor;
+        $this->tokenInfoFactory = $tokenInfoFactory;
+        $this->tokenInfoCollectionFactory = $tokenInfoCollectionFactory;
+        $this->searchResultsFactory = $searchResultsFactory;
+        $this->resource = $resource;
+        $this->collectionProcessor = $collectionProcessor;
     }
 
     /**
@@ -88,7 +88,7 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
     public function save(TokenInfoInterface $object)
     {
         try {
-            $this->_resource->save($object);
+            $this->resource->save($object);
         } catch (\Exception $exception) {
             throw new CouldNotSaveException(\__('Could not save the token info: %1', $exception->getMessage()),
                 $exception);
@@ -111,8 +111,8 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
         }
 
         /** @var TokenInfo $object */
-        $object = $this->_tokenInfoFactory->create();
-        $this->_resource->load($object, $entityId);
+        $object = $this->tokenInfoFactory->create();
+        $this->resource->load($object, $entityId);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -137,8 +137,8 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
         }
 
         /** @var TokenInfo $object */
-        $object = $this->_tokenInfoFactory->create();
-        $this->_resource->loadByToken($object, $spaceId, $tokenId);
+        $object = $this->tokenInfoFactory->create();
+        $this->resource->loadByToken($object, $spaceId, $tokenId);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -148,12 +148,12 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
     public function getList(SearchCriteriaInterface $searchCriteria)
     {
         /** @var \Wallee\Payment\Model\ResourceModel\TokenInfo\Collection $collection */
-        $collection = $this->_tokenInfoCollectionFactory->create();
+        $collection = $this->tokenInfoCollectionFactory->create();
 
-        $this->_collectionProcessor->process($searchCriteria, $collection);
+        $this->collectionProcessor->process($searchCriteria, $collection);
 
         /** @var \Wallee\Payment\Api\Data\TokenInfoSearchResultsInterface $searchResults */
-        $searchResults = $this->_searchResultsFactory->create();
+        $searchResults = $this->searchResultsFactory->create();
         $searchResults->setSearchCriteria($searchCriteria);
         $searchResults->setItems($collection->getItems());
         $searchResults->setTotalCount($collection->getSize());
@@ -163,7 +163,7 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
     public function delete(TokenInfoInterface $object)
     {
         try {
-            $this->_resource->delete($object);
+            $this->resource->delete($object);
         } catch (\Exception $exception) {
             throw new CouldNotDeleteException(\__('Could not delete the token info: %1', $exception->getMessage()));
         }

@@ -29,37 +29,37 @@ class Reader
      *
      * @var PaymentMethodConfigurationRepositoryInterface
      */
-    protected $_paymentMethodConfigurationRepository;
+    private $paymentMethodConfigurationRepository;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var FilterBuilder
      */
-    protected $_filterBuilder;
+    private $filterBuilder;
 
     /**
      *
      * @var FilterGroupBuilder
      */
-    protected $_filterGroupBuilder;
+    private $filterGroupBuilder;
 
     /**
      *
      * @var StoreManagerInterface
      */
-    protected $_storeManager;
+    private $storeManager;
 
     /**
      *
      * @var ResourceConnection
      */
-    protected $_resourceConnection;
+    private $resourceConnection;
 
     /**
      *
@@ -75,12 +75,12 @@ class Reader
         FilterGroupBuilder $filterGroupBuilder, StoreManagerInterface $storeManager,
         ResourceConnection $resourceConnection)
     {
-        $this->_paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_storeManager = $storeManager;
-        $this->_filterBuilder = $filterBuilder;
-        $this->_filterGroupBuilder = $filterGroupBuilder;
-        $this->_resourceConnection = $resourceConnection;
+        $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->storeManager = $storeManager;
+        $this->filterBuilder = $filterBuilder;
+        $this->filterGroupBuilder = $filterGroupBuilder;
+        $this->resourceConnection = $resourceConnection;
     }
 
     public function afterRead(\Magento\Payment\Model\Config\Reader $subject, $result)
@@ -90,36 +90,34 @@ class Reader
         }
 
         if (isset($result['methods'])) {
-            $stateFilter = $this->_filterBuilder->setConditionType('in')
+            $stateFilter = $this->filterBuilder->setConditionType('in')
                 ->setField(PaymentMethodConfigurationInterface::STATE)
-                ->setValue(
-                [
-                    PaymentMethodConfiguration::STATE_ACTIVE,
-                    PaymentMethodConfiguration::STATE_INACTIVE
-                ])
+                ->setValue([
+                PaymentMethodConfiguration::STATE_ACTIVE,
+                PaymentMethodConfiguration::STATE_INACTIVE
+            ])
                 ->create();
-            $filterGroup = $this->_filterGroupBuilder->setFilters([
+            $filterGroup = $this->filterGroupBuilder->setFilters([
                 $stateFilter
             ])->create();
-            $searchCriteria = $this->_searchCriteriaBuilder->setFilterGroups(
-                [
-                    $filterGroup
-                ])->create();
+            $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
+                $filterGroup
+            ])->create();
 
-            $configurations = $this->_paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
+            $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
             foreach ($configurations as $configuration) {
-                $result['methods'][$this->getPaymentMethodId($configuration)] = $this->generateConfig($configuration);
+                $result['methods'][$this->getPaymentMethodId($configuration)] = $this->generateConfig();
             }
         }
         return $result;
     }
 
-    protected function getPaymentMethodId(PaymentMethodConfigurationInterface $configuration)
+    private function getPaymentMethodId(PaymentMethodConfigurationInterface $configuration)
     {
         return 'wallee_payment_' . $configuration->getEntityId();
     }
 
-    protected function generateConfig(PaymentMethodConfigurationInterface $configuration)
+    private function generateConfig()
     {
         return [
             'allow_multiple_address' => '1'
@@ -131,9 +129,9 @@ class Reader
      *
      * @return boolean
      */
-    protected function isTableExists()
+    private function isTableExists()
     {
-        return $this->_resourceConnection->getConnection()->isTableExists(
-            $this->_resourceConnection->getTableName('wallee_payment_method_configuration'));
+        return $this->resourceConnection->getConnection()->isTableExists(
+            $this->resourceConnection->getTableName('wallee_payment_method_configuration'));
     }
 }

@@ -32,31 +32,31 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
      *
      * @var TransactionInfoFactory
      */
-    protected $_transactionInfoFactory;
+    private $transactionInfoFactory;
 
     /**
      *
      * @var TransactionInfoCollectionFactory
      */
-    protected $_transactionInfoCollectionFactory;
+    private $transactionInfoCollectionFactory;
 
     /**
      *
      * @var TransactionInfoSearchResultsInterfaceFactory
      */
-    protected $_searchResultsFactory;
+    private $searchResultsFactory;
 
     /**
      *
      * @var TransactionInfoResource
      */
-    protected $_resource;
+    private $resource;
 
     /**
      *
      * @var CollectionProcessorInterface
      */
-    protected $_collectionProcessor;
+    private $collectionProcessor;
 
     /**
      *
@@ -71,11 +71,11 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
         TransactionInfoSearchResultsInterfaceFactory $searchResultsFactory, TransactionInfoResource $resource,
         CollectionProcessorInterface $collectionProcessor)
     {
-        $this->_transactionInfoFactory = $transactionInfoFactory;
-        $this->_transactionInfoCollectionFactory = $transactionInfoCollectionFactory;
-        $this->_searchResultsFactory = $searchResultsFactory;
-        $this->_resource = $resource;
-        $this->_collectionProcessor = $collectionProcessor;
+        $this->transactionInfoFactory = $transactionInfoFactory;
+        $this->transactionInfoCollectionFactory = $transactionInfoCollectionFactory;
+        $this->searchResultsFactory = $searchResultsFactory;
+        $this->resource = $resource;
+        $this->collectionProcessor = $collectionProcessor;
     }
 
     /**
@@ -88,7 +88,7 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
     public function save(TransactionInfoInterface $object)
     {
         try {
-            $this->_resource->save($object);
+            $this->resource->save($object);
         } catch (\Exception $exception) {
             throw new CouldNotSaveException(\__('Could not save the transaction info: %1', $exception->getMessage()),
                 $exception);
@@ -111,8 +111,8 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
         }
 
         /** @var TransactionInfo $object */
-        $object = $this->_transactionInfoFactory->create();
-        $this->_resource->load($object, $entityId);
+        $object = $this->transactionInfoFactory->create();
+        $this->resource->load($object, $entityId);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -137,8 +137,8 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
         }
 
         /** @var TransactionInfo $object */
-        $object = $this->_transactionInfoFactory->create();
-        $this->_resource->loadByTransaction($object, $spaceId, $transactionId);
+        $object = $this->transactionInfoFactory->create();
+        $this->resource->loadByTransaction($object, $spaceId, $transactionId);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -159,8 +159,8 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
         }
 
         /** @var TransactionInfo $object */
-        $object = $this->_transactionInfoFactory->create();
-        $this->_resource->load($object, $orderId, TransactionInfoInterface::ORDER_ID);
+        $object = $this->transactionInfoFactory->create();
+        $this->resource->load($object, $orderId, TransactionInfoInterface::ORDER_ID);
         if (! $object->getEntityId()) {
             throw new NoSuchEntityException(\__('Requested entity does not exist'));
         }
@@ -170,12 +170,12 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
     public function getList(SearchCriteriaInterface $searchCriteria)
     {
         /** @var \Wallee\Payment\Model\ResourceModel\TransactionInfo\Collection $collection */
-        $collection = $this->_transactionInfoCollectionFactory->create();
+        $collection = $this->transactionInfoCollectionFactory->create();
 
-        $this->_collectionProcessor->process($searchCriteria, $collection);
+        $this->collectionProcessor->process($searchCriteria, $collection);
 
         /** @var \Wallee\Payment\Api\Data\TransactionInfoSearchResultsInterface $searchResults */
-        $searchResults = $this->_searchResultsFactory->create();
+        $searchResults = $this->searchResultsFactory->create();
         $searchResults->setSearchCriteria($searchCriteria);
         $searchResults->setItems($collection->getItems());
         $searchResults->setTotalCount($collection->getSize());
@@ -185,7 +185,7 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
     public function delete(TransactionInfoInterface $object)
     {
         try {
-            $this->_resource->delete($object);
+            $this->resource->delete($object);
         } catch (\Exception $exception) {
             throw new CouldNotDeleteException(\__('Could not delete the transaction info: %1', $exception->getMessage()));
         }

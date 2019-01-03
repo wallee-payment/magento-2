@@ -15,9 +15,9 @@ use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Sales\Model\Order\Invoice;
+use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Tax\Model\Calculation as TaxCalculation;
-use Magento\Tax\Model\TaxClass\Repository as TaxClassRepository;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\Service\AbstractLineItemService;
@@ -32,10 +32,28 @@ class LineItemService extends AbstractLineItemService
 
     /**
      *
+     * @var Helper
+     */
+    private $helper;
+
+    /**
+     *
+     * @var LineItemHelper
+     */
+    private $lineItemHelper;
+
+    /**
+     *
+     * @var TaxClassRepositoryInterface
+     */
+    private $taxClassRepository;
+
+    /**
+     *
      * @param Helper $helper
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
-     * @param TaxClassRepository $taxClassRepository
+     * @param TaxClassRepositoryInterface $taxClassRepository
      * @param TaxHelper $taxHelper
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
@@ -43,12 +61,15 @@ class LineItemService extends AbstractLineItemService
      * @param ProductRepositoryInterface $productRepository
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
-        TaxClassRepository $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
+        TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
         CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
         ProductRepositoryInterface $productRepository)
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
             $groupRegistry, $eventManager, $productRepository);
+        $this->helper = $helper;
+        $this->lineItemHelper = $lineItemHelper;
+        $this->taxClassRepository = $taxClassRepository;
     }
 
     /**
@@ -60,7 +81,7 @@ class LineItemService extends AbstractLineItemService
      */
     public function convertInvoiceLineItems(Invoice $invoice, $expectedAmount)
     {
-        return $this->_lineItemHelper->reduceAmount($this->convertLineItems($invoice), $expectedAmount);
+        return $this->lineItemHelper->reduceAmount($this->convertLineItems($invoice), $expectedAmount);
     }
 
     /**
@@ -79,8 +100,8 @@ class LineItemService extends AbstractLineItemService
             }
 
             $attribute = new LineItemAttributeCreate();
-            $attribute->setLabel($this->_helper->fixLength($this->_helper->getFirstLine($option['label']), 512));
-            $attribute->setValue($this->_helper->fixLength($this->_helper->getFirstLine($value), 512));
+            $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($option['label']), 512));
+            $attribute->setValue($this->helper->fixLength($this->helper->getFirstLine($value), 512));
             $attributes[$this->getAttributeKey($option)] = $attribute;
         }
 
@@ -102,7 +123,7 @@ class LineItemService extends AbstractLineItemService
                 ->getProduct()
                 ->getTaxClassId();
             if ($taxClassId > 0) {
-                $taxClass = $this->_taxClassRepository->get($taxClassId);
+                $taxClass = $this->taxClassRepository->get($taxClassId);
 
                 $tax = new TaxCreate();
                 $tax->setRate($entityItem->getOrderItem()

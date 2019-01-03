@@ -10,10 +10,7 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\Refund;
 
-use Magento\Framework\DB\TransactionFactory as DBTransactionFactory;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Model\Webhook\Listener\AbstractOrderRelatedCommand;
 use Wallee\Sdk\Model\Refund;
@@ -28,20 +25,15 @@ abstract class AbstractCommand extends AbstractOrderRelatedCommand
      *
      * @var RefundJobRepositoryInterface
      */
-    protected $_refundJobRepository;
+    private $refundJobRepository;
 
     /**
      *
-     * @param DBTransactionFactory $dbTransactionFactory
-     * @param OrderRepositoryInterface $orderRepository
-     * @param OrderEmailSender $orderEmailSender
      * @param RefundJobRepositoryInterface $refundJobRepository
      */
-    public function __construct(DBTransactionFactory $dbTransactionFactory, OrderRepositoryInterface $orderRepository,
-        OrderEmailSender $orderEmailSender, RefundJobRepositoryInterface $refundJobRepository)
+    public function __construct(RefundJobRepositoryInterface $refundJobRepository)
     {
-        parent::__construct($dbTransactionFactory, $orderRepository, $orderEmailSender);
-        $this->_refundJobRepository = $refundJobRepository;
+        $this->refundJobRepository = $refundJobRepository;
     }
 
     /**
@@ -52,8 +44,8 @@ abstract class AbstractCommand extends AbstractOrderRelatedCommand
     protected function deleteRefundJob(Refund $refund)
     {
         try {
-            $refundJob = $this->_refundJobRepository->getByExternalId($refund->getExternalId());
-            $this->_refundJobRepository->delete($refundJob);
+            $refundJob = $this->refundJobRepository->getByExternalId($refund->getExternalId());
+            $this->refundJobRepository->delete($refundJob);
         } catch (NoSuchEntityException $e) {}
     }
 }

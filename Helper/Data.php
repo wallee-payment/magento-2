@@ -14,7 +14,6 @@ use Magento\Framework\App\Area as AppArea;
 use Magento\Framework\App\State as AppState;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
-use Magento\Framework\Encryption\EncryptorInterface;
 use Wallee\Payment\Model\Provider\CurrencyProvider;
 use Wallee\Sdk\Model\CriteriaOperator;
 use Wallee\Sdk\Model\EntityQueryFilter;
@@ -32,34 +31,25 @@ class Data extends AbstractHelper
      *
      * @var AppState
      */
-    protected $_appState;
+    private $appState;
 
     /**
      *
      * @var CurrencyProvider
      */
-    protected $_currencyProvider;
-
-    /**
-     *
-     * @var EncryptorInterface
-     */
-    protected $_encryptor;
+    private $currencyProvider;
 
     /**
      *
      * @param Context $context
      * @param AppState $appState
      * @param CurrencyProvider $currencyProvider
-     * @param EncryptorInterface $encryptor
      */
-    public function __construct(Context $context, AppState $appState, CurrencyProvider $currencyProvider,
-        EncryptorInterface $encryptor)
+    public function __construct(Context $context, AppState $appState, CurrencyProvider $currencyProvider)
     {
         parent::__construct($context);
-        $this->_appState = $appState;
-        $this->_currencyProvider = $currencyProvider;
-        $this->_encryptor = $encryptor;
+        $this->appState = $appState;
+        $this->currencyProvider = $currencyProvider;
     }
 
     /**
@@ -69,7 +59,7 @@ class Data extends AbstractHelper
      */
     public function isAdminArea()
     {
-        return $this->_appState->getAreaCode() == AppArea::AREA_ADMINHTML;
+        return $this->appState->getAreaCode() == AppArea::AREA_ADMINHTML;
     }
 
     /**
@@ -80,7 +70,7 @@ class Data extends AbstractHelper
      */
     public function getCurrencyFractionDigits($currencyCode)
     {
-        $currency = $this->_currencyProvider->find($currencyCode);
+        $currency = $this->currencyProvider->find($currencyCode);
         if ($currency) {
             return $currency->getFractionDigits();
         } else {

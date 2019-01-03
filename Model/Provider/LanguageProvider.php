@@ -22,12 +22,19 @@ class LanguageProvider extends AbstractProvider
 
     /**
      *
+     * @var ApiClient
+     */
+    private $apiClient;
+
+    /**
+     *
      * @param FrontendInterface $cache
      * @param ApiClient $apiClient
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, $apiClient, 'wallee_payment_languages');
+        parent::__construct($cache, 'wallee_payment_languages');
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -71,7 +78,7 @@ class LanguageProvider extends AbstractProvider
 
     protected function fetchData()
     {
-        return $this->_apiClient->getService(LanguageService::class)->all();
+        return $this->apiClient->getService(LanguageService::class)->all();
     }
 
     protected function getId($entry)

@@ -24,19 +24,19 @@ class ProductAttribute implements \Magento\Framework\Option\ArrayInterface
      *
      * @var ProductAttributeRepositoryInterface
      */
-    protected $_attributeRepository;
+    private $attributeRepository;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var SortOrderBuilder
      */
-    protected $_sortOrderBuilder;
+    private $sortOrderBuilder;
 
     /**
      *
@@ -47,19 +47,19 @@ class ProductAttribute implements \Magento\Framework\Option\ArrayInterface
     public function __construct(ProductAttributeRepositoryInterface $attributeRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder, SortOrderBuilder $sortOrderBuilder)
     {
-        $this->_attributeRepository = $attributeRepository;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_sortOrderBuilder = $sortOrderBuilder;
+        $this->attributeRepository = $attributeRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->sortOrderBuilder = $sortOrderBuilder;
     }
 
     public function toOptionArray()
     {
         $options = [];
-        $sortOrder = $this->_sortOrderBuilder->setField('attribute_code')
+        $sortOrder = $this->sortOrderBuilder->setField('attribute_code')
             ->setAscendingDirection()
             ->create();
-        $attributes = $this->_attributeRepository->getList(
-            $this->_searchCriteriaBuilder->addSortOrder($sortOrder)
+        $attributes = $this->attributeRepository->getList(
+            $this->searchCriteriaBuilder->addSortOrder($sortOrder)
                 ->create());
         foreach ($attributes->getItems() as $attribute) {
             $options[] = [

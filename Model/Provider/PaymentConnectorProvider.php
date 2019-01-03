@@ -22,12 +22,19 @@ class PaymentConnectorProvider extends AbstractProvider
 
     /**
      *
+     * @var ApiClient
+     */
+    private $apiClient;
+
+    /**
+     *
      * @param FrontendInterface $cache
      * @param ApiClient $apiClient
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, $apiClient, 'wallee_payment_connectors');
+        parent::__construct($cache, 'wallee_payment_connectors');
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -53,7 +60,7 @@ class PaymentConnectorProvider extends AbstractProvider
 
     protected function fetchData()
     {
-        return $this->_apiClient->getService(PaymentConnectorService::class)->all();
+        return $this->apiClient->getService(PaymentConnectorService::class)->all();
     }
 
     protected function getId($entry)

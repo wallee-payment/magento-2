@@ -10,8 +10,6 @@
  */
 namespace Wallee\Payment\Model\Config;
 
-use Magento\Framework\Config\ValidationStateInterface;
-
 /**
  * Class to parse and merge configuration XML files.
  */
@@ -21,22 +19,6 @@ class Dom extends \Magento\Framework\Config\Dom
     const SYSTEM_INITIAL_CONTENT = '<?xml version="1.0"?><config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd"><system></system></config>';
 
     const CONFIG_INITIAL_CONTENT = '<?xml version="1.0"?><config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd"></config>';
-
-    /**
-     * Build DOM with initial XML contents and specifying identifier attributes for merging
-     *
-     * @param string $xml
-     * @param ValidationStateInterface $validationState
-     * @param array $idAttributes
-     * @param string $typeAttributeName
-     * @param string $schemaFile
-     * @param string $errorFormat
-     */
-    public function __construct($xml, ValidationStateInterface $validationState, array $idAttributes = [],
-        $typeAttributeName = null, $schemaFile = null, $errorFormat = self::ERROR_FORMAT_DEFAULT)
-    {
-        parent::__construct($xml, $validationState, $idAttributes, $typeAttributeName, $schemaFile, $errorFormat);
-    }
 
     /**
      * Sets the DOM document.

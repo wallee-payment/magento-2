@@ -24,7 +24,7 @@ class TokenVersionListener implements ListenerInterface
      *
      * @var TokenInfoManagementInterface
      */
-    protected $_tokenInfoManagement;
+    private $tokenInfoManagement;
 
     /**
      *
@@ -32,11 +32,11 @@ class TokenVersionListener implements ListenerInterface
      */
     public function __construct(TokenInfoManagementInterface $tokenInfoManagement)
     {
-        $this->_tokenInfoManagement = $tokenInfoManagement;
+        $this->tokenInfoManagement = $tokenInfoManagement;
     }
 
     public function execute(Request $request)
     {
-        $this->_tokenInfoManagement->updateTokenVersion($request->getSpaceId(), $request->getEntityId());
+        $this->tokenInfoManagement->updateTokenVersion($request->getSpaceId(), $request->getEntityId());
     }
 }

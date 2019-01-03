@@ -23,13 +23,13 @@ class ApiClient
      *
      * @var ScopeConfigInterface
      */
-    protected $_scopeConfig;
+    private $scopeConfig;
 
     /**
      *
      * @var EncryptorInterface
      */
-    protected $_encrypter;
+    private $encrypter;
 
     /**
      *
@@ -51,8 +51,8 @@ class ApiClient
      */
     public function __construct(ScopeConfigInterface $scopeConfig, EncryptorInterface $encrypter)
     {
-        $this->_scopeConfig = $scopeConfig;
-        $this->_encrypter = $encrypter;
+        $this->scopeConfig = $scopeConfig;
+        $this->encrypter = $encrypter;
     }
 
     /**
@@ -78,14 +78,15 @@ class ApiClient
     public function getApiClient()
     {
         if ($this->apiClient == null) {
-            $userId = $this->_scopeConfig->getValue('wallee_payment/general/api_user_id');
-            $applicationKey = $this->_scopeConfig->getValue('wallee_payment/general/api_user_secret');
+            $userId = $this->scopeConfig->getValue('wallee_payment/general/api_user_id');
+            $applicationKey = $this->scopeConfig->getValue('wallee_payment/general/api_user_secret');
             if (! empty($userId) && ! empty($applicationKey)) {
-                $client = new \Wallee\Sdk\ApiClient($userId, $this->_encrypter->decrypt($applicationKey));
+                $client = new \Wallee\Sdk\ApiClient($userId, $this->encrypter->decrypt($applicationKey));
                 $client->setBasePath($this->getBaseGatewayUrl() . '/api');
                 $this->apiClient = $client;
             } else {
-                throw new \Wallee\Payment\Model\ApiClientException('The wallee API user data are incomplete.');
+                throw new \Wallee\Payment\Model\ApiClientException(
+                    'The wallee API user data are incomplete.');
             }
         }
         return $this->apiClient;
@@ -98,8 +99,8 @@ class ApiClient
      */
     public function checkApiClientData()
     {
-        $userId = $this->_scopeConfig->getValue('wallee_payment/general/api_user_id');
-        $applicationKey = $this->_scopeConfig->getValue('wallee_payment/general/api_user_secret');
+        $userId = $this->scopeConfig->getValue('wallee_payment/general/api_user_id');
+        $applicationKey = $this->scopeConfig->getValue('wallee_payment/general/api_user_secret');
         if (! empty($userId) && ! empty($applicationKey)) {
             return true;
         } else {
@@ -114,6 +115,6 @@ class ApiClient
      */
     protected function getBaseGatewayUrl()
     {
-        return \rtrim($this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
+        return \rtrim($this->scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
     }
 }

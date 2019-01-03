@@ -31,43 +31,43 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      *
      * @var ResourceConnection
      */
-    protected $_resource;
+    private $resource;
 
     /**
      *
      * @var LoggerInterface
      */
-    protected $_logger;
+    private $logger;
 
     /**
      *
      * @var OrderRepositoryInterface
      */
-    protected $_orderRepository;
+    private $orderRepository;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var CommandPoolInterface
      */
-    protected $_commandPool;
+    private $commandPool;
 
     /**
      *
      * @var TransactionInfoRepositoryInterface
      */
-    protected $_transactionInfoRepository;
+    private $transactionInfoRepository;
 
     /**
      *
      * @var TransactionInfoManagementInterface
      */
-    protected $_transactionInfoManagement;
+    private $transactionInfoManagement;
 
     /**
      *
@@ -84,13 +84,13 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
         CommandPoolInterface $commandPool, TransactionInfoRepositoryInterface $transactionInfoRepository,
         TransactionInfoManagementInterface $transactionInfoManagement)
     {
-        $this->_resource = $resource;
-        $this->_logger = $logger;
-        $this->_orderRepository = $orderRepository;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_commandPool = $commandPool;
-        $this->_transactionInfoRepository = $transactionInfoRepository;
-        $this->_transactionInfoManagement = $transactionInfoManagement;
+        $this->resource = $resource;
+        $this->logger = $logger;
+        $this->orderRepository = $orderRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->commandPool = $commandPool;
+        $this->transactionInfoRepository = $transactionInfoRepository;
+        $this->transactionInfoManagement = $transactionInfoManagement;
     }
 
     public function execute(Request $request)
@@ -108,7 +108,7 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
             }
             $connection->commit();
         } catch (\Exception $e) {
-            $this->_logger->critical($e);
+            $this->logger->critical($e);
             $connection->rollBack();
             throw $e;
         }
@@ -127,9 +127,9 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      *
      * @return \Magento\Framework\DB\Adapter\AdapterInterface
      */
-    protected function beginTransaction()
+    private function beginTransaction()
     {
-        $connection = $this->_resource->getConnection('sales');
+        $connection = $this->resource->getConnection('sales');
         $connection->rawQuery("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");
         $connection->beginTransaction();
         return $connection;
@@ -142,14 +142,13 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      * @param int $transactionId
      * @return Order|NULL
      */
-    protected function getOrderByTransaction($spaceId, $transactionId)
+    private function getOrderByTransaction($spaceId, $transactionId)
     {
-        $searchCriteria = $this->_searchCriteriaBuilder
-            ->addFilter('wallee_space_id', $spaceId)
+        $searchCriteria = $this->searchCriteriaBuilder->addFilter('wallee_space_id', $spaceId)
             ->addFilter('wallee_transaction_id', $transactionId)
             ->setPageSize(1)
             ->create();
-        $orders = $this->_orderRepository->getList($searchCriteria)->getItems();
+        $orders = $this->orderRepository->getList($searchCriteria)->getItems();
         if (! empty($orders)) {
             return \current($orders);
         } else {
@@ -162,9 +161,9 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      *
      * @param Order $order
      */
-    protected function lock(Order $order)
+    private function lock(Order $order)
     {
-        $this->_resource->getConnection()->update($this->_resource->getTableName('sales_order'),
+        $this->resource->getConnection()->update($this->resource->getTableName('sales_order'),
             [
                 'wallee_lock' => \date('Y-m-d H:i:s')
             ], [
@@ -181,7 +180,7 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
     protected function process($entity, Order $order)
     {
         try {
-            $this->_commandPool->get(\strtolower($entity->getState()))
+            $this->commandPool->get(\strtolower($entity->getState()))
                 ->execute($entity, $order);
         } catch (NotFoundException $e) {}
     }

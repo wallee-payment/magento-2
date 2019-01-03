@@ -32,37 +32,37 @@ class ManualTaskService
      *
      * @var StoreManagerInterface
      */
-    protected $_storeManager;
+    private $storeManager;
 
     /**
      *
      * @var ScopeConfigInterface
      */
-    protected $_scopeConfig;
+    private $scopeConfig;
 
     /**
      *
      * @var CollectionFactory
      */
-    protected $_configCollectionFactory;
+    private $configCollectionFactory;
 
     /**
      *
      * @var StorageWriter
      */
-    protected $_configWriter;
+    private $configWriter;
 
     /**
      *
      * @var Helper
      */
-    protected $_helper;
+    private $helper;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -76,12 +76,12 @@ class ManualTaskService
     public function __construct(StoreManagerInterface $storeManager, ScopeConfigInterface $scopeConfig,
         CollectionFactory $configCollectionFactory, StorageWriter $configWriter, Helper $helper, ApiClient $apiClient)
     {
-        $this->_storeManager = $storeManager;
-        $this->_scopeConfig = $scopeConfig;
-        $this->_configCollectionFactory = $configCollectionFactory;
-        $this->_configWriter = $configWriter;
-        $this->_helper = $helper;
-        $this->_apiClient = $apiClient;
+        $this->storeManager = $storeManager;
+        $this->scopeConfig = $scopeConfig;
+        $this->configCollectionFactory = $configCollectionFactory;
+        $this->configWriter = $configWriter;
+        $this->helper = $helper;
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -92,8 +92,8 @@ class ManualTaskService
     public function getNumberOfManualTasks()
     {
         $numberOfManualTasks = [];
-        foreach ($this->_storeManager->getWebsites() as $website) {
-            $websiteNumberOfManualTasks = $this->_configCollectionFactory->create()
+        foreach ($this->storeManager->getWebsites() as $website) {
+            $websiteNumberOfManualTasks = $this->configCollectionFactory->create()
                 ->addFieldToFilter('scope', ScopeInterface::SCOPE_WEBSITE)
                 ->addFieldToFilter('scope_id', $website->getId())
                 ->addFieldToFilter('path', self::CONFIG_KEY)
@@ -115,20 +115,20 @@ class ManualTaskService
     {
         $numberOfManualTasks = [];
         $spaceIds = [];
-        foreach ($this->_storeManager->getWebsites() as $website) {
-            $spaceId = $this->_scopeConfig->getValue('wallee_payment/general/space_id',
+        foreach ($this->storeManager->getWebsites() as $website) {
+            $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
                 ScopeInterface::SCOPE_WEBSITE, $website->getId());
-            if ($spaceId && ! in_array($spaceId, $spaceIds)) {
-                $websiteNumberOfManualTasks = $this->_apiClient->getService(ManualTaskApiService::class)->count(
-                    $spaceId, $this->_helper->createEntityFilter('state', ManualTaskState::OPEN));
-                $this->_configWriter->save(self::CONFIG_KEY, $websiteNumberOfManualTasks, ScopeInterface::SCOPE_WEBSITE,
+            if ($spaceId && ! \in_array($spaceId, $spaceIds)) {
+                $websiteNumberOfManualTasks = $this->apiClient->getService(ManualTaskApiService::class)->count($spaceId,
+                    $this->helper->createEntityFilter('state', ManualTaskState::OPEN));
+                $this->configWriter->save(self::CONFIG_KEY, $websiteNumberOfManualTasks, ScopeInterface::SCOPE_WEBSITE,
                     $website->getId());
                 if (! empty($websiteNumberOfManualTasks)) {
                     $numberOfManualTasks[$website->getId()] = $websiteNumberOfManualTasks;
                 }
                 $spaceIds[] = $spaceId;
             } else {
-                $this->_configWriter->delete(self::CONFIG_KEY, ScopeInterface::SCOPE_WEBSITE, $website->getId());
+                $this->configWriter->delete(self::CONFIG_KEY, ScopeInterface::SCOPE_WEBSITE, $website->getId());
             }
         }
         return $numberOfManualTasks;

@@ -28,31 +28,31 @@ class Form extends \Magento\Payment\Block\Form
      *
      * @var SessionQuote
      */
-    protected $_backendQuoteSession;
+    private $backendQuoteSession;
 
     /**
      *
      * @var TokenInfoRepositoryInterface
      */
-    protected $_tokenInfoRepository;
+    private $tokenInfoRepository;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var FilterBuilder
      */
-    protected $_filterBuilder;
+    private $filterBuilder;
 
     /**
      *
      * @var FilterGroupBuilder
      */
-    protected $_filterGroupBuilder;
+    private $filterGroupBuilder;
 
     /**
      *
@@ -75,11 +75,11 @@ class Form extends \Magento\Payment\Block\Form
         FilterBuilder $filterBuilder, FilterGroupBuilder $filterGroupBuilder, array $data = [])
     {
         parent::__construct($context, $data);
-        $this->_backendQuoteSession = $backendQuoteSession;
-        $this->_tokenInfoRepository = $tokenInfoRepository;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_filterBuilder = $filterBuilder;
-        $this->_filterGroupBuilder = $filterGroupBuilder;
+        $this->backendQuoteSession = $backendQuoteSession;
+        $this->tokenInfoRepository = $tokenInfoRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->filterBuilder = $filterBuilder;
+        $this->filterGroupBuilder = $filterGroupBuilder;
 
         $this->setTransportName('wallee_token');
     }
@@ -91,26 +91,25 @@ class Form extends \Magento\Payment\Block\Form
      */
     public function getTokens()
     {
-        $quote = $this->_backendQuoteSession->getQuote();
+        $quote = $this->backendQuoteSession->getQuote();
         $method = $this->getMethod();
 
-        $customerFilter = $this->_filterBuilder->setConditionType('eq')
+        $customerFilter = $this->filterBuilder->setConditionType('eq')
             ->setField(TokenInfoInterface::CUSTOMER_ID)
             ->setValue($quote->getCustomerId())
             ->create();
-        $paymentMethodFilter = $this->_filterBuilder->setConditionType('eq')
+        $paymentMethodFilter = $this->filterBuilder->setConditionType('eq')
             ->setField(TokenInfoInterface::PAYMENT_METHOD_ID)
             ->setValue($method->getPaymentMethodConfigurationId())
             ->create();
-        $filterGroup = $this->_filterGroupBuilder->setFilters(
-            [
-                $customerFilter,
-                $paymentMethodFilter
-            ])->create();
-        $searchCriteria = $this->_searchCriteriaBuilder->setFilterGroups([
+        $filterGroup = $this->filterGroupBuilder->setFilters([
+            $customerFilter,
+            $paymentMethodFilter
+        ])->create();
+        $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
             $filterGroup
         ])->create();
 
-        return $this->_tokenInfoRepository->getList($searchCriteria)->getItems();
+        return $this->tokenInfoRepository->getList($searchCriteria)->getItems();
     }
 }

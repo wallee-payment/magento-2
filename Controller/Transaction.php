@@ -11,8 +11,8 @@
 namespace Wallee\Payment\Controller;
 
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Api\OrderRepositoryInterface;
-use Wallee\Payment\Model\Service\Order\TransactionService;
 
 /**
  * Abstract controller action to handle transaction related requests.
@@ -24,26 +24,17 @@ abstract class Transaction extends \Magento\Framework\App\Action\Action
      *
      * @var OrderRepositoryInterface
      */
-    protected $_orderRepository;
-
-    /**
-     *
-     * @var TransactionService
-     */
-    protected $_transactionService;
+    private $orderRepository;
 
     /**
      *
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
-     * @param TransactionService $transactionService
      */
-    public function __construct(Context $context, OrderRepositoryInterface $orderRepository,
-        TransactionService $transactionService)
+    public function __construct(Context $context, OrderRepositoryInterface $orderRepository)
     {
         parent::__construct($context);
-        $this->_orderRepository = $orderRepository;
-        $this->_transactionService = $transactionService;
+        $this->orderRepository = $orderRepository;
     }
 
     /**
@@ -56,13 +47,13 @@ abstract class Transaction extends \Magento\Framework\App\Action\Action
     {
         $orderId = $this->getRequest()->getParam('order_id');
         if (empty($orderId)) {
-            throw new \Exception('The order ID has been provided.');
+            throw new LocalizedException('The order ID has been provided.');
         }
-        $order = $this->_orderRepository->get($orderId);
+        $order = $this->orderRepository->get($orderId);
 
         $token = $order->getWalleeSecurityToken();
         if (empty($token) || $token != $this->getRequest()->getParam('token')) {
-            throw new \Exception('The wallee security token is invalid.');
+            throw new LocalizedException('The wallee security token is invalid.');
         }
 
         return $order;

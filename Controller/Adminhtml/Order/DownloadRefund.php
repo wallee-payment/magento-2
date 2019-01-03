@@ -14,7 +14,7 @@ use Magento\Backend\App\Action\Context;
 use Magento\Backend\App\Response\Http\FileFactory;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Controller\Result\ForwardFactory;
-use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order\CreditmemoRepository;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
@@ -37,15 +37,39 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
 
     /**
      *
+     * @var ForwardFactory
+     */
+    private $resultForwardFactory;
+
+    /**
+     *
+     * @var FileFactory
+     */
+    private $fileFactory;
+
+    /**
+     *
+     * @var Helper
+     */
+    private $helper;
+
+    /**
+     *
+     * @var TransactionInfoRepositoryInterface
+     */
+    private $transactionInfoRepository;
+
+    /**
+     *
      * @var CreditmemoRepository
      */
-    protected $_creditmemoRepository;
+    private $creditmemoRepository;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -53,40 +77,41 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
      * @param ForwardFactory $resultForwardFactory
      * @param FileFactory $fileFactory
      * @param Helper $helper
-     * @param OrderRepositoryInterface $orderRepository
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param ApiClient $apiClient
      * @param CreditmemoRepository $creditmemoRepository
      */
     public function __construct(Context $context, ForwardFactory $resultForwardFactory, FileFactory $fileFactory,
-        Helper $helper, OrderRepositoryInterface $orderRepository,
-        TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient,
+        Helper $helper, TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient,
         CreditmemoRepository $creditmemoRepository)
     {
-        parent::__construct($context, $resultForwardFactory, $fileFactory, $helper, $orderRepository,
-            $transactionInfoRepository, $apiClient);
-        $this->_creditmemoRepository = $creditmemoRepository;
-        $this->_apiClient = $apiClient;
+        parent::__construct($context);
+        $this->resultForwardFactory = $resultForwardFactory;
+        $this->fileFactory = $fileFactory;
+        $this->helper = $helper;
+        $this->transactionInfoRepository = $transactionInfoRepository;
+        $this->creditmemoRepository = $creditmemoRepository;
+        $this->apiClient = $apiClient;
     }
 
     public function execute()
     {
         $creditmemoId = $this->getRequest()->getParam('creditmemo_id');
         if ($creditmemoId) {
-            $creditmemo = $this->_creditmemoRepository->get($creditmemoId);
+            $creditmemo = $this->creditmemoRepository->get($creditmemoId);
             if ($creditmemo->getWalleeExternalId() == null) {
-                return $this->_resultForwardFactory->create()->forward('noroute');
+                return $this->resultForwardFactory->create()->forward('noroute');
             }
 
-            $transaction = $this->_transactionInfoRepository->getByOrderId($creditmemo->getOrderId());
+            $transaction = $this->transactionInfoRepository->getByOrderId($creditmemo->getOrderId());
             $refund = $this->getRefundByExternalId($transaction->getSpaceId(),
                 $creditmemo->getWalleeExternalId());
-            $document = $this->_apiClient->getService(RefundService::class)->getRefundDocument(
+            $document = $this->apiClient->getService(RefundService::class)->getRefundDocument(
                 $transaction->getSpaceId(), $refund->getId());
-            return $this->_fileFactory->create($document->getTitle() . '.pdf', \base64_decode($document->getData()),
+            return $this->fileFactory->create($document->getTitle() . '.pdf', \base64_decode($document->getData()),
                 DirectoryList::VAR_DIR, 'application/pdf');
         } else {
-            return $this->_resultForwardFactory->create()->forward('noroute');
+            return $this->resultForwardFactory->create()->forward('noroute');
         }
     }
 
@@ -98,16 +123,16 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
      * @throws \Exception
      * @return \Wallee\Sdk\Model\Refund
      */
-    protected function getRefundByExternalId($spaceId, $externalId)
+    private function getRefundByExternalId($spaceId, $externalId)
     {
         $query = new EntityQuery();
-        $query->setFilter($this->_helper->createEntityFilter('externalId', $externalId));
+        $query->setFilter($this->helper->createEntityFilter('externalId', $externalId));
         $query->setNumberOfEntities(1);
-        $result = $this->_apiClient->getService(RefundService::class)->search($spaceId, $query);
+        $result = $this->apiClient->getService(RefundService::class)->search($spaceId, $query);
         if (! empty($result)) {
             return \current($result);
         } else {
-            throw new \Exception('The refund could not be found.');
+            throw new LocalizedException('The refund could not be found.');
         }
     }
 }

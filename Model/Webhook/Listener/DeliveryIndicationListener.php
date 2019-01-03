@@ -31,7 +31,7 @@ class DeliveryIndicationListener extends AbstractOrderRelatedListener
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -51,7 +51,7 @@ class DeliveryIndicationListener extends AbstractOrderRelatedListener
     {
         parent::__construct($resource, $logger, $orderRepository, $searchCriteriaBuilder, $commandPool,
             $transactionInfoRepository, $transactionInfoManagement);
-        $this->_apiClient = $apiClient;
+        $this->apiClient = $apiClient;
     }
 
     /**
@@ -73,7 +73,7 @@ class DeliveryIndicationListener extends AbstractOrderRelatedListener
      */
     protected function loadEntity(Request $request)
     {
-        return $this->_apiClient->getService(DeliveryIndicationService::class)->read($request->getSpaceId(),
+        return $this->apiClient->getService(DeliveryIndicationService::class)->read($request->getSpaceId(),
             $request->getEntityId());
     }
 

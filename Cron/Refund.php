@@ -26,25 +26,25 @@ class Refund
      *
      * @var LoggerInterface
      */
-    protected $_logger;
+    private $logger;
 
     /**
      *
      * @var RefundJobRepositoryInterface
      */
-    protected $_refundJobRepository;
+    private $refundJobRepository;
 
     /**
      *
      * @var SearchCriteriaBuilder
      */
-    protected $_searchCriteriaBuilder;
+    private $searchCriteriaBuilder;
 
     /**
      *
      * @var ApiClient
      */
-    protected $_apiClient;
+    private $apiClient;
 
     /**
      *
@@ -56,28 +56,28 @@ class Refund
     public function __construct(LoggerInterface $logger, RefundJobRepositoryInterface $refundJobRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder, ApiClient $apiClient)
     {
-        $this->_logger = $logger;
-        $this->_refundJobRepository = $refundJobRepository;
-        $this->_searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->_apiClient = $apiClient;
+        $this->logger = $logger;
+        $this->refundJobRepository = $refundJobRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->apiClient = $apiClient;
     }
 
     public function execute()
     {
-        $searchCriteria = $this->_searchCriteriaBuilder->setPageSize(100)->create();
-        $refundJobs = $this->_refundJobRepository->getList($searchCriteria)->getItems();
+        $searchCriteria = $this->searchCriteriaBuilder->setPageSize(100)->create();
+        $refundJobs = $this->refundJobRepository->getList($searchCriteria)->getItems();
         foreach ($refundJobs as $refundJob) {
             try {
-                $this->_apiClient->getService(RefundService::class)->refund($refundJob->getSpaceId(),
+                $this->apiClient->getService(RefundService::class)->refund($refundJob->getSpaceId(),
                     $refundJob->getRefund());
             } catch (\Wallee\Sdk\ApiException $e) {
                 if ($e->getResponseObject() instanceof \Wallee\Sdk\Model\ClientError) {
-                    $this->_refundJobRepository->delete($refundJob);
+                    $this->refundJobRepository->delete($refundJob);
                 } else {
-                    $this->_logger->critical($e);
+                    $this->logger->critical($e);
                 }
             } catch (\Exception $e) {
-                $this->_logger->critical($e);
+                $this->logger->critical($e);
             }
         }
     }

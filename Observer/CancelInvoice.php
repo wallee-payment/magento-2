@@ -26,7 +26,7 @@ class CancelInvoice implements ObserverInterface
      *
      * @var TransactionService
      */
-    protected $_transactionService;
+    private $transactionService;
 
     /**
      *
@@ -34,7 +34,7 @@ class CancelInvoice implements ObserverInterface
      */
     public function __construct(TransactionService $transactionService)
     {
-        $this->_transactionService = $transactionService;
+        $this->transactionService = $transactionService;
     }
 
     public function execute(Observer $observer)
@@ -51,7 +51,7 @@ class CancelInvoice implements ObserverInterface
 
             if (! $order->getWalleeInvoiceAllowManipulation()) {
                 // The invoice can only be cancelled by the merchant if the transaction is in state 'AUTHORIZED'.
-                $transaction = $this->_transactionService->getTransaction($order->getWalleeSpaceId(),
+                $transaction = $this->transactionService->getTransaction($order->getWalleeSpaceId(),
                     $order->getWalleeTransactionId());
                 if ($transaction->getState() != TransactionState::AUTHORIZED) {
                     throw new \Magento\Framework\Exception\LocalizedException(\__('The invoice cannot be cancelled.'));

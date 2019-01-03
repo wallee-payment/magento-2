@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\Transaction;
 
+use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 
 /**
@@ -17,6 +18,21 @@ use Magento\Sales\Model\Order;
  */
 class VoidedCommand extends AbstractCommand
 {
+
+    /**
+     *
+     * @var OrderRepositoryInterface
+     */
+    private $orderRepository;
+
+    /**
+     *
+     * @param OrderRepositoryInterface $orderRepository
+     */
+    public function __construct(OrderRepositoryInterface $orderRepository)
+    {
+        $this->orderRepository = $orderRepository;
+    }
 
     /**
      *
@@ -35,6 +51,6 @@ class VoidedCommand extends AbstractCommand
             $invoice->cancel();
             $order->addRelatedObject($invoice);
         }
-        $this->_orderRepository->save($order);
+        $this->orderRepository->save($order);
     }
 }
