@@ -12,13 +12,15 @@ define([
 	'Magento_Checkout/js/view/payment/default',
 	'rjsResolver',
 	'Magento_Checkout/js/model/full-screen-loader',
-	'Magento_Checkout/js/model/payment/method-list'
+	'Magento_Checkout/js/model/payment/method-list',
+	'mage/url'
 ], function(
 	$,
 	Component,
 	resolver,
 	fullScreenLoader,
-	methodList
+	methodList,
+	urlBuilder
 ){
 	'use strict';
 	return Component.extend({
@@ -109,7 +111,11 @@ define([
         		this.handler.submit();
         	} else {
         		fullScreenLoader.startLoader();
-                window.location.replace(window.checkoutConfig.wallee.paymentPageUrl + "&paymentMethodConfigurationId=" + this.getConfigurationId());
+        		if (window.checkoutConfig.wallee.paymentPageUrl) {
+        			window.location.replace(window.checkoutConfig.wallee.paymentPageUrl + "&paymentMethodConfigurationId=" + this.getConfigurationId());
+        		} else {
+        			window.location.replace(urlBuilder.build("wallee_payment/checkout/failure"));
+        		}
         	}
         }
 	});
