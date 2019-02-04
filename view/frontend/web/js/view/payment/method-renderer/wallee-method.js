@@ -81,7 +81,7 @@ define([
 						if (validationResult.errors) {
 							for (var i = 0; i < validationResult.errors.length; i++) {
 								this.messageContainer.addErrorMessage({
-									message: validationResult.errors[i]
+									message: this.stripHtml(validationResult.errors[i])
 								});
 							}
 						}
@@ -117,6 +117,10 @@ define([
         			window.location.replace(urlBuilder.build("wallee_payment/checkout/failure"));
         		}
         	}
+        },
+        
+        stripHtml: function(input){
+        	return $('<div>' + input + '</div>').text();
         }
 	});
 });
