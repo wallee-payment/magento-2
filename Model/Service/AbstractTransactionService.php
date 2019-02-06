@@ -222,7 +222,7 @@ abstract class AbstractTransactionService
         }
 
         if ($dateOfBirth !== null) {
-            return $this->timezone->date($dateOfBirth)->format(\DateTime::W3C);
+            return \substr($dateOfBirth, 0, 10);
         }
     }
 
