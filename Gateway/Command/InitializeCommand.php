@@ -98,6 +98,10 @@ class InitializeCommand implements CommandInterface
         /** @var \Magento\Quote\Model\Quote $quote */
         $quote = $this->quoteRepository->get($order->getQuoteId());
 
+        if (!$quote->getWalleeSpaceId() || !$quote->getWalleeTransactionId()) {
+            throw new \InvalidArgumentException('The wallee payment transaction is not set on the quote.');
+        }
+
         $order->setWalleeSpaceId($quote->getWalleeSpaceId());
         $order->setWalleeTransactionId($quote->getWalleeTransactionId());
         $order->setWalleeSecurityToken($this->random->getUniqueHash());

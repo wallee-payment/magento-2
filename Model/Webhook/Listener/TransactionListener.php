@@ -12,8 +12,9 @@ namespace Wallee\Payment\Model\Webhook\Listener;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\ResourceConnection;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\OrderFactory;
+use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Psr\Log\LoggerInterface;
 use Wallee\Payment\Api\TransactionInfoManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
@@ -49,19 +50,20 @@ class TransactionListener extends AbstractOrderRelatedListener
      *
      * @param ResourceConnection $resource
      * @param LoggerInterface $logger
-     * @param OrderRepositoryInterface $orderRepository
+     * @param OrderFactory $orderFactory
+     * @param OrderResourceModel $orderResourceModel
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param CommandPoolInterface $commandPool
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param TransactionInfoManagementInterface $transactionInfoManagement
      * @param ApiClient $apiClient
      */
-    public function __construct(ResourceConnection $resource, LoggerInterface $logger,
-        OrderRepositoryInterface $orderRepository, SearchCriteriaBuilder $searchCriteriaBuilder,
+    public function __construct(ResourceConnection $resource, LoggerInterface $logger, OrderFactory $orderFactory,
+        OrderResourceModel $orderResourceModel, SearchCriteriaBuilder $searchCriteriaBuilder,
         CommandPoolInterface $commandPool, TransactionInfoRepositoryInterface $transactionInfoRepository,
         TransactionInfoManagementInterface $transactionInfoManagement, ApiClient $apiClient)
     {
-        parent::__construct($resource, $logger, $orderRepository, $searchCriteriaBuilder, $commandPool,
+        parent::__construct($resource, $logger, $orderFactory, $orderResourceModel, $searchCriteriaBuilder, $commandPool,
             $transactionInfoRepository, $transactionInfoManagement);
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->transactionInfoManagement = $transactionInfoManagement;
@@ -93,17 +95,6 @@ class TransactionListener extends AbstractOrderRelatedListener
     {
         return $this->apiClient->getService(TransactionService::class)->read($request->getSpaceId(),
             $request->getEntityId());
-    }
-
-    /**
-     * Gets the order's increment id linked to the transaction.
-     *
-     * @param \Wallee\Sdk\Model\Transaction $entity
-     * @return string
-     */
-    protected function getOrderIncrementId($entity)
-    {
-        return $entity->getMerchantReference();
     }
 
     /**

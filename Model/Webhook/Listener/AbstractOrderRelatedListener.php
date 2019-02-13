@@ -13,8 +13,9 @@ namespace Wallee\Payment\Model\Webhook\Listener;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\NotFoundException;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\OrderFactory;
+use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Psr\Log\LoggerInterface;
 use Wallee\Payment\Api\TransactionInfoManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
@@ -41,9 +42,15 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
 
     /**
      *
-     * @var OrderRepositoryInterface
+     * @var OrderFactory
      */
-    private $orderRepository;
+    private $orderFactory;
+
+    /**
+     *
+     * @var OrderResourceModel
+     */
+    private $orderResourceModel;
 
     /**
      *
@@ -73,20 +80,22 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      *
      * @param ResourceConnection $resource
      * @param LoggerInterface $logger
-     * @param OrderRepositoryInterface $orderRepository
+     * @param OrderFactory $orderFactory
+     * @param OrderResourceModel $orderResourceModel
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param CommandPoolInterface $commandPool
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param TransactionInfoManagementInterface $transactionInfoManagement
      */
-    public function __construct(ResourceConnection $resource, LoggerInterface $logger,
-        OrderRepositoryInterface $orderRepository, SearchCriteriaBuilder $searchCriteriaBuilder,
+    public function __construct(ResourceConnection $resource, LoggerInterface $logger, OrderFactory $orderFactory,
+        OrderResourceModel $orderResourceModel, SearchCriteriaBuilder $searchCriteriaBuilder,
         CommandPoolInterface $commandPool, TransactionInfoRepositoryInterface $transactionInfoRepository,
         TransactionInfoManagementInterface $transactionInfoManagement)
     {
         $this->resource = $resource;
         $this->logger = $logger;
-        $this->orderRepository = $orderRepository;
+        $this->orderFactory = $orderFactory;
+        $this->orderResourceModel = $orderResourceModel;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->commandPool = $commandPool;
         $this->transactionInfoRepository = $transactionInfoRepository;
@@ -99,12 +108,13 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
 
         $connection = $this->beginTransaction();
         try {
-            $order = $this->getOrderByTransaction($request->getSpaceId(), $this->getTransactionId($entity));
+            $order = $this->loadOrder($this->getOrderId($entity));
             if ($order instanceof Order) {
-                if ($order->getIncrementId() == $this->getOrderIncrementId($entity)) {
-                    $this->lock($order);
-                    $this->process($entity, $order->load($order->getId()));
+                if ($order->getWalleeTransactionId() != $this->getTransactionId($entity)) {
+                    return;
                 }
+                $this->lock($order);
+                $this->process($entity, $this->loadOrder($order->getId()));
             }
             $connection->commit();
         } catch (\Exception $e) {
@@ -136,24 +146,37 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
     }
 
     /**
-     * Gets the order linked to the given transaction.
+     * Loads the order by the given ID.
      *
-     * @param int $spaceId
-     * @param int $transactionId
+     * @param int $orderId
      * @return Order|NULL
      */
-    private function getOrderByTransaction($spaceId, $transactionId)
+    private function loadOrder($orderId)
     {
-        $searchCriteria = $this->searchCriteriaBuilder->addFilter('wallee_space_id', $spaceId)
-            ->addFilter('wallee_transaction_id', $transactionId)
-            ->setPageSize(1)
-            ->create();
-        $orders = $this->orderRepository->getList($searchCriteria)->getItems();
-        if (! empty($orders)) {
-            return \current($orders);
-        } else {
+        if (! $orderId) {
             return null;
         }
+
+        $order = $this->orderFactory->create();
+        $this->orderResourceModel->load($order, $orderId);
+        if (! $order->getEntityId()) {
+            return null;
+        } else {
+            return $order;
+        }
+    }
+
+    /**
+     * Gets the ID of the order linked to the given entity.
+     *
+     * @param mixed $entity
+     * @return int
+     */
+    private function getOrderId($entity)
+    {
+        $transactionInfo = $this->transactionInfoRepository->getByTransactionId($entity->getLinkedSpaceId(),
+            $this->getTransactionId($entity));
+        return $transactionInfo->getOrderId();
     }
 
     /**
@@ -192,14 +215,6 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      * @return mixed
      */
     abstract protected function loadEntity(Request $request);
-
-    /**
-     * Gets the order's increment id linked to the entity.
-     *
-     * @param mixed $entity
-     * @return string
-     */
-    abstract protected function getOrderIncrementId($entity);
 
     /**
      * Gets the transaction's id linked to the entity.
