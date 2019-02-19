@@ -170,13 +170,17 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      * Gets the ID of the order linked to the given entity.
      *
      * @param mixed $entity
-     * @return int
+     * @return int|NULL
      */
     private function getOrderId($entity)
     {
-        $transactionInfo = $this->transactionInfoRepository->getByTransactionId($entity->getLinkedSpaceId(),
-            $this->getTransactionId($entity));
-        return $transactionInfo->getOrderId();
+        try {
+            $transactionInfo = $this->transactionInfoRepository->getByTransactionId($entity->getLinkedSpaceId(),
+                $this->getTransactionId($entity));
+            return $transactionInfo->getOrderId();
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+            return null;
+        }
     }
 
     /**

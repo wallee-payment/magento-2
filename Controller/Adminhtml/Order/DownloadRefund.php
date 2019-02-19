@@ -132,7 +132,7 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
         if (! empty($result)) {
             return \current($result);
         } else {
-            throw new LocalizedException('The refund could not be found.');
+            throw new LocalizedException(\__('The refund could not be found.'));
         }
     }
 }

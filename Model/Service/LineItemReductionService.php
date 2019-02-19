@@ -268,8 +268,8 @@ class LineItemReductionService
             return $this->distributeRoundingDifference($reductions, $index + 1, $newRemainder, $baseLineItems,
                 $currencyCode);
         } else {
-            if ($newRemainder != 0) {
-                throw new LocalizedException('Could not distribute the rounding difference.');
+            if ($newRemainder  <= \pow(0.1, $digits + 1)) {
+                throw new LocalizedException(\__('Could not distribute the rounding difference.'));
             } else {
                 return $reductions;
             }
@@ -356,7 +356,7 @@ class LineItemReductionService
         if (! empty($result)) {
             return $result[0];
         } else {
-            throw new LocalizedException('The transaction invoice could not be found.');
+            throw new LocalizedException(\__('The transaction invoice could not be found.'));
         }
     }
 

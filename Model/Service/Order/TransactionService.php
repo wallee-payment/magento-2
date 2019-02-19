@@ -240,7 +240,7 @@ class TransactionService extends AbstractTransactionService
         $token = $order->getWalleeSecurityToken();
         if (empty($token)) {
             throw new LocalizedException(
-                'The wallee security token needs to be set on the order to build the URL.');
+                \__('The wallee security token needs to be set on the order to build the URL.'));
         }
 
         return $order->getStore()->getUrl($route,
