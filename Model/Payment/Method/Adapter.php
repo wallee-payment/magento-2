@@ -23,6 +23,7 @@ use Psr\Log\LoggerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Block\Method\Form;
 use Wallee\Payment\Block\Method\Info;
+use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\Quote\TransactionService;
 
@@ -66,6 +67,12 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
 
     /**
      *
+     * @var Helper
+     */
+    private $helper;
+
+    /**
+     *
      * @var int
      */
     private $paymentMethodConfigurationId;
@@ -86,6 +93,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param ApiClient $apiClient
      * @param TransactionService $transactionService
+     * @param Helper $helper
      * @param string $code
      * @param int $paymentMethodConfigurationId
      * @param CommandPoolInterface $commandPool
@@ -96,7 +104,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
         ValueHandlerPoolInterface $valueHandlerPool, PaymentDataObjectFactory $paymentDataObjectFactory,
         ScopeConfigInterface $scopeConfig,
         PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository, ApiClient $apiClient,
-        TransactionService $transactionService, $code, $paymentMethodConfigurationId,
+        TransactionService $transactionService, Helper $helper, $code, $paymentMethodConfigurationId,
         CommandPoolInterface $commandPool = null, ValidatorPoolInterface $validatorPool = null,
         CommandManagerInterface $commandExecutor = null)
     {
@@ -107,6 +115,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->apiClient = $apiClient;
         $this->transactionService = $transactionService;
+        $this->helper = $helper;
         $this->paymentMethodConfigurationId = $paymentMethodConfigurationId;
     }
 
@@ -132,6 +141,50 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
                 $this->paymentMethodConfigurationId);
         }
         return $this->paymentMethodConfiguration;
+    }
+
+    /**
+     * Gets whether the description of the payment method should be displayed in the checkout.
+     *
+     * @return boolean
+     */
+    public function isShowDescription()
+    {
+        return (bool) $this->getConfigData('show_description');
+    }
+
+    /**
+     * Gets whether the image of the payment method should be displayed in the checkout.
+     *
+     * @return boolean
+     */
+    public function isShowImage()
+    {
+        return (bool) $this->getConfigData('show_image');
+    }
+
+    /**
+     * Gets the description of the payment method.
+     *
+     * @return string
+     */
+    public function getDescription()
+    {
+        return $this->getConfigData('description');
+    }
+
+    /**
+     * Gets the URL to the payment method's image.
+     *
+     * @return string
+     */
+    public function getImageUrl()
+    {
+        $spaceViewId = $this->scopeConfig->getValue('wallee_payment/general/space_view_id');
+        $language = $this->scopeConfig->getValue('general/locale/code', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+        return $this->helper->getResourceUrl($this->getPaymentMethodConfiguration()
+            ->getImage(), $language, $this->getPaymentMethodConfiguration()
+            ->getSpaceId(), $spaceViewId);
     }
 
     public function isAvailable(CartInterface $quote = null)

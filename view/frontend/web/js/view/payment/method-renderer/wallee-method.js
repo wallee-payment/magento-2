@@ -13,22 +13,28 @@ define([
 	'rjsResolver',
 	'Magento_Checkout/js/model/full-screen-loader',
 	'Magento_Checkout/js/model/payment/method-list',
-	'mage/url'
+	'mage/url',
+	'Magento_Checkout/js/model/quote',
+	'Wallee_Payment/js/model/address-handler'
 ], function(
 	$,
 	Component,
 	resolver,
 	fullScreenLoader,
 	methodList,
-	urlBuilder
+	urlBuilder,
+	quote,
+	addressHandler
 ){
 	'use strict';
 	return Component.extend({
 		defaults: {
-    		template: 'Wallee_Payment/payment/form'
+			template: 'Wallee_Payment/payment/form'
 		},
 		redirectAfterPlaceOrder: false,
 		submitDisabled: false,
+		loadingIframe: false,
+		addressHandler: null,
 		
 		/**
 		 * @override
@@ -37,20 +43,12 @@ define([
 			this._super();
 			
 			resolver((function(){
-				if (this.isChecked() == this.getCode()) {
-					this.createHandler();
-				}
+				this.createHandler();
 			}).bind(this));
 			
-			/*methodList.subscribe($.proxy(function(methods){
-				if (methods) {
-					this.handler = null;
-					$('#' + this.getFormId()).find('iframe').remove();
-					this.createHandler();
-				}
-			}, this));*/
+			this.addressHandler = addressHandler(this.isActive.bind(this), this.createHandler.bind(this));
 		},
-        
+		
 		getFormId: function(){
 			return this.getCode() + '-payment-form';
 		},
@@ -59,10 +57,31 @@ define([
 			return window.checkoutConfig.payment[this.getCode()].configurationId;
 		},
 		
+		isActive: function(){
+			return quote.paymentMethod() ? quote.paymentMethod().method == this.getCode() : null;
+		},
+		
+		isShowDescription: function(){
+			return window.checkoutConfig.payment[this.getCode()].showDescription;
+		},
+		
+		getDescription: function(){
+			return window.checkoutConfig.payment[this.getCode()].description;
+		},
+		
+		isShowImage: function(){
+			return window.checkoutConfig.payment[this.getCode()].showImage;
+		},
+		
+		getImageUrl: function(){
+			return window.checkoutConfig.payment[this.getCode()].imageUrl;
+		},
+		
 		createHandler: function(){
 			if (this.handler) {
 				$('button.checkout').prop('disabled', this.submitDisabled);
-			} else if (typeof window.IframeCheckoutHandler != 'undefined') {
+			} else if (typeof window.IframeCheckoutHandler != 'undefined' && this.isActive() && this.addressHandler.validateAddresses()) {
+				this.loadingIframe = true;
 				fullScreenLoader.startLoader();
 				this.handler = window.IframeCheckoutHandler(this.getConfigurationId());
 				this.handler.setEnableSubmitCallback(function(){
@@ -86,9 +105,10 @@ define([
 							}
 						}
 					}
-				}).bind(this), function(){
+				}).bind(this), (function(){
 					fullScreenLoader.stopLoader();
-				});
+					this.loadingIframe = false;
+				}).bind(this));
 			}
 		},
 		
@@ -98,29 +118,32 @@ define([
 			return result;
 		},
 		
-        validateIframe: function(){
-        	if (this.handler) {
-        		this.handler.validate();
-        	} else {
-        		this.placeOrder();
-        	}
-        },
-        
-        afterPlaceOrder: function(){
-        	if (this.handler) {
-        		this.handler.submit();
-        	} else {
-        		fullScreenLoader.startLoader();
-        		if (window.checkoutConfig.wallee.paymentPageUrl) {
-        			window.location.replace(window.checkoutConfig.wallee.paymentPageUrl + "&paymentMethodConfigurationId=" + this.getConfigurationId());
-        		} else {
-        			window.location.replace(urlBuilder.build("wallee_payment/checkout/failure"));
-        		}
-        	}
-        },
-        
-        stripHtml: function(input){
-        	return $('<div>' + input + '</div>').text();
-        }
+		validateIframe: function(){
+			if (this.loadingIframe) {
+				return;
+			}
+			if (this.handler) {
+				this.handler.validate();
+			} else {
+				this.placeOrder();
+			}
+		},
+		
+		afterPlaceOrder: function(){
+			if (this.handler) {
+				this.handler.submit();
+			} else {
+				fullScreenLoader.startLoader();
+				if (window.checkoutConfig.wallee.paymentPageUrl) {
+					window.location.replace(window.checkoutConfig.wallee.paymentPageUrl + "&paymentMethodConfigurationId=" + this.getConfigurationId());
+				} else {
+					window.location.replace(urlBuilder.build("wallee_payment/checkout/failure"));
+				}
+			}
+		},
+		
+		stripHtml: function(input){
+			return $('<div>' + input + '</div>').text();
+		}
 	});
 });

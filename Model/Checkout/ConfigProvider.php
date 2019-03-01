@@ -15,10 +15,12 @@ use Magento\Checkout\Model\Session\Proxy as CheckoutSession;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\Search\FilterGroupBuilder;
+use Magento\Payment\Helper\Data as PaymentHelper;
 use Psr\Log\LoggerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
 use Wallee\Payment\Model\PaymentMethodConfiguration;
+use Wallee\Payment\Model\Payment\Method\Adapter;
 use Wallee\Payment\Model\Service\Quote\TransactionService;
 
 /**
@@ -71,6 +73,12 @@ class ConfigProvider implements ConfigProviderInterface
 
     /**
      *
+     * @var PaymentHelper
+     */
+    private $paymentHelper;
+
+    /**
+     *
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param TransactionService $transactionService
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
@@ -78,11 +86,12 @@ class ConfigProvider implements ConfigProviderInterface
      * @param FilterGroupBuilder $filterGroupBuilder
      * @param CheckoutSession $checkoutSession
      * @param LoggerInterface $logger
+     * @param PaymentHelper $paymentHelper
      */
     public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
         TransactionService $transactionService, SearchCriteriaBuilder $searchCriteriaBuilder,
         FilterBuilder $filterBuilder, FilterGroupBuilder $filterGroupBuilder, CheckoutSession $checkoutSession,
-        LoggerInterface $logger)
+        LoggerInterface $logger, PaymentHelper $paymentHelper)
     {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->transactionService = $transactionService;
@@ -91,6 +100,7 @@ class ConfigProvider implements ConfigProviderInterface
         $this->filterGroupBuilder = $filterGroupBuilder;
         $this->checkoutSession = $checkoutSession;
         $this->logger = $logger;
+        $this->paymentHelper = $paymentHelper;
     }
 
     public function getConfig()
@@ -132,12 +142,37 @@ class ConfigProvider implements ConfigProviderInterface
 
         $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
         foreach ($configurations as $configuration) {
-            $config['payment']['wallee_payment_' . $configuration->getEntityId()] = [
-                'isActive' => true,
-                'configurationId' => $configuration->getConfigurationId()
-            ];
+            $methodCode = 'wallee_payment_' . $configuration->getEntityId();
+            $methodInstance = $this->getPaymentMethodInstance($methodCode);
+            if ($methodInstance != null) {
+                $config['payment'][$methodCode] = [
+                    'isActive' => true,
+                    'configurationId' => $configuration->getConfigurationId(),
+                    'description' => $methodInstance->getDescription(),
+                    'showDescription' => $methodInstance->isShowDescription(),
+                    'imageUrl' => $methodInstance->getImageUrl(),
+                    'showImage' => $methodInstance->isShowImage()
+                ];
+            }
         }
 
         return $config;
+    }
+
+    /**
+     * @param string $methodCode
+     * @return Adapter
+     */
+    private function getPaymentMethodInstance($methodCode) {
+        try {
+            $instance = $this->paymentHelper->getMethodInstance($methodCode);
+            if ($instance instanceof Adapter) {
+                return $instance;
+            } else {
+                return null;
+            }
+        } catch (\UnexpectedValueException $e) {
+            return null;
+        }
     }
 }
