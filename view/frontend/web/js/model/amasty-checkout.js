@@ -13,20 +13,41 @@ define('wallee_checkout_adapter', [
 	'Magento_Checkout/js/model/quote',
 	'uiRegistry',
 	'Magento_Ui/js/lib/validation/validator',
-	'Magento_Customer/js/model/customer'
+	'Magento_Customer/js/model/customer',
+	'Magento_Checkout/js/model/address-converter',
+	'Magento_Checkout/js/action/select-shipping-address'
 ], function(
 	$,
 	_,
 	quote,
 	registry,
 	validator,
-	customer
+	customer,
+	addressConverter,
+	selectShippingAddress
 ){
 	'use strict';
 	return {
 		canHideErrors: true,
+		
+		getShippingAddress: function(){
+			var shippingComponent = registry.get('checkout.steps.shipping-step.shippingAddress');
+			
+			if (shippingComponent.isFormInline) {
+                return addressConverter.formAddressDataToQuoteAddress(registry.get('checkoutProvider').shippingAddress);
+			} else {
+				return quote.shippingAddress();
+			}
+		},
 
-		storeAddresses: function(){},
+		storeShippingAddress: function(){
+			var shippingComponent = registry.get('checkout.steps.shipping-step.shippingAddress');
+			
+			if (shippingComponent.isFormInline) {
+                var address = addressConverter.formAddressDataToQuoteAddress(registry.get('checkoutProvider').shippingAddress);
+                selectShippingAddress(address);
+			}
+		},
 
 		validateAddresses: function(){
 			var self = this,
@@ -44,7 +65,7 @@ define('wallee_checkout_adapter', [
 				if (shippingComponent.isFormInline && shippingComponent.source.get('params.invalid') === true) {
 					this.canHideErrors = false;
 				}
-				if (billingAddressComponent && billingAddressComponent.isAddressSameAsShipping() && !billingAddressComponent.isAddressFormVisible() && billingAddressComponent.source.get('params.invalid') === true) {
+				if (billingAddressComponent && !billingAddressComponent.isAddressSameAsShipping() && billingAddressComponent.isAddressFormVisible() && billingAddressComponent.source.get('params.invalid') === true) {
 					this.canHideErrors = false;
 				}
 			}
@@ -82,7 +103,7 @@ define('wallee_checkout_adapter', [
 				}
 			}
 
-			if (billingAddressComponent && billingAddressComponent.isAddressSameAsShipping() && !billingAddressComponent.isAddressFormVisible()) {
+			if (billingAddressComponent && !billingAddressComponent.isAddressSameAsShipping() && billingAddressComponent.isAddressFormVisible()) {
 				billingAddressComponent.source.set('params.invalid', false);
 				billingAddressComponent.source.trigger(billingAddressComponent.dataScopePrefix + '.data.validate');
 

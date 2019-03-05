@@ -10,7 +10,6 @@
 define([
 	'jquery',
 	'Magento_Checkout/js/view/payment/default',
-	'rjsResolver',
 	'Magento_Checkout/js/model/full-screen-loader',
 	'Magento_Checkout/js/model/payment/method-list',
 	'mage/url',
@@ -19,7 +18,6 @@ define([
 ], function(
 	$,
 	Component,
-	resolver,
 	fullScreenLoader,
 	methodList,
 	urlBuilder,
@@ -41,11 +39,7 @@ define([
 		 */
 		initialize: function(){
 			this._super();
-			
-			resolver((function(){
-				this.createHandler();
-			}).bind(this));
-			
+
 			this.addressHandler = addressHandler(this.isActive.bind(this), this.createHandler.bind(this));
 		},
 		
@@ -114,7 +108,7 @@ define([
 		
 		selectPaymentMethod: function(){
 			var result = this._super();
-			this.createHandler();
+			this.addressHandler.updateAddresses();
 			return result;
 		},
 		

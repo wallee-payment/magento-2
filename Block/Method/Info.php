@@ -216,7 +216,7 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function getTransactionUrl()
     {
-        return rtrim($this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/') .
+        return \rtrim($this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/') .
             '/s/' . $this->getTransaction()->getSpaceId() . '/payment/transaction/view/' .
             $this->getTransaction()->getTransactionId();
     }

@@ -28,7 +28,17 @@ define('wallee_checkout_adapter', [
 ){
 	'use strict';
 	return {
-		storeAddresses: function(){
+		getShippingAddress: function(){
+			if (registry.get('checkout.steps.shipping-step.shippingAddress').isAddressFormVisible()) {
+				return addressConverter.formAddressDataToQuoteAddress(
+					registry.get('checkout.steps.shipping-step.shippingAddress').source.get('shippingAddress')
+				);
+			} else {
+				return quote.shippingAddress();
+			}
+		},
+		
+		storeShippingAddress: function(){
 			if (registry.get('checkout.steps.shipping-step.shippingAddress').isAddressFormVisible()) {
 				var shippingAddress,
 					addressData;

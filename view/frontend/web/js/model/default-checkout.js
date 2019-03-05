@@ -10,7 +10,9 @@
 define([], function(){
 	'use strict';
 	return {
-		storeAddresses: function(){},
+		getShippingAddress: function(){},
+		
+		storeShippingAddress: function(){},
 		
 		validateAddresses: function(){
 			return true;

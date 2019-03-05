@@ -79,7 +79,7 @@ class ManualTask implements MessageInterface
      */
     private function buildManualTaskUrl($websiteId = null)
     {
-        $url = rtrim($this->scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
+        $url = \rtrim($this->scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
         if ($websiteId != null) {
             $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
                 ScopeInterface::SCOPE_WEBSITE, $websiteId);

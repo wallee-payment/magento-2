@@ -45,7 +45,7 @@ class LineItemReduction extends AbstractHelper
      */
     public function getReducedAmount(array $lineItems, array $reductions, $currency)
     {
-        $lineItemMap = array();
+        $lineItemMap = [];
         foreach ($lineItems as $lineItem) {
             $lineItemMap[$lineItem->getUniqueId()] = $lineItem;
         }

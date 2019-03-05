@@ -23,7 +23,8 @@ define([
 	return function(isActive, loadPaymentForm){
 		var billingAddressCache = {},
 			shippingAddressCache = {},
-			updateTimeout,
+			hasAddressChanged = false,
+			addressTimeout,
 			pluginCheckoutAdapter;
 		
 		function getCheckoutAdapter(){
@@ -45,51 +46,56 @@ define([
 		}
 		
 		function hasAddressesChanged(){
-			return !_.isEqual(shippingAddressCache, covertToCacheableAddress(quote.shippingAddress())) || !_.isEqual(billingAddressCache, covertToCacheableAddress(quote.billingAddress()));
+			return !_.isEqual(shippingAddressCache, covertToCacheableAddress(getCheckoutAdapter().getShippingAddress()))
+				|| !_.isEqual(billingAddressCache, covertToCacheableAddress(quote.billingAddress()));
 		}
 		
-		function storeAddresses(){
-			return getCheckoutAdapter().storeAddresses();
+		function storeShippingAddress(){
+			return getCheckoutAdapter().storeShippingAddress();
 		}
 		
 		function validateAddresses(){
 			return getCheckoutAdapter().validateAddresses();
 		}
 		
-		function updateAddresses(){
+		function updateAddresses() {
+			storeShippingAddress();
+			setShippingInformationAction().done(function(){
+				loadPaymentForm();
+			});
+		}
+		
+		function checkAddresses(){
 			if (isActive() && validateAddresses()) {
-				setTimeout(function(){
-					storeAddresses();
-					if (hasAddressesChanged()) {
-						setShippingInformationAction().done(function(){
-							billingAddressCache = covertToCacheableAddress(quote.billingAddress());
-							shippingAddressCache = covertToCacheableAddress(quote.shippingAddress());
-							clearTimeout(updateTimeout);
-							updateTimeout = setTimeout(loadPaymentForm, 1400);
-							setTimeout(updateAddresses, 100);
-						});
-					} else {
-						setTimeout(updateAddresses, 100);
-					}
-				}, 400);
-			} else {
-				setTimeout(updateAddresses, 100);
+				if (hasAddressesChanged()) {
+					hasAddressChanged = true;
+					clearTimeout(addressTimeout);
+					billingAddressCache = covertToCacheableAddress(quote.billingAddress());
+					shippingAddressCache = covertToCacheableAddress(getCheckoutAdapter().getShippingAddress());
+				} else if (hasAddressChanged) {
+					hasAddressChanged = false;
+					clearTimeout(addressTimeout);
+					addressTimeout = setTimeout(function(){
+						updateAddresses();
+					}, 500);
+				}
 			}
+			setTimeout(checkAddresses, 100);
 		}
 		
 		if (require.specified('wallee_checkout_adapter')) {
 			require(['wallee_checkout_adapter'], function(adapter){
 				pluginCheckoutAdapter = adapter;
-				updateAddresses();
+				checkAddresses();
 			});
 		} else {
-			updateAddresses();
+			checkAddresses();
 		}
 		
 		return {
 			hasAddressesChanged: hasAddressesChanged,
-			storeAddresses: storeAddresses,
-			validateAddresses: validateAddresses
+			validateAddresses: validateAddresses,
+			updateAddresses: updateAddresses
 		};
 	};
 });

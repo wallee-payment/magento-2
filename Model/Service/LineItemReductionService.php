@@ -345,11 +345,11 @@ class LineItemReductionService
         $filter = new EntityQueryFilter();
         $filter->setType(EntityQueryFilterType::_AND);
         $filter->setChildren(
-            array(
+            [
                 $this->helper->createEntityFilter('state', TransactionInvoiceState::CANCELED,
                     CriteriaOperator::NOT_EQUALS),
                 $this->helper->createEntityFilter('completion.lineItemVersion.transaction.id', $transactionId)
-            ));
+            ]);
         $query->setFilter($filter);
         $query->setNumberOfEntities(1);
         $result = $this->apiClient->getService(TransactionInvoiceService::class)->search($spaceId, $query);

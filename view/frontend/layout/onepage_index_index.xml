@@ -11,7 +11,9 @@
  */
  -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
-	<head>
-		<script src="Wallee_Payment::js/model/iwd-opc-checkout.js" ifconfig="iwd_opc/general/enable" />
-	</head>
+	<body>
+        <referenceContainer name="root">
+        	<block class="Wallee\Payment\Block\Checkout" name="Wallee_Payment_Block_Checkout" />
+        </referenceContainer>
+	</body>
 </page>

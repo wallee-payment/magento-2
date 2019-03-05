@@ -184,10 +184,10 @@ class WebhookService
         $filter = new EntityQueryFilter();
         $filter->setType(EntityQueryFilterType::_AND);
         $filter->setChildren(
-            array(
+            [
                 $this->helper->createEntityFilter('state', CreationEntityState::ACTIVE),
                 $this->helper->createEntityFilter('url.id', $webhookUrl->getId())
-            ));
+            ]);
         $query->setFilter($filter);
         return $this->apiClient->getService(WebhookListenerService::class)->search($spaceId, $query);
     }
@@ -220,10 +220,10 @@ class WebhookService
         $filter = new EntityQueryFilter();
         $filter->setType(EntityQueryFilterType::_AND);
         $filter->setChildren(
-            array(
+            [
                 $this->helper->createEntityFilter('state', CreationEntityState::ACTIVE),
                 $this->helper->createEntityFilter('url', $this->getUrl())
-            ));
+            ]);
         $query->setFilter($filter);
         $result = $this->apiClient->getService(WebhookUrlService::class)->search($spaceId, $query);
         if (! empty($result)) {

@@ -213,7 +213,7 @@ abstract class AbstractLineItemService
         if (isset($option['option_id']) && ! empty($option['option_id'])) {
             return $this->helper->fixLength('option_' . $option['option_id'], 40);
         } else {
-            return $this->helper->fixLength(\preg_replace('/[^a-z0-9]/', '', strtolower($option['label'])), 40);
+            return $this->helper->fixLength(\preg_replace('/[^a-z0-9]/', '', \strtolower($option['label'])), 40);
         }
     }
 

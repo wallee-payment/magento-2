@@ -168,7 +168,7 @@ class Data extends AbstractHelper
      */
     public function getResourceUrl($path, $language = null, $spaceId = null, $spaceViewId = null)
     {
-        $url = rtrim($this->scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
+        $url = \rtrim($this->scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
         if (! empty($language)) {
             $url .= '/' . \str_replace('_', '-', $language);
         }

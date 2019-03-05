@@ -136,24 +136,24 @@ class SuccessfulCommand extends AbstractCommand
 
     private function collectCreditmemoData(Refund $refund, Order $order)
     {
-        $orderItemMap = array();
+        $orderItemMap = [];
         foreach ($order->getAllItems() as $orderItem) {
             $orderItemMap[$orderItem->getQuoteItemId()] = $orderItem;
         }
 
-        $lineItems = array();
+        $lineItems = [];
         foreach ($refund->getTransaction()->getLineItems() as $lineItem) {
             $lineItems[$lineItem->getUniqueId()] = $lineItem;
         }
 
-        $baseLineItems = array();
+        $baseLineItems = [];
         foreach ($this->lineItemReductionService->getBaseLineItems($order->getWalleeSpaceId(),
             $refund->getTransaction()
                 ->getId(), $refund) as $lineItem) {
             $baseLineItems[$lineItem->getUniqueId()] = $lineItem;
         }
 
-        $refundQuantities = array();
+        $refundQuantities = [];
         foreach ($order->getAllItems() as $orderItem) {
             $refundQuantities[$orderItem->getQuoteItemId()] = 0;
         }
@@ -211,11 +211,11 @@ class SuccessfulCommand extends AbstractCommand
             $positiveAdjustment = $refund->getAmount() - $roundedCreditmemoAmount;
         }
 
-        return array(
+        return [
             'qtys' => $refundQuantities,
             'shipping_amount' => $shippingAmount,
             'adjustment_positive' => $positiveAdjustment,
             'adjustment_negative' => $negativeAdjustment
-        );
+        ];
     }
 }

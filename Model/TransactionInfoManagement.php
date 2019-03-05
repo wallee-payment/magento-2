@@ -116,14 +116,14 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
     {
         $chargeAttempt = $this->getChargeAttempt($transaction);
         if ($chargeAttempt != null) {
-            $labels = array();
+            $labels = [];
             foreach ($chargeAttempt->getLabels() as $label) {
                 $labels[$label->getDescriptor()->getId()] = $label->getContentAsString();
             }
 
             return $labels;
         } else {
-            return array();
+            return [];
         }
     }
 
@@ -139,10 +139,10 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
         $filter = new EntityQueryFilter();
         $filter->setType(EntityQueryFilterType::_AND);
         $filter->setChildren(
-            array(
+            [
                 $this->helper->createEntityFilter('charge.transaction.id', $transaction->getId()),
                 $this->helper->createEntityFilter('state', ChargeAttemptState::SUCCESSFUL)
-            ));
+            ]);
         $query->setFilter($filter);
         $query->setNumberOfEntities(1);
         $result = $this->apiClient->getService(ChargeAttemptService::class)->search($transaction->getLinkedSpaceId(),

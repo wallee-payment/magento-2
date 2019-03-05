@@ -219,8 +219,8 @@ class TransactionService extends AbstractTransactionService
                         ->getConfigurationId()
                 ]);
         } else {
-            $transaction->setSuccessUrl($this->buildUrl('wallee_payment/transaction/success', $order));
-            $transaction->setFailedUrl($this->buildUrl('wallee_payment/transaction/failure', $order));
+            $transaction->setSuccessUrl($this->buildUrl('wallee_payment/transaction/success', $order) . '?utm_nooverride=1');
+            $transaction->setFailedUrl($this->buildUrl('wallee_payment/transaction/failure', $order) . '?utm_nooverride=1');
         }
         if ($token != null) {
             $transaction->setToken($token->getId());
@@ -414,18 +414,18 @@ class TransactionService extends AbstractTransactionService
      */
     public function waitForTransactionState(Order $order, array $states, $maxWaitTime = 10)
     {
-        $startTime = microtime(true);
+        $startTime = \microtime(true);
         while (true) {
-            if (microtime(true) - $startTime >= $maxWaitTime) {
+            if (\microtime(true) - $startTime >= $maxWaitTime) {
                 return false;
             }
 
             $transactionInfo = $this->transactionInfoRepository->getByOrderId($order->getId());
-            if (in_array($transactionInfo->getState(), $states)) {
+            if (\in_array($transactionInfo->getState(), $states)) {
                 return true;
             }
 
-            sleep(2);
+            \sleep(2);
         }
     }
 }
