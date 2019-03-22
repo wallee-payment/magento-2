@@ -46,8 +46,11 @@ define([
 		}
 		
 		function hasAddressesChanged(){
-			return !_.isEqual(shippingAddressCache, covertToCacheableAddress(getCheckoutAdapter().getShippingAddress()))
-				|| !_.isEqual(billingAddressCache, covertToCacheableAddress(quote.billingAddress()));
+			var currentShippingAddress = covertToCacheableAddress(getCheckoutAdapter().getShippingAddress()),
+				currentBillingAddress = covertToCacheableAddress(quote.billingAddress());
+			
+			return !_.isEqual(shippingAddressCache, currentShippingAddress)
+				|| (!_.isEqual({}, currentBillingAddress) && !_.isEqual(billingAddressCache, currentBillingAddress));
 		}
 		
 		function storeShippingAddress(){
