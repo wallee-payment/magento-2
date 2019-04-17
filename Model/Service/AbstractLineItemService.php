@@ -189,6 +189,7 @@ abstract class AbstractLineItemService
         $productItem->setQuantity($entityItem->getQty() ? $entityItem->getQty() : $entityItem->getQtyOrdered());
         $productItem->setShippingRequired(! $entityItem->getIsVirtual());
         $productItem->setSku($this->helper->fixLength($entityItem->getSku(), 200));
+        $productItem->setDiscountIncludingTax($entityItem->getDiscountAmount() - $entityItem->getDiscountTaxCompensationAmount());
         $tax = $this->getTax($entityItem);
         if ($tax instanceof TaxCreate) {
             $productItem->setTaxes([
@@ -341,6 +342,7 @@ abstract class AbstractLineItemService
             }
             $shippingItem->setQuantity(1);
             $shippingItem->setSku('shipping');
+            $shippingItem->setDiscountIncludingTax($shippingDiscountAmount);
             if ($shippingTaxAmount > 0) {
                 $tax = $this->getShippingTax($entity);
                 if ($tax instanceof TaxCreate) {

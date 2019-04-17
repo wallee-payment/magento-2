@@ -17,10 +17,9 @@ define([
 	quote,
 	setShippingInformationAction,
 	defaultCheckoutAdapter,
-	pluginCheckoutAdapter
 ){
 	'use strict';
-	return function(isActive, loadPaymentForm){
+	return function(formId, isActive, loadPaymentForm, onLoad){
 		var billingAddressCache = {},
 			shippingAddressCache = {},
 			hasAddressChanged = false,
@@ -33,6 +32,26 @@ define([
 			} else {
 				return defaultCheckoutAdapter;
 			}
+		}
+		
+		function canReplacePrimaryAction() {
+			return getCheckoutAdapter().canReplacePrimaryAction();
+		}
+		
+		function isPrimaryActionReplaced() {
+			return getCheckoutAdapter().isPrimaryActionReplaced();
+		}
+		
+		function replacePrimaryAction(label) {
+			getCheckoutAdapter().replacePrimaryAction(label);
+		}
+		
+		function resetPrimaryAction() {
+			getCheckoutAdapter().resetPrimaryAction();
+		}
+		
+		function selectPaymentMethod () {
+			getCheckoutAdapter().selectPaymentMethod();
 		}
 		
 		function covertToCacheableAddress(address){
@@ -86,19 +105,32 @@ define([
 			setTimeout(checkAddresses, 100);
 		}
 		
+		function getInstance() {
+			return {
+				canReplacePrimaryAction: canReplacePrimaryAction,
+				isPrimaryActionReplaced: isPrimaryActionReplaced,
+				replacePrimaryAction: replacePrimaryAction,
+				resetPrimaryAction: resetPrimaryAction,
+				selectPaymentMethod: selectPaymentMethod,
+				hasAddressesChanged: hasAddressesChanged,
+				validateAddresses: validateAddresses,
+				updateAddresses: updateAddresses
+			};
+		}
+		
 		if (require.specified('wallee_checkout_adapter')) {
 			require(['wallee_checkout_adapter'], function(adapter){
 				pluginCheckoutAdapter = adapter;
+				pluginCheckoutAdapter.formId = formId;
+				onLoad(getInstance());
 				checkAddresses();
 			});
 		} else {
+			defaultCheckoutAdapter.formId = formId;
+			onLoad(getInstance());
 			checkAddresses();
 		}
 		
-		return {
-			hasAddressesChanged: hasAddressesChanged,
-			validateAddresses: validateAddresses,
-			updateAddresses: updateAddresses
-		};
+		return getInstance();
 	};
 });

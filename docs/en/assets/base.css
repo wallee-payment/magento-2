@@ -139,7 +139,7 @@ dfn {
 }
 
 b, strong {
-  font-weight: bolder;
+  font-weight: bold;
 }
 
 small {
@@ -189,7 +189,11 @@ a:not([href]):not([tabindex]):focus {
 
 pre, code, kbd, samp {
   font-family: monospace, monospace;
-  font-size: 1em;
+  font-size: 90%;
+  padding: 2px 4px 2px 4px;
+  color: #c7254e;
+  background-color: #f9f2f4;
+  border-radius: 4px;
 }
 
 pre {

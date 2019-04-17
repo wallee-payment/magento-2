@@ -14,7 +14,7 @@ define([
 	'Magento_Checkout/js/model/payment/method-list',
 	'mage/url',
 	'Magento_Checkout/js/model/quote',
-	'Wallee_Payment/js/model/address-handler'
+	'Wallee_Payment/js/model/checkout-handler'
 ], function(
 	$,
 	Component,
@@ -22,7 +22,7 @@ define([
 	methodList,
 	urlBuilder,
 	quote,
-	addressHandler
+	checkoutHandler
 ){
 	'use strict';
 	return Component.extend({
@@ -30,9 +30,8 @@ define([
 			template: 'Wallee_Payment/payment/form'
 		},
 		redirectAfterPlaceOrder: false,
-		submitDisabled: false,
 		loadingIframe: false,
-		addressHandler: null,
+		checkoutHandler: null,
 		
 		/**
 		 * @override
@@ -40,7 +39,11 @@ define([
 		initialize: function(){
 			this._super();
 
-			this.addressHandler = addressHandler(this.isActive.bind(this), this.createHandler.bind(this));
+			this.checkoutHandler = checkoutHandler(this.getFormId(), this.isActive.bind(this), this.createHandler.bind(this), function(handler){
+				if (handler.canReplacePrimaryAction()) {
+					window.IframeCheckoutHandler.configure('replacePrimaryAction', true);
+				}
+			});
 		},
 		
 		getFormId: function(){
@@ -73,18 +76,16 @@ define([
 		
 		createHandler: function(){
 			if (this.handler) {
-				$('button.checkout').prop('disabled', this.submitDisabled);
-			} else if (typeof window.IframeCheckoutHandler != 'undefined' && this.isActive() && this.addressHandler.validateAddresses()) {
+				this.checkoutHandler.selectPaymentMethod();
+			} else if (typeof window.IframeCheckoutHandler != 'undefined' && this.isActive() && this.checkoutHandler.validateAddresses()) {
 				this.loadingIframe = true;
 				fullScreenLoader.startLoader();
 				this.handler = window.IframeCheckoutHandler(this.getConfigurationId());
-				this.handler.setEnableSubmitCallback(function(){
-					$('button.checkout').prop('disabled', false);
-					this.submitDisabled = false;
+				this.handler.setResetPrimaryActionCallback(function(){
+					this.checkoutHandler.resetPrimaryAction();
 				}.bind(this));
-				this.handler.setDisableSubmitCallback(function(){
-					$('button.checkout').prop('disabled', true);
-					this.submitDisabled = true;
+				this.handler.setReplacePrimaryActionCallback(function(label){
+					this.checkoutHandler.replacePrimaryAction(label);
 				}.bind(this));
 				this.handler.create(this.getFormId(), (function(validationResult){
 					if (validationResult.success) {
@@ -106,9 +107,13 @@ define([
 			}
 		},
 		
+		getSubmitButton: function(){
+			return $('#' + this.getFormId()).parents('.payment-method-content').find('button.checkout');
+		},
+		
 		selectPaymentMethod: function(){
 			var result = this._super();
-			this.addressHandler.updateAddresses();
+			this.checkoutHandler.updateAddresses();
 			return result;
 		},
 		
@@ -117,7 +122,11 @@ define([
 				return;
 			}
 			if (this.handler) {
-				this.handler.validate();
+				if (this.checkoutHandler.isPrimaryActionReplaced()) {
+					this.handler.trigger();
+				} else {
+					this.handler.validate();
+				}
 			} else {
 				this.placeOrder();
 			}

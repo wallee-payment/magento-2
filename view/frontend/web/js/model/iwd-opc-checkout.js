@@ -8,6 +8,7 @@
  * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
  */
 define('wallee_checkout_adapter', [
+	'jquery',
 	'underscore',
 	'Magento_Checkout/js/model/quote',
 	'uiRegistry',
@@ -17,6 +18,7 @@ define('wallee_checkout_adapter', [
 	'Magento_Checkout/js/checkout-data',
 	'Magento_Checkout/js/action/select-shipping-address'
 ], function(
+	$,
 	_,
 	quote,
 	registry,
@@ -28,6 +30,35 @@ define('wallee_checkout_adapter', [
 ){
 	'use strict';
 	return {
+		formId: null,
+		submitDisabled: false,
+		
+		canReplacePrimaryAction: function(){
+			return false;
+		},
+		
+		isPrimaryActionReplaced: function(){
+			return false;
+		},
+		
+		replacePrimaryAction: function(label) {
+			this.getSubmitButton().prop('disabled', true);
+			this.submitDisabled = true;
+		},
+		
+		resetPrimaryAction: function(){
+			this.getSubmitButton().prop('disabled', false);
+			this.submitDisabled = false;
+		},
+		
+		selectPaymentMethod: function(){
+			this.getSubmitButton().prop('disabled', this.submitDisabled);
+		},
+		
+		getSubmitButton: function(){
+			return $('button.iwd_opc_place_order_button');
+		},
+		
 		getShippingAddress: function(){
 			if (registry.get('checkout.steps.shipping-step.shippingAddress').isAddressFormVisible()) {
 				return addressConverter.formAddressDataToQuoteAddress(

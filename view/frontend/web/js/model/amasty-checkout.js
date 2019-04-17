@@ -28,7 +28,35 @@ define('wallee_checkout_adapter', [
 ){
 	'use strict';
 	return {
+		formId: null,
+		submitDisabled: false,
 		canHideErrors: true,
+		
+		canReplacePrimaryAction: function(){
+			return false;
+		},
+		
+		isPrimaryActionReplaced: function(){
+			return false;
+		},
+		
+		replacePrimaryAction: function(label) {
+			this.getSubmitButton().prop('disabled', true);
+			this.submitDisabled = true;
+		},
+		
+		resetPrimaryAction: function(){
+			this.getSubmitButton().prop('disabled', false);
+			this.submitDisabled = false;
+		},
+		
+		selectPaymentMethod: function(){
+			this.getSubmitButton().prop('disabled', this.submitDisabled);
+		},
+		
+		getSubmitButton: function(){
+			return $('button[data-role="review-save"]');
+		},
 		
 		getShippingAddress: function(){
 			var shippingComponent = registry.get('checkout.steps.shipping-step.shippingAddress');
