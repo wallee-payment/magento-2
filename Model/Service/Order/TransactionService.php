@@ -29,11 +29,15 @@ use Wallee\Payment\Model\Service\AbstractTransactionService;
 use Wallee\Sdk\VersioningException;
 use Wallee\Sdk\Model\AbstractTransactionPending;
 use Wallee\Sdk\Model\AddressCreate;
+use Wallee\Sdk\Model\CriteriaOperator;
 use Wallee\Sdk\Model\CustomersPresence;
 use Wallee\Sdk\Model\EntityQuery;
+use Wallee\Sdk\Model\EntityQueryFilter;
+use Wallee\Sdk\Model\EntityQueryFilterType;
 use Wallee\Sdk\Model\Token;
 use Wallee\Sdk\Model\Transaction;
 use Wallee\Sdk\Model\TransactionCreate;
+use Wallee\Sdk\Model\TransactionInvoiceState;
 use Wallee\Sdk\Model\TransactionPending;
 use Wallee\Sdk\Model\TransactionState;
 use Wallee\Sdk\Service\DeliveryIndicationService;
@@ -219,8 +223,10 @@ class TransactionService extends AbstractTransactionService
                         ->getConfigurationId()
                 ]);
         } else {
-            $transaction->setSuccessUrl($this->buildUrl('wallee_payment/transaction/success', $order) . '?utm_nooverride=1');
-            $transaction->setFailedUrl($this->buildUrl('wallee_payment/transaction/failure', $order) . '?utm_nooverride=1');
+            $transaction->setSuccessUrl(
+                $this->buildUrl('wallee_payment/transaction/success', $order) . '?utm_nooverride=1');
+            $transaction->setFailedUrl(
+                $this->buildUrl('wallee_payment/transaction/failure', $order) . '?utm_nooverride=1');
         }
         if ($token != null) {
             $transaction->setToken($token->getId());
@@ -391,14 +397,21 @@ class TransactionService extends AbstractTransactionService
     public function getTransactionInvoice(Order $order)
     {
         $query = new EntityQuery();
+        $filter = new EntityQueryFilter();
+        $filter->setType(EntityQueryFilterType::_AND);
+        $filter->setChildren(
+            [
+                $this->helper->createEntityFilter('state', TransactionInvoiceState::CANCELED,
+                    CriteriaOperator::NOT_EQUALS),
+                $this->helper->createEntityFilter('completion.lineItemVersion.transaction.id',
+                    $order->getWalleeTransactionId())
+            ]);
+        $query->setFilter($filter);
         $query->setNumberOfEntities(1);
-        $query->setFilter(
-            $this->helper->createEntityFilter('completion.lineItemVersion.transaction.id',
-                $order->getWalleeTransactionId()));
         $result = $this->apiClient->getService(TransactionInvoiceService::class)->search(
             $order->getWalleeSpaceId(), $query);
         if (! empty($result)) {
-            return \current($result);
+            return $result[0];
         } else {
             throw new NoSuchEntityException();
         }

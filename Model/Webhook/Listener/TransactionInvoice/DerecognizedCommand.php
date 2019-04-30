@@ -47,22 +47,9 @@ class DerecognizedCommand extends AbstractCommand
             ->getTransaction();
         $invoice = $this->getInvoiceForTransaction($transaction, $order);
         if (! ($invoice instanceof Invoice) || $invoice->getState() == Invoice::STATE_OPEN) {
-            $isOrderInReview = ($order->getState() == Order::STATE_PAYMENT_REVIEW);
-
-            /** @var \Magento\Sales\Model\Order\Payment $payment */
-            $payment = $order->getPayment();
-            $payment->registerVoidNotification();
-
             $invoice->setWalleeCapturePending(false);
-            $order->setWalleeInvoiceAllowManipulation(true);
-            $invoice->cancel();
+            $invoice->setWalleeDerecognized(true);
             $order->addRelatedObject($invoice);
-
-            if ($isOrderInReview) {
-                $order->setState(Order::STATE_PAYMENT_REVIEW);
-                $order->addStatusToHistory(true);
-            }
-
             $this->orderRepository->save($order);
         }
     }

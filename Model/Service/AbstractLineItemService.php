@@ -200,7 +200,17 @@ abstract class AbstractLineItemService
         if (! empty($attributes)) {
             $productItem->setAttributes($attributes);
         }
-        return $productItem;
+
+        $transport = new DataObject([
+            'item' => $productItem
+        ]);
+        $this->eventManager->dispatch('wallee_payment_convert_product_line_item',
+            [
+                'transport' => $transport,
+                'entityItem' => $entityItem,
+                'entity' => $entity
+            ]);
+        return $transport->getData('item');
     }
 
     /**
@@ -351,7 +361,16 @@ abstract class AbstractLineItemService
                     ]);
                 }
             }
-            return $shippingItem;
+
+            $transport = new DataObject([
+                'item' => $shippingItem
+            ]);
+            $this->eventManager->dispatch('wallee_payment_convert_shipping_line_item',
+                [
+                    'transport' => $transport,
+                    'entity' => $entity
+                ]);
+            return $transport->getData('item');
         } else {
             return null;
         }

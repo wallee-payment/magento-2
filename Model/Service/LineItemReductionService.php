@@ -106,14 +106,14 @@ class LineItemReductionService
      */
     private function isIncludeItem(Creditmemo\Item $creditmemoItem)
     {
-        if ($creditmemoItem->getParentItemId() != null && $creditmemoItem->getParentItem()->getProductType() ==
+        if ($creditmemoItem->getOrderItem()->getParentItemId() != null && $creditmemoItem->getOrderItem()->getParentItem()->getProductType() ==
             \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE) {
             return false;
         }
 
-        if ($creditmemoItem->getProductType() == \Magento\Catalog\Model\Product\Type::TYPE_BUNDLE &&
-            $creditmemoItem->getParentItemId() == null &&
-            $creditmemoItem->getProduct()->getPriceType() != \Magento\Bundle\Model\Product\Price::PRICE_TYPE_FIXED) {
+        if ($creditmemoItem->getOrderItem()->getProductType() == \Magento\Catalog\Model\Product\Type::TYPE_BUNDLE &&
+            $creditmemoItem->getOrderItem()->getParentItemId() == null &&
+            $creditmemoItem->getOrderItem()->getProduct()->getPriceType() != \Magento\Bundle\Model\Product\Price::PRICE_TYPE_FIXED) {
             return false;
         }
 
