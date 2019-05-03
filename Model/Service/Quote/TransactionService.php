@@ -13,6 +13,7 @@ namespace Wallee\Payment\Model\Service\Quote;
 use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
@@ -90,15 +91,17 @@ class TransactionService extends AbstractTransactionService
      * @param CartRepositoryInterface $quoteRepository
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
+     * @param CookieManagerInterface $cookieManager
+     * @param CookieManagerInterface $cookieManager
      * @param LineItemService $lineItemService
      */
     public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
         CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
-        LineItemService $lineItemService)
+        CookieManagerInterface $cookieManager, LineItemService $lineItemService)
     {
         parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
-            $paymentMethodConfigurationManagement, $apiClient);
+            $paymentMethodConfigurationManagement, $apiClient, $cookieManager);
         $this->helper = $helper;
         $this->scopeConfig = $scopeConfig;
         $this->customerRegistry = $customerRegistry;
@@ -261,6 +264,7 @@ class TransactionService extends AbstractTransactionService
             $transaction->setSpaceViewId(
                 $this->scopeConfig->getValue('wallee_payment/general/store_view_id',
                     ScopeInterface::SCOPE_STORE, $quote->getStoreId()));
+            $transaction->setDeviceSessionIdentifier($this->getDeviceSessionIdentifier());
         }
     }
 

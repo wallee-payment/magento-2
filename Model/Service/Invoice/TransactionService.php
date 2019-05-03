@@ -14,6 +14,7 @@ use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Sales\Model\Order\Invoice;
@@ -78,6 +79,7 @@ class TransactionService extends AbstractTransactionService
      * @param CartRepositoryInterface $quoteRepository
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
+     * @param CookieManagerInterface $cookieManager
      * @param LocaleHelper $localeHelper
      * @param LineItemService $lineItemService
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
@@ -86,11 +88,11 @@ class TransactionService extends AbstractTransactionService
     public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
         CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
-        LocaleHelper $localeHelper, LineItemService $lineItemService,
+        CookieManagerInterface $cookieManager, LocaleHelper $localeHelper, LineItemService $lineItemService,
         TransactionInfoRepositoryInterface $transactionInfoRepository, OrderTransactionService $orderTransactionService)
     {
         parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
-            $paymentMethodConfigurationManagement, $apiClient);
+            $paymentMethodConfigurationManagement, $apiClient, $cookieManager);
         $this->apiClient = $apiClient;
         $this->localeHelper = $localeHelper;
         $this->lineItemService = $lineItemService;

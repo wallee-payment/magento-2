@@ -8,7 +8,7 @@
  * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
  */
 define([
-	'jquery',
+	'jquery'
 ], function(
 	$
 ){

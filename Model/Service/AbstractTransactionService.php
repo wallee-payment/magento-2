@@ -14,6 +14,7 @@ use Magento\Customer\Model\Customer;
 use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
@@ -81,6 +82,12 @@ abstract class AbstractTransactionService
 
     /**
      *
+     * @var CookieManagerInterface
+     */
+    private $cookieManager;
+
+    /**
+     *
      * @param ResourceConnection $resource
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
@@ -89,10 +96,12 @@ abstract class AbstractTransactionService
      * @param TimezoneInterface $timezone
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
+     * @param CookieManagerInterface $cookieManager
      */
     public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
         CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
-        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient)
+        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
+        CookieManagerInterface $cookieManager)
     {
         $this->resource = $resource;
         $this->helper = $helper;
@@ -102,6 +111,7 @@ abstract class AbstractTransactionService
         $this->timezone = $timezone;
         $this->paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
         $this->apiClient = $apiClient;
+        $this->cookieManager = $cookieManager;
     }
 
     /**
@@ -143,6 +153,16 @@ abstract class AbstractTransactionService
             ], [
                 'entity_id = ?' => $quote->getId()
             ]);
+    }
+
+    /**
+     * Gets the device session identifier from the cookie.
+     *
+     * @return string|NULL
+     */
+    protected function getDeviceSessionIdentifier()
+    {
+        return $this->cookieManager->getCookie('wallee_device_id');
     }
 
     /**

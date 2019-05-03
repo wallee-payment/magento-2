@@ -16,7 +16,7 @@ define([
 	_,
 	quote,
 	setShippingInformationAction,
-	defaultCheckoutAdapter,
+	defaultCheckoutAdapter
 ){
 	'use strict';
 	return function(formId, isActive, loadPaymentForm, onLoad){
