@@ -38,12 +38,7 @@ define([
 		 */
 		initialize: function(){
 			this._super();
-
-			this.checkoutHandler = checkoutHandler(this.getFormId(), this.isActive.bind(this), this.createHandler.bind(this), function(handler){
-				if (handler.canReplacePrimaryAction()) {
-					window.IframeCheckoutHandler.configure('replacePrimaryAction', true);
-				}
-			});
+			this.checkoutHandler = checkoutHandler(this.getFormId(), this.isActive.bind(this), this.createHandler.bind(this));
 		},
 		
 		getFormId: function(){
@@ -78,6 +73,10 @@ define([
 			if (this.handler) {
 				this.checkoutHandler.selectPaymentMethod();
 			} else if (typeof window.IframeCheckoutHandler != 'undefined' && this.isActive() && this.checkoutHandler.validateAddresses()) {
+				if (this.checkoutHandler.canReplacePrimaryAction()) {
+					window.IframeCheckoutHandler.configure('replacePrimaryAction', true);
+				}
+				
 				this.loadingIframe = true;
 				fullScreenLoader.startLoader();
 				this.handler = window.IframeCheckoutHandler(this.getConfigurationId());

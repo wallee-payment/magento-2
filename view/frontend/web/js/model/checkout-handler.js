@@ -19,7 +19,7 @@ define([
 	defaultCheckoutAdapter
 ){
 	'use strict';
-	return function(formId, isActive, loadPaymentForm, onLoad){
+	return function(formId, isActive, loadPaymentForm){
 		var billingAddressCache = {},
 			shippingAddressCache = {},
 			hasAddressChanged = false,
@@ -122,12 +122,10 @@ define([
 			require(['wallee_checkout_adapter'], function(adapter){
 				pluginCheckoutAdapter = adapter;
 				pluginCheckoutAdapter.formId = formId;
-				onLoad(getInstance());
 				checkAddresses();
 			});
 		} else {
 			defaultCheckoutAdapter.formId = formId;
-			onLoad(getInstance());
 			checkAddresses();
 		}
 		
