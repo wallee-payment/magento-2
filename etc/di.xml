@@ -206,4 +206,7 @@
 	<type name="Magento\Sales\Model\AdminOrder\Create">
 		<plugin name="wallee_payment_sales_adminorder_create" type="Wallee\Payment\Plugin\Sales\Model\AdminOrder\Create" />
 	</type>
+	<type name="Magento\Customer\Model\AccountManagement">
+		<plugin name="wallee_payment_customer_accountmanagement" type="Wallee\Payment\Plugin\Customer\Model\AccountManagement" />
+	</type>
 </config>

@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Service\Quote;
 
+use Magento\Checkout\Model\Session\Proxy as CheckoutSession;
 use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -72,6 +73,12 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @var CheckoutSession
+     */
+    private $checkoutSession;
+
+    /**
+     *
      * @var \Wallee\Sdk\Model\Transaction[]
      */
     private $transactionCache = array();
@@ -94,11 +101,12 @@ class TransactionService extends AbstractTransactionService
      * @param CookieManagerInterface $cookieManager
      * @param CookieManagerInterface $cookieManager
      * @param LineItemService $lineItemService
+     * @param CheckoutSession $checkoutSession
      */
     public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
         CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
-        CookieManagerInterface $cookieManager, LineItemService $lineItemService)
+        CookieManagerInterface $cookieManager, LineItemService $lineItemService, CheckoutSession $checkoutSession)
     {
         parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
             $paymentMethodConfigurationManagement, $apiClient, $cookieManager);
@@ -107,6 +115,7 @@ class TransactionService extends AbstractTransactionService
         $this->customerRegistry = $customerRegistry;
         $this->apiClient = $apiClient;
         $this->lineItemService = $lineItemService;
+        $this->checkoutSession = $checkoutSession;
     }
 
     /**
@@ -265,6 +274,16 @@ class TransactionService extends AbstractTransactionService
                 $this->scopeConfig->getValue('wallee_payment/general/store_view_id',
                     ScopeInterface::SCOPE_STORE, $quote->getStoreId()));
             $transaction->setDeviceSessionIdentifier($this->getDeviceSessionIdentifier());
+        }
+    }
+
+    protected function getCustomerEmailAddress($customerEmailAddress, $customerId)
+    {
+        $emailAddress = parent::getCustomerEmailAddress($customerEmailAddress, $customerId);
+        if (! empty($emailAddress)) {
+            return $emailAddress;
+        } else {
+            return $this->checkoutSession->getWalleeCheckoutEmailAddress();
         }
     }
 
