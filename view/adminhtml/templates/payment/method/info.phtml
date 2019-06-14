@@ -46,6 +46,10 @@
     			<th><?=$block->escapeHtml(\__('Transaction'))?></th>
     			<td><a target="_blank" href="<?=$block->escapeHtml($block->getTransactionUrl())?>"><?=$block->escapeHtml(\__('View in wallee'))?></a></td>
     		</tr>
+    		<tr>
+    			<th><?=$block->escapeHtml(\__('Customer'))?></th>
+    			<td><a target="_blank" href="<?=$block->escapeHtml($block->getCustomerUrl())?>"><?=$block->escapeHtml(\__('View in wallee'))?></a></td>
+    		</tr>
     	<?php endif; ?>
         <?php if ($block->isInvoice() && $block->isInvoiceDownloadAllowed()) : ?>
 			<tr>

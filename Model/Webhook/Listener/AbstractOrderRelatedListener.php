@@ -111,6 +111,10 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
             $order = $this->loadOrder($this->getOrderId($entity));
             if ($order instanceof Order) {
                 if ($order->getWalleeTransactionId() != $this->getTransactionId($entity)) {
+                    $this->logger->warning(
+                        'wallee webhook: The transaction ID on the order ' . $order->getId() .
+                        ' does not match the webhook\'s: ' . $this->getTransactionId($entity));
+                    $connection->commit();
                     return;
                 }
                 $this->lock($order);

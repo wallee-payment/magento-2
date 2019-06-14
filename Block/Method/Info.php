@@ -222,6 +222,18 @@ class Info extends \Magento\Payment\Block\Info
     }
 
     /**
+     * Gets the URL to the customer detail view in wallee.
+     *
+     * @return string
+     */
+    public function getCustomerUrl()
+    {
+        return \rtrim($this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/') .
+        '/s/' . $this->getTransaction()->getSpaceId() . '/payment/customer/transaction/view/' .
+        $this->getTransaction()->getTransactionId();
+    }
+
+    /**
      * Gets the transaction info or false if not available.
      *
      * @return \Wallee\Payment\Model\TransactionInfo|false
