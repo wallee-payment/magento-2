@@ -85,8 +85,12 @@ class SubmitQuote implements ObserverInterface
         if (! empty($transactionId)) {
             $invoice = $this->createInvoice($order);
 
-            $transaction = $this->transactionService->confirmTransaction($order, $invoice,
-                $this->helper->isAdminArea(), $order->getWalleeToken());
+            $transaction = $this->transactionService->getTransaction($order->getWalleeSpaceId(),
+                $order->getWalleeTransactionId());
+            $this->transactionInfoManagement->update($transaction, $order);
+
+            $transaction = $this->transactionService->confirmTransaction($transaction, $order, $invoice, $this->helper->isAdminArea(),
+                $order->getWalleeToken());
             $this->transactionInfoManagement->update($transaction, $order);
         }
 

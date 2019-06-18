@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Controller\Transaction;
 
+use Magento\Checkout\Model\Session\SuccessValidator;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Action\Context;
 use Magento\Sales\Api\OrderRepositoryInterface;
@@ -25,6 +26,12 @@ class Success extends \Wallee\Payment\Controller\Transaction
 
     /**
      *
+     * @var SuccessValidator
+     */
+    private $successValidator;
+
+    /**
+     *
      * @var TransactionService
      */
     private $transactionService;
@@ -33,12 +40,14 @@ class Success extends \Wallee\Payment\Controller\Transaction
      *
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
+     * @param SuccessValidator $successValidator
      * @param TransactionService $transactionService
      */
     public function __construct(Context $context, OrderRepositoryInterface $orderRepository,
-        TransactionService $transactionService)
+        SuccessValidator $successValidator, TransactionService $transactionService)
     {
         parent::__construct($context, $orderRepository);
+        $this->successValidator = $successValidator;
         $this->transactionService = $transactionService;
     }
 
@@ -52,6 +61,14 @@ class Success extends \Wallee\Payment\Controller\Transaction
                 TransactionState::COMPLETED,
                 TransactionState::FULFILL
             ], 5);
+
+        if (! $this->successValidator->isValid()) {
+            $this->messageManager->addErrorMessage(
+                \__(
+                    'There seems to have been a problem with your order. ' .
+                    'However, the payment was successful. Please contact us.'));
+            return $this->_redirect('checkout/cart');
+        }
 
         return $this->_redirect($this->getSuccessRedirectionPath($order));
     }

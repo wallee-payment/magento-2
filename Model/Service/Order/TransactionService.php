@@ -127,6 +127,7 @@ class TransactionService extends AbstractTransactionService
     /**
      * Updates the transaction with the given order's data and confirms it.
      *
+     * @param Transaction $transaction
      * @param Order $order
      * @param Invoice $invoice
      * @param boolean $chargeFlow
@@ -134,15 +135,18 @@ class TransactionService extends AbstractTransactionService
      * @throws VersioningException
      * @return Transaction
      */
-    public function confirmTransaction(Order $order, Invoice $invoice, $chargeFlow = false, Token $token = null)
+    public function confirmTransaction(Transaction $transaction, Order $order, Invoice $invoice, $chargeFlow = false,
+        Token $token = null)
     {
         $spaceId = $order->getWalleeSpaceId();
         $transactionId = $order->getWalleeTransactionId();
         for ($i = 0; $i < 5; $i ++) {
             try {
-                $transaction = $this->getTransaction($spaceId, $transactionId);
-                if (! ($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
-                    throw new LocalizedException(\__('The order failed because the payment timed out.'));
+                if ($i > 0) {
+                    $transaction = $this->getTransaction($spaceId, $transactionId);
+                    if (! ($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
+                        throw new LocalizedException(\__('The order failed because the payment timed out.'));
+                    }
                 }
 
                 $pendingTransaction = new TransactionPending();

@@ -179,17 +179,20 @@ abstract class AbstractLineItemService
     {
         $amountIncludingTax = $entityItem->getRowTotal() - $entityItem->getDiscountAmount() + $entityItem->getTaxAmount() +
             $entityItem->getDiscountTaxCompensationAmount();
+        
+        $currency = $this->getCurrencyCode($entity);
 
         $productItem = new LineItemCreate();
         $productItem->setType(LineItemType::PRODUCT);
         $productItem->setUniqueId($this->getUniqueId($entityItem));
         $productItem->setAmountIncludingTax(
-            $this->helper->roundAmount($amountIncludingTax, $this->getCurrencyCode($entity)));
+            $this->helper->roundAmount($amountIncludingTax, $currency));
         $productItem->setName($this->helper->fixLength($entityItem->getName(), 150));
         $productItem->setQuantity($entityItem->getQty() ? $entityItem->getQty() : $entityItem->getQtyOrdered());
         $productItem->setShippingRequired(! $entityItem->getIsVirtual());
         $productItem->setSku($this->helper->fixLength($entityItem->getSku(), 200));
-        $productItem->setDiscountIncludingTax($entityItem->getDiscountAmount() - $entityItem->getDiscountTaxCompensationAmount());
+        $discount = $entityItem->getDiscountAmount() - $entityItem->getDiscountTaxCompensationAmount();
+        $productItem->setDiscountIncludingTax($this->helper->roundAmount($discount, $currency));
         $tax = $this->getTax($entityItem);
         if ($tax instanceof TaxCreate) {
             $productItem->setTaxes([
