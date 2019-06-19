@@ -11,6 +11,7 @@
 namespace Wallee\Payment\Model\Webhook\Listener\TransactionInvoice;
 
 use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Api\Data\InvoiceInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
@@ -57,22 +58,31 @@ class CaptureCommand extends AbstractCommand
             ->getLineItemVersion()
             ->getTransaction();
         $invoice = $this->getInvoiceForTransaction($transaction, $order);
-        if (! ($invoice instanceof Invoice) || $invoice->getState() == Invoice::STATE_OPEN) {
+        if (! ($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
             $isOrderInReview = ($order->getState() == Order::STATE_PAYMENT_REVIEW);
 
-            if (! ($invoice instanceof Invoice)) {
+            if (! ($invoice instanceof InvoiceInterface)) {
                 $order->setWalleeInvoiceAllowManipulation(true);
             }
 
-            if (! ($invoice instanceof Invoice) || $invoice->getState() == Invoice::STATE_OPEN) {
+            if (! ($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
                 /** @var \Magento\Sales\Model\Order\Payment $payment */
                 $payment = $order->getPayment();
                 $payment->registerCaptureNotification($entity->getAmount());
-                if (! ($invoice instanceof Invoice)) {
+                if (! ($invoice instanceof InvoiceInterface)) {
                     $invoice = $payment->getCreatedInvoice();
+                    $order->addRelatedObject($invoice);
+                } else {
+                    // Fix an issue that invoice doesn't have the correct status after call to registerCaptureNotification
+                    // see \Magento\Sales\Model\Order\Payment\Operations\RegisterCaptureNotificationOperation::registerCaptureNotification
+                    foreach ($order->getRelatedObjects() as $object) {
+                        if ($object instanceof InvoiceInterface) {
+                            $invoice = $object;
+                            break;
+                        }
+                    }
                 }
                 $invoice->setWalleeCapturePending(false);
-                $order->addRelatedObject($invoice);
             }
 
             if ($transaction->getState() == TransactionState::COMPLETED) {

@@ -100,7 +100,8 @@ class RefundCommand implements CommandInterface
             } catch (\Wallee\Sdk\ApiException $e) {
                 if ($e->getResponseObject() instanceof \Wallee\Sdk\Model\ClientError) {
                     $this->refundJobRepository->delete($refundJob);
-                    throw new \Magento\Framework\Exception\LocalizedException(\__($e->getResponseObject()->getMessage()));
+                    throw new \Magento\Framework\Exception\LocalizedException(
+                        \__($e->getResponseObject()->getMessage()));
                 } else {
                     $creditmemo->setWalleeKeepRefundJob(true);
                     $this->logger->critical($e);
@@ -116,8 +117,8 @@ class RefundCommand implements CommandInterface
 
             if ($refund->getState() == RefundState::FAILED) {
                 throw new \Magento\Framework\Exception\LocalizedException(
-                    $this->localeHelper->translate($refund->getFailureReason()
-                        ->getDescription()));
+                    \__($this->localeHelper->translate($refund->getFailureReason()
+                        ->getDescription())));
             } elseif ($refund->getState() == RefundState::PENDING || $refund->getState() == RefundState::MANUAL_CHECK) {
                 $creditmemo->setWalleeKeepRefundJob(true);
                 throw new \Magento\Framework\Exception\LocalizedException(
