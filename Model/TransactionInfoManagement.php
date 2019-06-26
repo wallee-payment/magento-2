@@ -76,6 +76,10 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
         try {
             $info = $this->transactionInfoRepository->getByTransactionId($transaction->getLinkedSpaceId(),
                 $transaction->getId());
+
+            if ($info->getOrderId() != $order->getId()) {
+                throw new \Exception('The wallee transaction info is already linked to a different order.');
+            }
         } catch (NoSuchEntityException $e) {
             $info = $this->transactionInfoFactory->create();
         }
@@ -91,7 +95,8 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
             $transaction->getPaymentConnectorConfiguration() != null ? $transaction->getPaymentConnectorConfiguration()
                 ->getConnector() : null);
         $info->setData(TransactionInfoInterface::PAYMENT_METHOD_ID,
-            $transaction->getPaymentConnectorConfiguration() != null && $transaction->getPaymentConnectorConfiguration()
+            $transaction->getPaymentConnectorConfiguration() != null &&
+            $transaction->getPaymentConnectorConfiguration()
                 ->getPaymentMethodConfiguration() != null ? $transaction->getPaymentConnectorConfiguration()
                 ->getPaymentMethodConfiguration()
                 ->getPaymentMethod() : null);

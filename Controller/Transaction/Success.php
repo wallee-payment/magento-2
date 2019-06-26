@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Controller\Transaction;
 
+use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Checkout\Model\Session\SuccessValidator;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Action\Context;
@@ -23,6 +24,12 @@ use Wallee\Sdk\Model\TransactionState;
  */
 class Success extends \Wallee\Payment\Controller\Transaction
 {
+
+    /**
+     *
+     * @var CheckoutSession
+     */
+    private $checkoutSession;
 
     /**
      *
@@ -40,13 +47,15 @@ class Success extends \Wallee\Payment\Controller\Transaction
      *
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
+     * @param CheckoutSession $checkoutSession
      * @param SuccessValidator $successValidator
      * @param TransactionService $transactionService
      */
     public function __construct(Context $context, OrderRepositoryInterface $orderRepository,
-        SuccessValidator $successValidator, TransactionService $transactionService)
+        CheckoutSession $checkoutSession, SuccessValidator $successValidator, TransactionService $transactionService)
     {
         parent::__construct($context, $orderRepository);
+        $this->checkoutSession = $checkoutSession;
         $this->successValidator = $successValidator;
         $this->transactionService = $transactionService;
     }
@@ -69,6 +78,10 @@ class Success extends \Wallee\Payment\Controller\Transaction
                     'However, the payment was successful. Please contact us.'));
             return $this->_redirect('checkout/cart');
         }
+
+        $this->checkoutSession->setLastOrderId($order->getId())
+            ->setLastRealOrderId($order->getIncrementId())
+            ->setLastOrderStatus($order->getStatus());
 
         return $this->_redirect($this->getSuccessRedirectionPath($order));
     }

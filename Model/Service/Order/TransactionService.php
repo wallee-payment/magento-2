@@ -138,13 +138,20 @@ class TransactionService extends AbstractTransactionService
     public function confirmTransaction(Transaction $transaction, Order $order, Invoice $invoice, $chargeFlow = false,
         Token $token = null)
     {
+        if ($transaction->getState() == TransactionState::CONFIRMED) {
+            return $transaction;
+        }
+
         $spaceId = $order->getWalleeSpaceId();
         $transactionId = $order->getWalleeTransactionId();
         for ($i = 0; $i < 5; $i ++) {
             try {
                 if ($i > 0) {
                     $transaction = $this->getTransaction($spaceId, $transactionId);
-                    if (! ($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
+                    if ($transaction instanceof Transaction && $transaction->getState() == TransactionState::CONFIRMED) {
+                        return $transaction;
+                    } elseif (! ($transaction instanceof Transaction) ||
+                        $transaction->getState() != TransactionState::PENDING) {
                         throw new LocalizedException(\__('The order failed because the payment timed out.'));
                     }
                 }
