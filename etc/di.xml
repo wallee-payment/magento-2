@@ -137,7 +137,6 @@
             <argument name="commands" xsi:type="array">
             	<item name="paid" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionInvoice\CaptureCommand</item>
             	<item name="not_applicable" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionInvoice\CaptureCommand</item>
-            	<item name="derecognized" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionInvoice\DerecognizedCommand</item>
             </argument>
         </arguments>
     </virtualType>

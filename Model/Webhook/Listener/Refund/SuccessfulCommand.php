@@ -14,6 +14,8 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Sales\Api\CreditmemoManagementInterface;
 use Magento\Sales\Api\CreditmemoRepositoryInterface;
 use Magento\Sales\Api\InvoiceRepositoryInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Api\Data\InvoiceInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\CreditmemoFactory;
 use Magento\Sales\Model\Order\Invoice;
@@ -57,6 +59,12 @@ class SuccessfulCommand extends AbstractCommand
 
     /**
      *
+     * @var OrderRepositoryInterface
+     */
+    private $orderRepository;
+
+    /**
+     *
      * @var InvoiceRepositoryInterface
      */
     private $invoiceRepository;
@@ -85,6 +93,7 @@ class SuccessfulCommand extends AbstractCommand
      * @param CreditmemoRepositoryInterface $creditmemoRepository
      * @param CreditmemoFactory $creditmemoFactory
      * @param CreditmemoManagementInterface $creditmemoManagement
+     * @param OrderRepositoryInterface $orderRepository
      * @param InvoiceRepositoryInterface $invoiceRepository
      * @param LineItemReductionService $lineItemReductionService
      * @param TransactionService $transactionService
@@ -92,14 +101,16 @@ class SuccessfulCommand extends AbstractCommand
      */
     public function __construct(RefundJobRepositoryInterface $refundJobRepository,
         CreditmemoRepositoryInterface $creditmemoRepository, CreditmemoFactory $creditmemoFactory,
-        CreditmemoManagementInterface $creditmemoManagement, InvoiceRepositoryInterface $invoiceRepository,
-        LineItemReductionService $lineItemReductionService, TransactionService $transactionService, Helper $helper)
+        CreditmemoManagementInterface $creditmemoManagement, OrderRepositoryInterface $orderRepository,
+        InvoiceRepositoryInterface $invoiceRepository, LineItemReductionService $lineItemReductionService,
+        TransactionService $transactionService, Helper $helper)
     {
         parent::__construct($refundJobRepository);
         $this->refundJobRepository = $refundJobRepository;
         $this->creditmemoRepository = $creditmemoRepository;
         $this->creditmemoFactory = $creditmemoFactory;
         $this->creditmemoManagement = $creditmemoManagement;
+        $this->orderRepository = $orderRepository;
         $this->invoiceRepository = $invoiceRepository;
         $this->lineItemReductionService = $lineItemReductionService;
         $this->transactionService = $transactionService;
@@ -114,7 +125,23 @@ class SuccessfulCommand extends AbstractCommand
     public function execute($entity, Order $order)
     {
         if ($this->isDerecognizedInvoice($entity, $order)) {
-            return;
+            $invoice = $this->getInvoiceForTransaction($entity->getTransaction(), $order);
+            if (! ($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
+                if (! ($invoice instanceof InvoiceInterface)) {
+                    $order->setWalleeInvoiceAllowManipulation(true);
+                }
+
+                if (! ($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
+                    /** @var \Magento\Sales\Model\Order\Payment $payment */
+                    $payment = $order->getPayment();
+                    $payment->registerCaptureNotification($entity->getAmount());
+                    if (! ($invoice instanceof InvoiceInterface)) {
+                        $invoice = $payment->getCreatedInvoice();
+                        $order->addRelatedObject($invoice);
+                    }
+                }
+                $this->orderRepository->save($order);
+            }
         }
 
         /** @var \Magento\Sales\Model\Order\Creditmemo $creditmemo */
@@ -210,7 +237,10 @@ class SuccessfulCommand extends AbstractCommand
                         $shippingAmount = 0;
                     }
 
-                    if ($shippingAmount <= $order->getShippingInclTax() - $order->getShippingRefunded()) {
+                    if ($shippingAmount == $order->getShippingInclTax()) {
+                        $shippingAmount = $order->getShippingAmount();
+                        $creditmemoAmount += $shippingAmount + $order->getShippingTaxAmount();
+                    } elseif ($shippingAmount <= $order->getShippingInclTax() - $order->getShippingRefunded()) {
                         $creditmemoAmount += $shippingAmount;
                     } else {
                         $shippingAmount = 0;

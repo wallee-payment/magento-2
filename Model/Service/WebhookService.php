@@ -295,8 +295,7 @@ class WebhookService
         $listeners[] = new Entity(1472041816898, 'Transaction Invoice',
             [
                 TransactionInvoiceState::NOT_APPLICABLE,
-                TransactionInvoiceState::PAID,
-                TransactionInvoiceState::DERECOGNIZED
+                TransactionInvoiceState::PAID
             ]);
 
         $listeners[] = new Entity(1472041839405, 'Refund', [
