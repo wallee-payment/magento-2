@@ -154,7 +154,8 @@ abstract class AbstractLineItemService
      */
     private function isIncludeItem($entityItem)
     {
-        if ($entityItem->getParentItemId() != null && $entityItem->getParentItem()->getProductType() ==
+        if ($entityItem->getParentItemId() != null &&
+            $entityItem->getParentItem()->getProductType() ==
             \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE) {
             return false;
         }
@@ -179,14 +180,13 @@ abstract class AbstractLineItemService
     {
         $amountIncludingTax = $entityItem->getRowTotal() - $entityItem->getDiscountAmount() + $entityItem->getTaxAmount() +
             $entityItem->getDiscountTaxCompensationAmount();
-        
+
         $currency = $this->getCurrencyCode($entity);
 
         $productItem = new LineItemCreate();
         $productItem->setType(LineItemType::PRODUCT);
         $productItem->setUniqueId($this->getUniqueId($entityItem));
-        $productItem->setAmountIncludingTax(
-            $this->helper->roundAmount($amountIncludingTax, $currency));
+        $productItem->setAmountIncludingTax($this->helper->roundAmount($amountIncludingTax, $currency));
         $productItem->setName($this->helper->fixLength($entityItem->getName(), 150));
         $productItem->setQuantity($entityItem->getQty() ? $entityItem->getQty() : $entityItem->getQtyOrdered());
         $productItem->setShippingRequired(! $entityItem->getIsVirtual());
@@ -333,8 +333,8 @@ abstract class AbstractLineItemService
      * @param float $shippingDiscountAmount
      * @return LineItemCreate
      */
-    protected function convertShippingLineItemInner($entity, $shippingAmount, $shippingTaxAmount, $shippingDiscountAmount,
-        $shippingDescription)
+    protected function convertShippingLineItemInner($entity, $shippingAmount, $shippingTaxAmount,
+        $shippingDiscountAmount, $shippingDescription)
     {
         if ($shippingAmount > 0) {
             $shippingItem = new LineItemCreate();
@@ -355,7 +355,8 @@ abstract class AbstractLineItemService
             }
             $shippingItem->setQuantity(1);
             $shippingItem->setSku('shipping');
-            $shippingItem->setDiscountIncludingTax($shippingDiscountAmount);
+            $shippingItem->setDiscountIncludingTax(
+                $this->helper->roundAmount($shippingDiscountAmount, $this->getCurrencyCode($entity)));
             if ($shippingTaxAmount > 0) {
                 $tax = $this->getShippingTax($entity);
                 if ($tax instanceof TaxCreate) {
