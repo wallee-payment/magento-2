@@ -21,6 +21,11 @@
 		<observer name="wallee_payment_update_manual_task" instance="Wallee\Payment\Observer\UpdateManualTask" />
 	</event>
 	
+	<event name="wallee_payment_collect_meta_data">
+		<observer name="wallee_payment_collect_customer_meta_data" instance="Wallee\Payment\Observer\CollectCustomerMetaData" />
+		<observer name="wallee_payment_collect_order_attribute_meta_data" instance="Wallee\Payment\Observer\CollectOrderAttributeMetaData" />
+	</event>
+	
 	<event name="sales_order_payment_capture">
 		<observer name="wallee_payment_payment_capture" instance="Wallee\Payment\Observer\CapturePayment" />
 	</event>

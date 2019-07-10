@@ -259,8 +259,6 @@ class TransactionService extends AbstractTransactionService
         $transaction->setLineItems($this->lineItemService->convertQuoteLineItems($quote));
         if (! empty($quote->getCustomerId())) {
             $transaction->setCustomerId($quote->getCustomerId());
-            $transaction->setMetaData(
-                $this->collectCustomerMetaData($this->customerRegistry->retrieve($quote->getCustomerId())));
         }
         if ($quote->getShippingAddress()) {
             $transaction->setShippingMethod(

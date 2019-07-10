@@ -11,8 +11,10 @@
 namespace Wallee\Payment\Model\Service\Order;
 
 use Magento\Customer\Model\CustomerRegistry;
+use Magento\Framework\DataObject;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Event\ManagerInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\CookieManagerInterface;
@@ -66,9 +68,9 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
-     * @var CustomerRegistry
+     * @var ManagerInterface
      */
-    private $customerRegistry;
+    private $eventManager;
 
     /**
      *
@@ -99,6 +101,7 @@ class TransactionService extends AbstractTransactionService
      * @param ResourceConnection $resource
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
+     * @param ManagerInterface $eventManager
      * @param CustomerRegistry $customerRegistry
      * @param CartRepositoryInterface $quoteRepository
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
@@ -108,16 +111,16 @@ class TransactionService extends AbstractTransactionService
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      */
     public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
-        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
-        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
-        CookieManagerInterface $cookieManager, LineItemService $lineItemService,
+        ManagerInterface $eventManager, CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository,
+        TimezoneInterface $timezone, PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
+        ApiClient $apiClient, CookieManagerInterface $cookieManager, LineItemService $lineItemService,
         TransactionInfoRepositoryInterface $transactionInfoRepository)
     {
         parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
             $paymentMethodConfigurationManagement, $apiClient, $cookieManager);
         $this->helper = $helper;
         $this->scopeConfig = $scopeConfig;
-        $this->customerRegistry = $customerRegistry;
+        $this->eventManager = $eventManager;
         $this->quoteRepository = $quoteRepository;
         $this->lineItemService = $lineItemService;
         $this->transactionInfoRepository = $transactionInfoRepository;
@@ -192,8 +195,6 @@ class TransactionService extends AbstractTransactionService
         $transaction->setInvoiceMerchantReference($invoice->getIncrementId());
         if (! empty($order->getCustomerId())) {
             $transaction->setCustomerId($order->getCustomerId());
-            $transaction->setMetaData(
-                $this->collectCustomerMetaData($this->customerRegistry->retrieve($order->getCustomerId())));
         }
         if ($order->getShippingAddress()) {
             $transaction->setShippingMethod(
@@ -224,6 +225,20 @@ class TransactionService extends AbstractTransactionService
         if ($token != null) {
             $transaction->setToken($token->getId());
         }
+        $transaction->setMetaData($this->collectMetaData($order));
+    }
+
+    protected function collectMetaData(Order $order)
+    {
+        $transport = new DataObject([
+            'metaData' => []
+        ]);
+        $this->eventManager->dispatch('wallee_payment_collect_meta_data',
+            [
+                'transport' => $transport,
+                'order' => $order
+            ]);
+        return $transport->getData('metaData');
     }
 
     /**
