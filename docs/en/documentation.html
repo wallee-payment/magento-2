@@ -21,7 +21,7 @@
 		</a>
 	</li>
 	<li>
-		<a href="https://github.com/wallee-payment/magento-2.3/releases/tag/1.0.51/">
+		<a href="https://github.com/wallee-payment/magento-2.3/releases/tag/1.0.52/">
 			Source
 		</a>
 	</li>
@@ -157,50 +157,79 @@ Stores &#8594; Configuration &#8594; Payment Methods. Make sure you are in the <
 					<div class="paragraph">
 <p>If you want to change the payment method description, title, logo, etc you need to do this in the <a href="https://app-wallee.com/space/select?target=/payment/method-configuration/list" target="_blank">payment method configuration</a>. Changes will be synchronized automatically.</p>
 </div>					</div>
-</div>			</div>
-</div>	<div class="chapter" id="_state_graph">
-	<div class="chapter-title">
-		<h1>
-			<span class="title-number">5</span>State Graph					</h1>
-	</div>
-	<div class="chapter-body">
-					<div class="paragraph">
-<p>The Payment Process of wallee is <strong>completely standardized for every payment method</strong> you can process. This gives you the ability to simply add
-a payment method or processor without changes inside of your Magento configuration. An overview about the states and the payment processes of wallee
-can be found in the <a href="https://app-wallee.com/en-us/doc/payment/transaction-process" target="_blank">Payment Documentation</a>.</p>
-</div><div class="paragraph">
-<p>In the following section we provide you an overview about how the wallee states are mapped into the Magento State graph for orders and invoices.</p>
-</div>							<div class="section" id="_state_mapping_of_magento_orders">
+</div>					<div class="section" id="_state_mapping_of_magento_orders">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">5.1</span>State Mapping Of Magento Orders					</h2>
+			<span class="title-number">4.3</span>State mapping of Magento orders					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
 <p>Below you find a diagram that shows the state machine of Magento for orders including additional information for the state transitions.</p>
 </div><div class="imageblock">
 <div class="content">
-<img src="resource/magento2_state_graph.svg" alt="magento2 state graph"/>
+<img src="resource/magento2_state_graph_order.svg" alt="magento2 state graph order"/>
 </div>
+</div><div class="olist glossary">
+<ol class="glossary">
+<li>
+<p>If the transaction is <code>authorized</code> in wallee, the Magento order is marked as <code>Hold Delivery</code>. As long as the transaction is in wallee in state <code>pending</code>, the order will appear in Magento as <code>Pending Payment</code>. In case the transaction timed out the transaction will switch into cancel state.</p>
+</li>
+<li>
+<p>If the transaction fails during the authorization process, the Magento order is marked as <code>Canceled</code>.</p>
+</li>
+<li>
+<p>In case the delivery indication is pending, the order within Magento will move into <code>Payment Review</code> (in this case you have to decide the outcome of the delivery indication e.g. You have configured to manually check transactions without 3d Secure). In such situations a manual task is created and an alert appears in the wallee &amp; Magento backends. You can then resolve the manual task within the wallee backend. This changes the transaction status, which is transmitted back to Magento.  See more details in <a href="#On hold orders">[On hold orders]</a>.</p>
+</li>
+<li>
+<p>If the transaction&#8217;s authorization is voided or the risk assessments indicate that the order should not be fulfilled, the order is marked as <code>Processing</code>.</p>
+</li>
+<li>
+<p>If the transaction in wallee is marked as <code>fulfill</code>, the Magento order is marked as <code>Processing</code>, indicating that it can now be fulfilled. Once the shipment has been created, we recommend to change the order&#8217;s status.</p>
+</li>
+</ol>
+</div>							<div class="section" id="_general_remarks_regarding_order_statuses">
+	<div class="section-title">
+		<h3>
+			<span class="title-number">4.3.1</span>General remarks regarding order statuses					</h3>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>We recommend that you only change the order status to indicate that shipping has taken place. If you change it before the transaction has reached a final state in wallee, the plugin may changed the order status again. If you want different order statuses to be set, you can change the behaviour in the plugin configuration.</p>
 </div>					</div>
+</div>			</div>
 </div>					<div class="section" id="_state_mapping_of_magento_invoices">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">5.2</span>State Mapping of Magento Invoices					</h2>
+			<span class="title-number">4.4</span>State mapping of Magento invoices					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
 <p>Below you find a diagram that shows the state machine of Magento for Invoices including additional information for the state transitions.</p>
 </div><div class="imageblock">
 <div class="content">
-<img src="resource/magento2_state_graph_invoice.svg" alt="magento2 state graph invoice"/>
+<img src="resource/magento2_stage_graph_invoice.svg" alt="magento2 stage graph invoice"/>
 </div>
+</div><div class="olist glossary">
+<ol class="glossary">
+<li>
+<p>If the transaction in wallee is <code>authorized</code>, the invoice status of the Magento order is set to <code>Pending</code>.</p>
+</li>
+<li>
+<p>If the transaction fails during the authorization process, the invoice status of the Magento order is set to <code>Canceled</code>.</p>
+</li>
+<li>
+<p>If the transaction&#8217;s authorization is voided, the invoice status of the Magento order is set to <code>Canceled</code>.</p>
+</li>
+<li>
+<p>Once the invoice is paid, the invoice status of the Magento order is set to <code>Paid</code>. This also applies if the invoice is not traceable due to external administration (invoice not applicable).</p>
+</li>
+</ol>
 </div>					</div>
 </div>			</div>
 </div>	<div class="chapter" id="_transaction_management">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">6</span>Transaction Management					</h1>
+			<span class="title-number">5</span>Transaction Management					</h1>
 	</div>
 	<div class="chapter-body">
 					<div class="paragraph">
@@ -210,7 +239,7 @@ Magento. However, there are some limitations (see below).</p>
 </div>							<div class="section" id="_complete_capture_an_order">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">6.1</span>Complete (capture) an order					</h2>
+			<span class="title-number">5.1</span>Complete (capture) an order					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -236,7 +265,7 @@ When the completion is pending in wallee the invoice will stay in pending state.
 </div>					<div class="section" id="_void_a_transaction">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">6.2</span>Void a Transaction					</h2>
+			<span class="title-number">5.2</span>Void a Transaction					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -260,7 +289,7 @@ You can only void transactions that are not yet completed.
 </div>					<div class="section" id="_refund_of_a_transaction">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">6.3</span>Refund of a Transaction					</h2>
+			<span class="title-number">5.3</span>Refund of a Transaction					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -293,7 +322,7 @@ It can take some time until you see the refund in Magento. Refunds will only be 
 </div>					<div class="section" id="_on_hold_orders">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">6.4</span>On Hold Orders					</h2>
+			<span class="title-number">5.4</span>On Hold Orders					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -318,7 +347,7 @@ When there is a manual task we will also display it in the Magento Backend.</p>
 </div>					<div class="section" id="_limitations_of_the_synchronization_between_whitelabelname_and_magento">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">6.5</span>Limitations of the Synchronization between wallee and Magento					</h2>
+			<span class="title-number">5.5</span>Limitations of the Synchronization between wallee and Magento					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -334,7 +363,7 @@ your Magento backend.</p>
 </div>					<div class="section" id="_tokenization">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">6.6</span>Tokenization					</h2>
+			<span class="title-number">5.6</span>Tokenization					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -356,7 +385,7 @@ Tokenization is not available for guest checkouts.
 </div>	<div class="chapter" id="_backend_orders">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">7</span>Backend Orders					</h1>
+			<span class="title-number">6</span>Backend Orders					</h1>
 	</div>
 	<div class="chapter-body">
 					<div class="paragraph">
@@ -377,13 +406,13 @@ the <a href="https://app-wallee.com/space/select?target=/payment/flow/list" targ
 </div>	<div class="chapter" id="_faq">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">8</span>FAQ					</h1>
+			<span class="title-number">7</span>FAQ					</h1>
 	</div>
 	<div class="chapter-body">
 							<div class="section" id="_how_can_i_make_the_payment_methods_appear_in_the_checkout">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">8.1</span>How can I make the payment methods appear in the checkout?					</h2>
+			<span class="title-number">7.1</span>How can I make the payment methods appear in the checkout?					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -395,7 +424,7 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 </div>					<div class="section" id="_is_onestepcheckout_supported">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">8.2</span>Is OneStepCheckout supported?					</h2>
+			<span class="title-number">7.2</span>Is OneStepCheckout supported?					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -410,7 +439,7 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 </div>	<div class="chapter" id="_support">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">9</span>Support					</h1>
+			<span class="title-number">8</span>Support					</h1>
 	</div>
 	<div class="chapter-body">
 					<div class="paragraph">
@@ -454,86 +483,86 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 		<span class="item-number">4.2</span>
 		<span class="item-title">Customization</span>
 			</a>
-    </li>    		    	</ul>
-    </li>					<li class="nav-level-1">
-	<a href="#_state_graph">
-		<span class="item-number">5</span>
-		<span class="item-title">State Graph</span>
+    </li>    		    			<li class="nav-level-2">
+	<a href="#_state_mapping_of_magento_orders">
+		<span class="item-number">4.3</span>
+		<span class="item-title">State mapping of Magento orders</span>
 			</a>
         	<ul  class="nav">
-    		    			<li class="nav-level-2">
-	<a href="#_state_mapping_of_magento_orders">
-		<span class="item-number">5.1</span>
-		<span class="item-title">State Mapping Of Magento Orders</span>
+    		    			<li class="nav-level-3">
+	<a href="#_general_remarks_regarding_order_statuses">
+		<span class="item-number">4.3.1</span>
+		<span class="item-title">General remarks regarding order statuses</span>
 			</a>
+    </li>    		    	</ul>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_state_mapping_of_magento_invoices">
-		<span class="item-number">5.2</span>
-		<span class="item-title">State Mapping of Magento Invoices</span>
+		<span class="item-number">4.4</span>
+		<span class="item-title">State mapping of Magento invoices</span>
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_transaction_management">
-		<span class="item-number">6</span>
+		<span class="item-number">5</span>
 		<span class="item-title">Transaction Management</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-2">
 	<a href="#_complete_capture_an_order">
-		<span class="item-number">6.1</span>
+		<span class="item-number">5.1</span>
 		<span class="item-title">Complete (capture) an order</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_void_a_transaction">
-		<span class="item-number">6.2</span>
+		<span class="item-number">5.2</span>
 		<span class="item-title">Void a Transaction</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_refund_of_a_transaction">
-		<span class="item-number">6.3</span>
+		<span class="item-number">5.3</span>
 		<span class="item-title">Refund of a Transaction</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_on_hold_orders">
-		<span class="item-number">6.4</span>
+		<span class="item-number">5.4</span>
 		<span class="item-title">On Hold Orders</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_limitations_of_the_synchronization_between_whitelabelname_and_magento">
-		<span class="item-number">6.5</span>
+		<span class="item-number">5.5</span>
 		<span class="item-title">Limitations of the Synchronization between wallee and Magento</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_tokenization">
-		<span class="item-number">6.6</span>
+		<span class="item-number">5.6</span>
 		<span class="item-title">Tokenization</span>
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_backend_orders">
-		<span class="item-number">7</span>
+		<span class="item-number">6</span>
 		<span class="item-title">Backend Orders</span>
 			</a>
     </li>					<li class="nav-level-1">
 	<a href="#_faq">
-		<span class="item-number">8</span>
+		<span class="item-number">7</span>
 		<span class="item-title">FAQ</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-2">
 	<a href="#_how_can_i_make_the_payment_methods_appear_in_the_checkout">
-		<span class="item-number">8.1</span>
+		<span class="item-number">7.1</span>
 		<span class="item-title">How can I make the payment methods appear in the checkout?</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_is_onestepcheckout_supported">
-		<span class="item-number">8.2</span>
+		<span class="item-number">7.2</span>
 		<span class="item-title">Is OneStepCheckout supported?</span>
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_support">
-		<span class="item-number">9</span>
+		<span class="item-number">8</span>
 		<span class="item-title">Support</span>
 			</a>
     </li>			</ul>

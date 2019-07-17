@@ -194,7 +194,7 @@ abstract class AbstractTransactionService
             $gender = $this->customerRegistry->retrieve($customerId)->getGender();
         }
 
-        if ($gender == 1) {
+        if ($gender == 2) {
             return Gender::FEMALE;
         } elseif ($gender == 1) {
             return Gender::MALE;

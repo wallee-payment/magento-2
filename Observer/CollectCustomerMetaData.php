@@ -52,9 +52,11 @@ class CollectCustomerMetaData implements ObserverInterface
         $order = $observer->getOrder();
         $transport = $observer->getTransport();
 
-        $transport->setData('metaData',
-            \array_merge($transport->getData('metaData'),
-                $this->collectCustomerMetaData($this->customerRegistry->retrieve($order->getCustomerId()))));
+        if (! empty($order->getCustomerId())) {
+            $transport->setData('metaData',
+                \array_merge($transport->getData('metaData'),
+                    $this->collectCustomerMetaData($this->customerRegistry->retrieve($order->getCustomerId()))));
+        }
     }
 
     /**
