@@ -81,13 +81,13 @@ class TransactionService extends AbstractTransactionService
      *
      * @var \Wallee\Sdk\Model\Transaction[]
      */
-    private $transactionCache = array();
+    private $transactionCache = [];
 
     /**
      *
      * @var \Wallee\Sdk\Model\PaymentMethodConfiguration[]
      */
-    private $possiblePaymentMethodCache = array();
+    private $possiblePaymentMethodCache = [];
 
     /**
      *
@@ -248,6 +248,8 @@ class TransactionService extends AbstractTransactionService
      */
     private function assembleTransactionDataFromQuote(AbstractTransactionPending $transaction, Quote $quote)
     {
+        $quote->collectTotals();
+
         $transaction->setAllowedPaymentMethodConfigurations([]);
         $transaction->setCurrency($quote->getQuoteCurrencyCode());
         $transaction->setBillingAddress($this->convertQuoteBillingAddress($quote));

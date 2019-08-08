@@ -11,6 +11,7 @@
 namespace Wallee\Payment\Model\Provider;
 
 use Magento\Framework\Cache\FrontendInterface;
+use Wallee\Sdk\ObjectSerializer;
 
 /**
  * Abstract implementation of a provider.
@@ -23,6 +24,13 @@ abstract class AbstractProvider
      * @var FrontendInterface
      */
     private $cache;
+
+    /**
+     * Entry type.
+     *
+     * @var string
+     */
+    private $type;
 
     /**
      * Cache key.
@@ -42,11 +50,13 @@ abstract class AbstractProvider
      *
      * @param FrontendInterface $cache
      * @param string $cacheKey
+     * @param string $type
      */
-    public function __construct(FrontendInterface $cache, $cacheKey)
+    public function __construct(FrontendInterface $cache, $cacheKey, $type)
     {
         $this->cache = $cache;
         $this->cacheKey = $cacheKey;
+        $this->type = $type;
     }
 
     /**
@@ -98,13 +108,34 @@ abstract class AbstractProvider
     {
         $cachedData = $this->cache->load($this->cacheKey);
         if ($cachedData) {
-            $this->data = \unserialize($cachedData);
-        } else {
-            $this->data = [];
-            foreach ($this->fetchData() as $entry) {
-                $this->data[$this->getId($entry)] = $entry;
+            $deserialized = $this->deserialize($cachedData);
+            if ($deserialized != null) {
+                $this->data = $deserialized;
+                return;
             }
-            $this->cache->save(\serialize($this->data), $this->cacheKey);
+        }
+
+        $this->data = [];
+        foreach ($this->fetchData() as $entry) {
+            $this->data[$this->getId($entry)] = $entry;
+        }
+        $this->cache->save($this->serialize($this->data), $this->cacheKey);
+    }
+
+    private function serialize($data)
+    {
+        $serializer = new ObjectSerializer();
+        return \json_encode($serializer->sanitizeForSerialization($data));
+    }
+
+    private function deserialize($data)
+    {
+        $serializer = new ObjectSerializer();
+        $decoded = \json_decode($data);
+        if (\json_last_error() !== JSON_ERROR_NONE) {
+            return $serializer->deserialize($decoded, $this->type . '[]');
+        } else {
+            return null;
         }
     }
 }

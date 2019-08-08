@@ -15,6 +15,7 @@ use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Sales\Model\Order;
+use Magento\Store\Model\ScopeInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Tax\Model\Calculation as TaxCalculation;
@@ -31,6 +32,12 @@ class LineItemService extends AbstractLineItemService
 
     /**
      *
+     * @var ScopeConfigInterface
+     */
+    private $scopeConfig;
+
+    /**
+     *
      * @var Helper
      */
     private $helper;
@@ -40,6 +47,12 @@ class LineItemService extends AbstractLineItemService
      * @var LineItemHelper
      */
     private $lineItemHelper;
+
+    /**
+     *
+     * @var TaxHelper
+     */
+    private $taxHelper;
 
     /**
      *
@@ -60,8 +73,10 @@ class LineItemService extends AbstractLineItemService
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
             $groupRegistry, $eventManager, $productRepository);
+        $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
+        $this->taxHelper = $taxHelper;
     }
 
     /**
@@ -73,7 +88,9 @@ class LineItemService extends AbstractLineItemService
     public function convertOrderLineItems(Order $order)
     {
         return $this->lineItemHelper->correctLineItems($this->convertLineItems($order), $order->getGrandTotal(),
-            $this->getCurrencyCode($order));
+            $this->getCurrencyCode($order),
+            $this->scopeConfig->getValue('wallee_payment/line_items/enforce_consistency',
+                ScopeInterface::SCOPE_STORE, $order->getStoreId()), $this->taxHelper->getCalculatedTaxes($order));
     }
 
     /**

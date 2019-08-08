@@ -18,7 +18,7 @@
 			<resource>Wallee_Payment::config</resource>
 			<group id="information" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 				<label>Information</label>
-				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/1.0.52/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
+				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/1.0.53/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
 				<field id="version" translate="label" type="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 					<label>Module Version</label>
 				</field>
@@ -83,11 +83,16 @@
 					<comment>The description to set on the shipping line item.</comment>
 					<depends><field id="overwrite_shipping_description">1</field></depends>
 				</field>
-				<field id="product_attributes" translate="label comment" type="multiselect" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+				<field id="product_attributes" translate="label comment" type="multiselect" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
 					<label>Product Attributes</label>
 					<comment>Define the product attributes that should be appended to the line item attributes sent of the wallee transactions. They will be displayed in the line item list of emails and documents.</comment>
 					<source_model>Wallee\Payment\Model\Config\Source\ProductAttribute</source_model>
 					<can_be_empty>1</can_be_empty>
+				</field>
+				<field id="enforce_consistency" translate="label comment" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>Enforce Consistency</label>
+					<comment>Require that the line items of the transaction correspond to those of the purchase order in Magento. This may result in the wallee payment methods not being available to the customer in certain cases. In return, it is ensured that only correct data is transmitted to wallee.</comment>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
 				</field>
 			</group>
 			<group id="meta_data" translate="label" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">

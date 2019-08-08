@@ -51,7 +51,7 @@ class ManualTask implements MessageInterface
 
     public function getIdentity()
     {
-        return \md5('WLE_MANUAL_TASK');
+        return 'wle_manual_task';
     }
 
     public function getText()

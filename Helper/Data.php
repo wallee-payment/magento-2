@@ -91,6 +91,19 @@ class Data extends AbstractHelper
     }
 
     /**
+     * Compares the given amounts.
+     *
+     * @param float $amount1
+     * @param float $amount2
+     * @param string $currencyCode
+     * @return number
+     */
+    public function compareAmounts($amount1, $amount2, $currencyCode)
+    {
+        return $this->roundAmount($amount1, $currencyCode) - $this->roundAmount($amount2, $currencyCode);
+    }
+
+    /**
      * Creates and returns a new entity filter.
      *
      * @param string $fieldName

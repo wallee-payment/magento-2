@@ -12,6 +12,7 @@ namespace Wallee\Payment\Helper;
 
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
+use Magento\Framework\Exception\LocalizedException;
 
 /**
  * Helper to provide line item reduction related functionality.
@@ -52,6 +53,11 @@ class LineItemReduction extends AbstractHelper
 
         $amount = 0;
         foreach ($reductions as $reduction) {
+            if (! isset($lineItemMap[$reduction->getLineItemUniqueId()])) {
+                throw new LocalizedException(
+                    \__("The refund cannot be executed as the transaction's line items do not match the order's."));
+            }
+
             $lineItem = $lineItemMap[$reduction->getLineItemUniqueId()];
             $unitPrice = $lineItem->getAmountIncludingTax() / $lineItem->getQuantity();
             $amount += $unitPrice * $reduction->getQuantityReduction();

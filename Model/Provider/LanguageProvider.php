@@ -33,7 +33,8 @@ class LanguageProvider extends AbstractProvider
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, 'wallee_payment_languages');
+        parent::__construct($cache, 'wallee_payment_languages',
+            \Wallee\Sdk\Model\RestLanguage::class);
         $this->apiClient = $apiClient;
     }
 

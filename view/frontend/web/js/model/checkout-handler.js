@@ -80,9 +80,12 @@ define([
 			return getCheckoutAdapter().validateAddresses();
 		}
 		
-		function updateAddresses() {
+		function updateAddresses(callback) {
 			storeShippingAddress();
 			setShippingInformationAction().done(function(){
+				if (typeof callback == 'function') {
+					callback();
+				}
 				loadPaymentForm();
 			});
 		}

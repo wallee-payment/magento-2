@@ -24,9 +24,11 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Address;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Store\Model\ScopeInterface;
+use Psr\Log\LoggerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
+use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\AbstractTransactionService;
 use Wallee\Sdk\VersioningException;
@@ -53,6 +55,12 @@ use Wallee\Sdk\Service\TransactionVoidService;
  */
 class TransactionService extends AbstractTransactionService
 {
+
+    /**
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
 
     /**
      *
@@ -86,6 +94,12 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @var LineItemHelper
+     */
+    private $lineItemHelper;
+
+    /**
+     *
      * @var TransactionInfoRepositoryInterface
      */
     private $transactionInfoRepository;
@@ -107,13 +121,16 @@ class TransactionService extends AbstractTransactionService
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
+     * @param LoggerInterface $logger
      * @param LineItemService $lineItemService
+     * @param LineItemHelper $lineItemHelper
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      */
     public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
         ManagerInterface $eventManager, CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository,
         TimezoneInterface $timezone, PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
-        ApiClient $apiClient, CookieManagerInterface $cookieManager, LineItemService $lineItemService,
+        ApiClient $apiClient, CookieManagerInterface $cookieManager, LoggerInterface $logger,
+        LineItemService $lineItemService, LineItemHelper $lineItemHelper,
         TransactionInfoRepositoryInterface $transactionInfoRepository)
     {
         parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
@@ -122,7 +139,9 @@ class TransactionService extends AbstractTransactionService
         $this->scopeConfig = $scopeConfig;
         $this->eventManager = $eventManager;
         $this->quoteRepository = $quoteRepository;
+        $this->logger = $logger;
         $this->lineItemService = $lineItemService;
+        $this->lineItemHelper = $lineItemHelper;
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->apiClient = $apiClient;
     }
@@ -191,6 +210,7 @@ class TransactionService extends AbstractTransactionService
         $transaction->setLanguage(
             $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $order->getStoreId()));
         $transaction->setLineItems($this->lineItemService->convertOrderLineItems($order));
+        $this->logAdjustmentLineItemInfo($order, $transaction);
         $transaction->setMerchantReference($order->getIncrementId());
         $transaction->setInvoiceMerchantReference($invoice->getIncrementId());
         if (! empty($order->getCustomerId())) {
@@ -226,6 +246,28 @@ class TransactionService extends AbstractTransactionService
             $transaction->setToken($token->getId());
         }
         $transaction->setMetaData($this->collectMetaData($order));
+    }
+
+    /**
+     * Checks whether an adjustment line item has been added to the transaction and adds a log message if so.
+     *
+     * @param Order $order
+     * @param TransactionPending $transaction
+     */
+    protected function logAdjustmentLineItemInfo(Order $order, TransactionPending $transaction)
+    {
+        foreach ($transaction->getLineItems() as $lineItem) {
+            if ($lineItem->getUniqueId() == 'adjustment') {
+                $expectedSum = $this->lineItemHelper->getTotalAmountIncludingTax($transaction->getLineItems()) -
+                    $lineItem->getAmountIncludingTax();
+                $this->logger->warning(
+                    'An adjustment line item has been added to the transaction ' . $transaction->getId() .
+                    ', because the line item total amount of ' .
+                    $this->helper->roundAmount($order->getGrandTotal(), $order->getOrderCurrencyCode()) .
+                    ' did not match the invoice amount of ' . $expectedSum . ' of the order ' . $order->getId() . '.');
+                return;
+            }
+        }
     }
 
     protected function collectMetaData(Order $order)

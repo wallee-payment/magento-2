@@ -33,7 +33,8 @@ class LabelDescriptorProvider extends AbstractProvider
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, 'wallee_payment_label_descriptors');
+        parent::__construct($cache, 'wallee_payment_label_descriptors',
+            \Wallee\Sdk\Model\LabelDescriptor::class);
         $this->apiClient = $apiClient;
     }
 

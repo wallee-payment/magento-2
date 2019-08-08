@@ -33,7 +33,8 @@ class LabelDescriptorGroupProvider extends AbstractProvider
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, 'wallee_payment_label_descriptor_groups');
+        parent::__construct($cache, 'wallee_payment_label_descriptor_groups',
+            \Wallee\Sdk\Model\LabelDescriptorGroup::class);
         $this->apiClient = $apiClient;
     }
 

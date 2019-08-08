@@ -355,8 +355,10 @@ abstract class AbstractLineItemService
             }
             $shippingItem->setQuantity(1);
             $shippingItem->setSku('shipping');
-            $shippingItem->setDiscountIncludingTax(
-                $this->helper->roundAmount($shippingDiscountAmount, $this->getCurrencyCode($entity)));
+            if ($shippingDiscountAmount > 0) {
+                $shippingItem->setDiscountIncludingTax(
+                    $this->helper->roundAmount($shippingDiscountAmount, $this->getCurrencyCode($entity)));
+            }
             if ($shippingTaxAmount > 0) {
                 $tax = $this->getShippingTax($entity);
                 if ($tax instanceof TaxCreate) {

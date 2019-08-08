@@ -10,6 +10,8 @@
  */
 namespace Wallee\Payment\Model\Service;
 
+use Magento\Framework\DataObject;
+use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order\Creditmemo;
 use Wallee\Payment\Helper\Data as Helper;
@@ -60,18 +62,26 @@ class LineItemReductionService
 
     /**
      *
+     * @var EventManagerInterface
+     */
+    private $eventManager;
+
+    /**
+     *
      * @param Helper $helper
      * @param LineItemReductionHelper $reductionHelper
      * @param LineItemHelper $lineItemHelper
      * @param ApiClient $apiClient
+     * @param EventManagerInterface $eventManager
      */
     public function __construct(Helper $helper, LineItemReductionHelper $reductionHelper, LineItemHelper $lineItemHelper,
-        ApiClient $apiClient)
+        ApiClient $apiClient, EventManagerInterface $eventManager)
     {
         $this->helper = $helper;
         $this->reductionHelper = $reductionHelper;
         $this->lineItemHelper = $lineItemHelper;
         $this->apiClient = $apiClient;
+        $this->eventManager = $eventManager;
     }
 
     /**
@@ -82,20 +92,45 @@ class LineItemReductionService
      */
     public function convertCreditmemo(Creditmemo $creditmemo)
     {
-        $reductions = [];
+        /** @var \Wallee\Sdk\Model\LineItem[] $baseLineItems */
+        $baseLineItems = $this->getBaseLineItems($creditmemo->getOrder()
+            ->getWalleeSpaceId(), $creditmemo->getOrder()
+            ->getWalleeTransactionId());
+        $unrefundedAmount = $this->lineItemHelper->getTotalAmountIncludingTax($baseLineItems);
 
-        foreach ($creditmemo->getAllItems() as $creditmemoItem) {
-            if ($this->isIncludeItem($creditmemoItem)) {
-                $reductions[] = $this->convertItem($creditmemoItem, $creditmemo);
+        $reductions = [];
+        if ($this->helper->compareAmounts($unrefundedAmount, $creditmemo->getGrandTotal(),
+            $creditmemo->getOrderCurrencyCode()) == 0) {
+            foreach ($baseLineItems as $baseLineItem) {
+                $reduction = new LineItemReductionCreate();
+                $reduction->setLineItemUniqueId($baseLineItem->getUniqueId());
+                $reduction->setQuantityReduction($baseLineItem->getQuantity());
+                $reduction->setUnitPriceReduction(0);
+                $reductions[] = $reduction;
+            }
+        } else {
+            foreach ($creditmemo->getAllItems() as $creditmemoItem) {
+                if ($this->isIncludeItem($creditmemoItem)) {
+                    $reductions[] = $this->convertItem($creditmemoItem, $creditmemo);
+                }
+            }
+
+            $shippingReduction = $this->convertShipping($creditmemo);
+            if ($shippingReduction instanceof LineItemReductionCreate) {
+                $reductions[] = $shippingReduction;
             }
         }
 
-        $shippingReduction = $this->convertShipping($creditmemo);
-        if ($shippingReduction instanceof LineItemReductionCreate) {
-            $reductions[] = $shippingReduction;
-        }
-
-        return $this->fixReductions($reductions, $creditmemo);
+        $transport = new DataObject([
+            'items' => $reductions
+        ]);
+        $this->eventManager->dispatch('wallee_payment_convert_line_item_reductions',
+            [
+                'transport' => $transport,
+                'creditmemo' => $creditmemo,
+                'baseLineItems' => $baseLineItems
+            ]);
+        return $this->fixReductions($transport->getData('items'), $creditmemo, $baseLineItems);
     }
 
     /**
@@ -106,14 +141,18 @@ class LineItemReductionService
      */
     private function isIncludeItem(Creditmemo\Item $creditmemoItem)
     {
-        if ($creditmemoItem->getOrderItem()->getParentItemId() != null && $creditmemoItem->getOrderItem()->getParentItem()->getProductType() ==
-            \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE) {
+        if ($creditmemoItem->getOrderItem()->getParentItemId() != null &&
+            $creditmemoItem->getOrderItem()
+                ->getParentItem()
+                ->getProductType() == \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE) {
             return false;
         }
 
         if ($creditmemoItem->getOrderItem()->getProductType() == \Magento\Catalog\Model\Product\Type::TYPE_BUNDLE &&
             $creditmemoItem->getOrderItem()->getParentItemId() == null &&
-            $creditmemoItem->getOrderItem()->getProduct()->getPriceType() != \Magento\Bundle\Model\Product\Price::PRICE_TYPE_FIXED) {
+            $creditmemoItem->getOrderItem()
+                ->getProduct()
+                ->getPriceType() != \Magento\Bundle\Model\Product\Price::PRICE_TYPE_FIXED) {
             return false;
         }
 
@@ -148,8 +187,9 @@ class LineItemReductionService
         if ($creditmemo->getShippingAmount() > 0) {
             $reduction = new LineItemReductionCreate();
             $reduction->setLineItemUniqueId('shipping');
-            if ($creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount() ==
-                $creditmemo->getOrder()->getShippingInclTax()) {
+            if ($this->helper->compareAmounts($creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
+                $creditmemo->getOrder()
+                    ->getShippingInclTax(), $creditmemo->getOrderCurrencyCode()) == 0) {
                 $reduction->setQuantityReduction(1);
                 $reduction->setUnitPriceReduction(0);
             } else {
@@ -170,18 +210,15 @@ class LineItemReductionService
      *
      * @param LineItemReductionCreate[] $reductions
      * @param Creditmemo $creditmemo
+     * @param \Wallee\Sdk\Model\LineItem[] $baseLineItems
      * @return LineItemReductionCreate[]
      */
-    private function fixReductions(array $reductions, Creditmemo $creditmemo)
+    private function fixReductions(array $reductions, Creditmemo $creditmemo, $baseLineItems)
     {
-        /** @var \Wallee\Sdk\Model\LineItem[] $baseLineItems */
-        $baseLineItems = $this->getBaseLineItems($creditmemo->getOrder()
-            ->getWalleeSpaceId(), $creditmemo->getOrder()
-            ->getWalleeTransactionId());
         $reducedAmount = $this->reductionHelper->getReducedAmount($baseLineItems, $reductions,
             $creditmemo->getOrderCurrencyCode());
-        if ($reducedAmount !=
-            $this->helper->roundAmount($creditmemo->getGrandTotal(), $creditmemo->getOrderCurrencyCode())) {
+        if ($this->helper->compareAmounts($reducedAmount, $creditmemo->getGrandTotal(),
+            $creditmemo->getOrderCurrencyCode()) != 0) {
             $baseAmount = $this->lineItemHelper->getTotalAmountIncludingTax($baseLineItems);
             $rate = $creditmemo->getGrandTotal() / $baseAmount;
             $fixedReductions = [];
@@ -243,7 +280,8 @@ class LineItemReductionService
                     $appliedDelta = ($newReduction - $currentReduction->getUnitPriceReduction()) *
                         $lineItem->getQuantity();
                     if ($appliedDelta <= $delta &&
-                        $this->compareAmounts($newReduction, $lineItem->getUnitPriceIncludingTax(), $currencyCode) <= 0) {
+                        $this->helper->compareAmounts($newReduction, $lineItem->getUnitPriceIncludingTax(),
+                            $currencyCode) <= 0) {
                         $change = true;
                         break;
                     }
@@ -273,26 +311,6 @@ class LineItemReductionService
             } else {
                 return $reductions;
             }
-        }
-    }
-
-    /**
-     *
-     * @param number $amount1
-     * @param number $amount2
-     * @param string $currencyCode
-     * @return number
-     */
-    private function compareAmounts($amount1, $amount2, $currencyCode)
-    {
-        $roundedAmount1 = $this->helper->roundAmount($amount1, $currencyCode);
-        $roundedAmount2 = $this->helper->roundAmount($amount2, $currencyCode);
-        if ($roundedAmount1 < $roundedAmount2) {
-            return - 1;
-        } elseif ($roundedAmount1 > $roundedAmount2) {
-            return 1;
-        } else {
-            return 0;
         }
     }
 

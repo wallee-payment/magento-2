@@ -33,7 +33,8 @@ class PaymentConnectorProvider extends AbstractProvider
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, 'wallee_payment_connectors');
+        parent::__construct($cache, 'wallee_payment_connectors',
+            \Wallee\Sdk\Model\PaymentConnector::class);
         $this->apiClient = $apiClient;
     }
 

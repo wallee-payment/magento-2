@@ -16,6 +16,7 @@ use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Quote\Model\Quote;
+use Magento\Store\Model\ScopeInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Tax\Model\Calculation as TaxCalculation;
@@ -29,6 +30,12 @@ use Wallee\Sdk\Model\LineItemAttributeCreate;
  */
 class LineItemService extends AbstractLineItemService
 {
+
+    /**
+     *
+     * @var ScopeConfigInterface
+     */
+    private $scopeConfig;
 
     /**
      *
@@ -68,6 +75,7 @@ class LineItemService extends AbstractLineItemService
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
             $groupRegistry, $eventManager, $productRepository);
+        $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
         $this->productConfigurationHelper = $productConfigurationHelper;
@@ -82,7 +90,9 @@ class LineItemService extends AbstractLineItemService
     public function convertQuoteLineItems(Quote $quote)
     {
         return $this->lineItemHelper->correctLineItems($this->convertLineItems($quote), $quote->getGrandTotal(),
-            $this->getCurrencyCode($quote));
+            $this->getCurrencyCode($quote),
+            $this->scopeConfig->getValue('wallee_payment/line_items/enforce_consistency',
+                ScopeInterface::SCOPE_STORE, $quote->getStoreId()), []);
     }
 
     /**

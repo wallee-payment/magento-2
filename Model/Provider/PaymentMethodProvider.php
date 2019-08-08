@@ -33,7 +33,8 @@ class PaymentMethodProvider extends AbstractProvider
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, 'wallee_payment_methods');
+        parent::__construct($cache, 'wallee_payment_methods',
+            \Wallee\Sdk\Model\PaymentMethod::class);
         $this->apiClient = $apiClient;
     }
 

@@ -191,7 +191,7 @@ class Converter
                 $configuration->getState() == PaymentMethodConfiguration::STATE_ACTIVE ? 1 : 0,
                 $this->getTranslatedTitle($configuration, LocaleHelper::DEFAULT_LANGUAGE),
                 $this->translate($configuration->getDescription(), LocaleHelper::DEFAULT_LANGUAGE),
-                1,
+                $configuration->getSortOrder(),
                 $configuration->getSpaceId()
             ], $this->getTemplate());
     }

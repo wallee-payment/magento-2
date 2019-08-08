@@ -33,7 +33,8 @@ class CurrencyProvider extends AbstractProvider
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, 'wallee_payment_currencies');
+        parent::__construct($cache, 'wallee_payment_currencies',
+            \Wallee\Sdk\Model\RestCurrency::class);
         $this->apiClient = $apiClient;
     }
 

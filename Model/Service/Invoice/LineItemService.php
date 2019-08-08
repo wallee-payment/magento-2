@@ -81,7 +81,8 @@ class LineItemService extends AbstractLineItemService
      */
     public function convertInvoiceLineItems(Invoice $invoice, $expectedAmount)
     {
-        return $this->lineItemHelper->reduceAmount($this->convertLineItems($invoice), $expectedAmount);
+        return $this->lineItemHelper->reduceAmount($this->convertLineItems($invoice), $expectedAmount,
+            $invoice->getOrderCurrencyCode());
     }
 
     /**

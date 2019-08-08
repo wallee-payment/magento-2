@@ -111,9 +111,8 @@ define([
 		},
 		
 		selectPaymentMethod: function(){
-			var result = this._super();
-			this.checkoutHandler.updateAddresses();
-			return result;
+			this.checkoutHandler.updateAddresses(this._super.bind(this));
+			return true;
 		},
 		
 		validateIframe: function(){
