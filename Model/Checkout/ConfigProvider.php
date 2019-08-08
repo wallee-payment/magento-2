@@ -11,7 +11,7 @@
 namespace Wallee\Payment\Model\Checkout;
 
 use Magento\Checkout\Model\ConfigProviderInterface;
-use Magento\Checkout\Model\Session\Proxy as CheckoutSession;
+use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\Search\FilterGroupBuilder;
