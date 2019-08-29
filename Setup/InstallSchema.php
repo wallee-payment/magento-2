@@ -154,8 +154,7 @@ class InstallSchema implements InstallSchemaInterface
     private function createTransactionInfoTable(SchemaSetupInterface $installer)
     {
         if (! $installer->getConnection()->isTableExists(
-            $installer->getTable('wallee_payment_transaction_info'))) {}
-        {
+            $installer->getTable('wallee_payment_transaction_info'))) {
             $table = $installer->getConnection()
                 ->newTable($installer->getTable('wallee_payment_transaction_info'))
                 ->addColumn('entity_id', Table::TYPE_INTEGER, null,
@@ -238,8 +237,7 @@ class InstallSchema implements InstallSchemaInterface
     private function createPaymentMethodConfigurationTable(SchemaSetupInterface $installer)
     {
         if (! $installer->getConnection()->isTableExists(
-            $installer->getTable('wallee_payment_method_configuration'))) {}
-        {
+            $installer->getTable('wallee_payment_method_configuration'))) {
             $table = $installer->getConnection()
                 ->newTable($installer->getTable('wallee_payment_method_configuration'))
                 ->addColumn('entity_id', Table::TYPE_INTEGER, null,
@@ -313,8 +311,7 @@ class InstallSchema implements InstallSchemaInterface
     private function createRefundJobTable(SchemaSetupInterface $installer)
     {
         if (! $installer->getConnection()->isTableExists(
-            $installer->getTable('wallee_payment_refund_job'))) {}
-        {
+            $installer->getTable('wallee_payment_refund_job'))) {
             $table = $installer->getConnection()
                 ->newTable($installer->getTable('wallee_payment_refund_job'))
                 ->addColumn('entity_id', Table::TYPE_INTEGER, null,
@@ -366,8 +363,7 @@ class InstallSchema implements InstallSchemaInterface
     private function createTokenInfoTable(SchemaSetupInterface $installer)
     {
         if (! $installer->getConnection()->isTableExists(
-            $installer->getTable('wallee_payment_token_info'))) {}
-        {
+            $installer->getTable('wallee_payment_token_info'))) {
             $table = $installer->getConnection()
                 ->newTable($installer->getTable('wallee_payment_token_info'))
                 ->addColumn('entity_id', Table::TYPE_INTEGER, null,

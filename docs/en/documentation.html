@@ -21,7 +21,7 @@
 		</a>
 	</li>
 	<li>
-		<a href="https://github.com/wallee-payment/magento-2.3/releases/tag/1.0.54/">
+		<a href="https://github.com/wallee-payment/magento-2.3/releases/tag/1.0.55/">
 			Source
 		</a>
 	</li>
@@ -95,6 +95,12 @@
 			<span class="title-number">3</span>Configuration					</h1>
 	</div>
 	<div class="chapter-body">
+							<div class="section" id="_main_configuration">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">3.1</span>Main Configuration					</h2>
+	</div>
+	<div class="section-body">
 					<div class="olist arabic">
 <ol class="arabic">
 <li>
@@ -126,7 +132,38 @@ Stores &#8594; Configuration &#8594; Payment Methods. Make sure you are in the <
 <div class="content">
 <img src="resource/payment-method-configuration.png" alt="payment method configuration"/>
 </div>
+</div>							<div class="section" id="_line_items">
+	<div class="section-title">
+		<h3>
+			<span class="title-number">3.1.1</span>Line Items					</h3>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>By default the plugin calculates the line items as accurate as possible. The creation of the transaction is in that case possible only when correct data is transmitted.</p>
+</div><div class="paragraph">
+<p>The plugin allows you to control the line items calculation under Stores &#8594; Configuration &#8594; wallee Payment in the section <em>Line Items</em>:</p>
+</div><div class="imageblock">
+<div class="content">
+<img src="resource/line_items_magento2.png" alt="line items magento2"/>
+</div>
+</div><div class="paragraph">
+<p>There you have the possibility to set <strong>Enforce Consistency</strong> to <strong>No</strong>-</p>
+</div><div class="paragraph">
+<p>In this case the transaction is created even if the line items calculation is not 100% correct. This can happen if you are using for example third-party plugins (e.g. VAT calculation plugins, voucher plugins).</p>
+</div><div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+This setting implies that the plugin is collecting wrong data (e.g. VAT) which might lead to wrong data in the system.
+</td>
+</tr>
+</table>
 </div>					</div>
+</div>			</div>
+</div>			</div>
 </div>	<div class="chapter" id="_payment_method_configuration">
 	<div class="chapter-title">
 		<h1>
@@ -467,6 +504,20 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 		<span class="item-number">3</span>
 		<span class="item-title">Configuration</span>
 			</a>
+        	<ul  class="nav">
+    		    			<li class="nav-level-2">
+	<a href="#_main_configuration">
+		<span class="item-number">3.1</span>
+		<span class="item-title">Main Configuration</span>
+			</a>
+        	<ul  class="nav">
+    		    			<li class="nav-level-3">
+	<a href="#_line_items">
+		<span class="item-number">3.1.1</span>
+		<span class="item-title">Line Items</span>
+			</a>
+    </li>    		    	</ul>
+    </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_payment_method_configuration">
 		<span class="item-number">4</span>

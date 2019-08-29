@@ -46,6 +46,8 @@ abstract class AbstractCommand extends AbstractOrderRelatedCommand
         try {
             $refundJob = $this->refundJobRepository->getByExternalId($refund->getExternalId());
             $this->refundJobRepository->delete($refundJob);
-        } catch (NoSuchEntityException $e) {}
+        } catch (NoSuchEntityException $e) {
+            // If the refund job cannot be found, there is no need to delete it, so the exception can be ignored.
+        }
     }
 }

@@ -12,7 +12,6 @@ namespace Wallee\Payment\Model\Webhook\Listener;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\ResourceConnection;
-use Magento\Sales\Model\Order;
 use Magento\Sales\Model\OrderFactory;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Psr\Log\LoggerInterface;
@@ -54,17 +53,6 @@ class DeliveryIndicationListener extends AbstractOrderRelatedListener
         parent::__construct($resource, $logger, $orderFactory, $orderResourceModel, $searchCriteriaBuilder, $commandPool,
             $transactionInfoRepository, $transactionInfoManagement);
         $this->apiClient = $apiClient;
-    }
-
-    /**
-     * Actually processes the order related webhook request.
-     *
-     * @param \Wallee\Sdk\Model\DeliveryIndication $entity
-     * @param Order $order
-     */
-    protected function process($entity, Order $order)
-    {
-        parent::process($entity, $order);
     }
 
     /**

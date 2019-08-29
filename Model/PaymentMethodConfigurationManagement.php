@@ -17,6 +17,7 @@ use Magento\Framework\App\Config\Storage\WriterInterface as StorageWriter;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
@@ -113,7 +114,7 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         $this->cacheTypeList = $cacheTypeList;
     }
 
-    public function synchronize()
+    public function synchronize(OutputInterface $output = null)
     {
         $existingConfigurations = $this->paymentMethodConfigurationRepository->getList(
             $this->searchCriteriaBuilder->create())
@@ -124,6 +125,10 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
                 PaymentMethodConfiguration::STATE_HIDDEN);
         }
 
+        if ($output) {
+            $output->writeln('Synchronizing payment methods:');
+        }
+
         $spaceIds = [];
         $existingFound = [];
         $createdEntities = [];
@@ -131,6 +136,9 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
             $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
                 ScopeInterface::SCOPE_WEBSITE, $website->getId());
             if ($spaceId && ! in_array($spaceId, $spaceIds)) {
+                if ($output) {
+                    $output->writeln('Space ' . $spaceId);
+                }
                 $configurations = $this->apiClient->getService(PaymentMethodConfigurationService::class)->search(
                     $spaceId, new EntityQuery());
                 foreach ($configurations as $configuration) {
@@ -163,6 +171,10 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
                         $this->extractImagePath($configuration->getResolvedImageUrl()));
                     $entity->setData(PaymentMethodConfigurationInterface::SORT_ORDER, $configuration->getSortOrder());
                     $this->paymentMethodConfigurationRepository->save($entity);
+
+                    if ($output) {
+                        $output->writeln('- ' . $configuration->getName());
+                    }
                 }
             }
         }
@@ -180,6 +192,9 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         }
 
         $this->clearCache();
+        if ($output) {
+            $output->writeln('Cache cleared successfully.');
+        }
     }
 
     private function clearCache()

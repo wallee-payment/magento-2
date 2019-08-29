@@ -208,4 +208,13 @@
 	<type name="Magento\Customer\Model\AccountManagement">
 		<plugin name="wallee_payment_customer_accountmanagement" type="Wallee\Payment\Plugin\Customer\Model\AccountManagement" />
 	</type>
+	
+	<!-- Console Commands -->
+	<type name="Magento\Framework\Console\CommandListInterface">
+		<arguments>
+			<argument name="commands" xsi:type="array">
+				<item name="synchronizePaymentMethodsCommand" xsi:type="object">Wallee\Payment\Console\Command\SynchronizePaymentMethods</item>
+			</argument>
+		</arguments>
+	</type>
 </config>

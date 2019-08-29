@@ -13,11 +13,11 @@
  */
 
 /** @var $block \Wallee\Payment\Block\Method\Form */
-$code = $block->escapeHtml($block->getMethodCode());
+$code = $block->getMethodCode();
 $tokens = $block->getTokens();
 ?>
 
-<fieldset class="admin__fieldset payment-method" id="payment_form_<?=$code?>" style="display:none">
+<fieldset class="admin__fieldset payment-method" id="payment_form_<?=$block->escapeHtml($code)?>" style="display:none">
 	<div class="admin__field">
 		<div class="admin__field-control">
     		<?=$block->escapeHtml(\__('A charge flow will be used to process the payment.'))?>
@@ -25,11 +25,11 @@ $tokens = $block->getTokens();
     </div>
     <?php if (! empty($tokens)) : ?>
 		<div class="admin__field _required">
-            <label class="admin__field-label" for="<?=$code?>_token">
+            <label class="admin__field-label" for="<?=$block->escapeHtml($code)?>_token">
                 <span><?=$block->escapeHtml(\__('Token:'))?></span>
             </label>
             <div class="admin__field-control">
-                <select id="<?=$code?>_token" name="payment[<?=$block->escapeHtml($block->getTransportName())?>]" class="required-entry admin__control-select">
+                <select id="<?=$block->escapeHtml($code)?>_token" name="payment[<?=$block->escapeHtml($block->getTransportName())?>]" class="required-entry admin__control-select">
                     <option value=""></option>
                     <?php foreach ($tokens as $token) : ?>
                         <option value="<?=$block->escapeHtml($token->getId())?>"

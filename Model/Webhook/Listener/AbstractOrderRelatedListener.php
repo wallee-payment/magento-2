@@ -213,7 +213,9 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
         try {
             $this->commandPool->get(\strtolower($entity->getState()))
                 ->execute($entity, $order);
-        } catch (NotFoundException $e) {}
+        } catch (NotFoundException $e) {
+            // If the command cannot be found, we ignore it.
+        }
     }
 
     /**
