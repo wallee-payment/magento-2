@@ -146,10 +146,9 @@ class LineItemService extends AbstractLineItemService
     protected function convertShippingLineItem($invoice)
     {
         return $this->convertShippingLineItemInner($invoice, $invoice->getShippingAmount(),
-            $invoice->getShippingTaxAmount(),
+            $invoice->getShippingTaxAmount() + $invoice->getShippingDiscountTaxCompensationAmount(),
             $invoice->getOrder()
-                ->getShippingDiscountAmount() - $invoice->getShippingDiscountTaxCompensationAmount(),
-            $invoice->getOrder()
+                ->getShippingDiscountAmount(), $invoice->getOrder()
                 ->getShippingDescription());
     }
 

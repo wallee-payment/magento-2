@@ -191,7 +191,7 @@ abstract class AbstractLineItemService
         $productItem->setQuantity($entityItem->getQty() ? $entityItem->getQty() : $entityItem->getQtyOrdered());
         $productItem->setShippingRequired(! $entityItem->getIsVirtual());
         $productItem->setSku($this->helper->fixLength($entityItem->getSku(), 200));
-        $discount = $entityItem->getDiscountAmount() - $entityItem->getDiscountTaxCompensationAmount();
+        $discount = $entityItem->getRowTotalInclTax() - $amountIncludingTax;
         $productItem->setDiscountIncludingTax($this->helper->roundAmount($discount, $currency));
         $tax = $this->getTax($entityItem);
         if ($tax instanceof TaxCreate) {
@@ -319,8 +319,8 @@ abstract class AbstractLineItemService
     protected function convertShippingLineItem($entity)
     {
         return $this->convertShippingLineItemInner($entity, $entity->getShippingAmount(),
-            $entity->getShippingTaxAmount(),
-            $entity->getShippingDiscountAmount() - $entity->getShippingDiscountTaxCompensationAmount(),
+            $entity->getShippingTaxAmount() + $entity->getShippingDiscountTaxCompensationAmount(),
+            $entity->getShippingDiscountAmount(),
             $entity->getShippingDescription());
     }
 
