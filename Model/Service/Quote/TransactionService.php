@@ -91,6 +91,12 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @var boolean
+     */
+    private $submittingOrder = false;
+
+    /**
+     *
      * @param ResourceConnection $resource
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
@@ -169,6 +175,27 @@ class TransactionService extends AbstractTransactionService
     }
 
     /**
+     * Gets whether the payment method is available for the given quote.
+     *
+     * @param Quote $quote
+     * @param int $paymentMethodConfigurationId
+     * @return boolean
+     */
+    public function isPaymentMethodAvailable(Quote $quote, $paymentMethodConfigurationId)
+    {
+        if ($this->submittingOrder) {
+            return true;
+        }
+        $possiblePaymentMethods = $this->getPossiblePaymentMethods($quote);
+        foreach ($possiblePaymentMethods as $possiblePaymentMethod) {
+            if ($possiblePaymentMethod->getId() == $paymentMethodConfigurationId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Gets the transaction for the given quote.
      *
      * If there is not transaction for the quote, a new one is created.
@@ -224,6 +251,10 @@ class TransactionService extends AbstractTransactionService
                 $transaction = $this->apiClient->getService(TransactionApiService::class)->read(
                     $quote->getWalleeSpaceId(), $quote->getWalleeTransactionId());
                 if (! ($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
+                    return $this->createTransactionByQuote($quote);
+                }
+
+                if (! empty($transaction->getCustomerId()) && $transaction->getCustomerId() != $quote->getCustomerId()) {
                     return $this->createTransactionByQuote($quote);
                 }
 
@@ -349,5 +380,10 @@ class TransactionService extends AbstractTransactionService
             $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPostcode()), 40));
         $address->setStreet($this->helper->fixLength($customerAddress->getStreetFull(), 300));
         return $address;
+    }
+
+    public function setSubmittingOrder()
+    {
+        $this->submittingOrder = true;
     }
 }

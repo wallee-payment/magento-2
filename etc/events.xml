@@ -50,4 +50,8 @@
 	<event name="sales_model_service_quote_submit_success">
 		<observer name="wallee_payment_quote_submit" instance="Wallee\Payment\Observer\SubmitQuote" />
 	</event>
+	
+	<event name="sales_quote_payment_import_data_before">
+		<observer name="wallee_payment_import_payment_data" instance="Wallee\Payment\Observer\ImportPaymentData" />
+	</event>
 </config>

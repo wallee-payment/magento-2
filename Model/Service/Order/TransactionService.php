@@ -30,6 +30,7 @@ use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\ApiClient;
+use Wallee\Payment\Model\CustomerIdManipulationException;
 use Wallee\Payment\Model\Service\AbstractTransactionService;
 use Wallee\Sdk\VersioningException;
 use Wallee\Sdk\Model\AbstractTransactionPending;
@@ -176,6 +177,10 @@ class TransactionService extends AbstractTransactionService
                         $transaction->getState() != TransactionState::PENDING) {
                         throw new LocalizedException(\__('The order failed because the payment timed out.'));
                     }
+                }
+
+                if (! empty($transaction->getCustomerId()) && $transaction->getCustomerId() != $order->getCustomerId()) {
+                    throw new CustomerIdManipulationException();
                 }
 
                 $pendingTransaction = new TransactionPending();

@@ -202,8 +202,9 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
                 ScopeInterface::SCOPE_STORE, $quote->getStoreId());
             if (! empty($spaceId)) {
                 try {
-                    $possiblePaymentMethods = $this->transactionService->getPossiblePaymentMethods($quote);
-                    if (! $this->isPaymentMethodPossible($possiblePaymentMethods)) {
+                    if (! $this->transactionService->isPaymentMethodAvailable($quote,
+                        $this->getPaymentMethodConfiguration()
+                            ->getConfigurationId())) {
                         return false;
                     }
                 } catch (\Exception $e) {
@@ -218,21 +219,5 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
         }
 
         return true;
-    }
-
-    /**
-     * Gets whether the selected payment method can be used.
-     *
-     * @param \Wallee\Sdk\Model\PaymentMethodConfiguration[] $possiblePaymentMethods
-     * @return boolean
-     */
-    private function isPaymentMethodPossible(array $possiblePaymentMethods)
-    {
-        foreach ($possiblePaymentMethods as $possiblePaymentMethod) {
-            if ($possiblePaymentMethod->getId() == $this->getPaymentMethodConfiguration()->getConfigurationId()) {
-                return true;
-            }
-        }
-        return false;
     }
 }
