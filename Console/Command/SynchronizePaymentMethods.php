@@ -31,7 +31,8 @@ class SynchronizePaymentMethods extends Command
      *
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      */
-    public function __construct(PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement)
+    public function __construct(
+        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement)
     {
         parent::__construct();
         $this->paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
@@ -39,7 +40,8 @@ class SynchronizePaymentMethods extends Command
 
     protected function configure()
     {
-        $this->setName('wallee:payment-method:synchronize')->setDescription('Synchronizes the wallee payment methods.');
+        $this->setName('wallee:payment-method:synchronize')->setDescription(
+            'Synchronizes the wallee payment methods.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
