@@ -45,6 +45,12 @@
 	        <argument name="urlBuilder" xsi:type="object">Magento\Framework\Url</argument>
 	    </arguments>
 	</type>
+	
+	<type name="Wallee\Payment\Console\Command\SynchronizePaymentMethods">
+		<arguments>
+			<argument name="paymentMethodConfigurationManagement" xsi:type="object">Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface\Proxy</argument>
+		</arguments>
+	</type>
     
     <!-- Providers -->
     <type name="Wallee\Payment\Model\Provider\PaymentMethodProvider">

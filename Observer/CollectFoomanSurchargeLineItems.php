@@ -219,7 +219,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
         $surcharge->setAmountIncludingTax($this->helper->roundAmount($amount + $taxAmount, $currency));
         $surcharge->setSku('fooman-surcharge');
         $surcharge->setUniqueId('fooman_surcharge_' . $code);
-        $surcharge->setName($label);
+        $surcharge->setName((string) $label);
         $surcharge->setQuantity(1);
         $surcharge->setShippingRequired(false);
         if ($taxAmount > 0) {
