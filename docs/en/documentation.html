@@ -21,7 +21,7 @@
 		</a>
 	</li>
 	<li>
-		<a href="https://github.com/wallee-payment/magento-2.3/releases/tag/1.0.59/">
+		<a href="https://github.com/wallee-payment/magento-2.3/releases/tag/1.0.60/">
 			Source
 		</a>
 	</li>
@@ -224,16 +224,7 @@ This setting implies that the plugin is collecting wrong data (e.g. VAT) which m
 <p>If the transaction in wallee is marked as <code>fulfill</code>, the Magento order is marked as <code>Processing</code>, indicating that it can now be fulfilled. Once the shipment has been created, we recommend to change the order&#8217;s status.</p>
 </li>
 </ol>
-</div>							<div class="section" id="_general_remarks_regarding_order_statuses">
-	<div class="section-title">
-		<h3>
-			<span class="title-number">4.3.1</span>General remarks regarding order statuses					</h3>
-	</div>
-	<div class="section-body">
-					<div class="paragraph">
-<p>We recommend that you only change the order status to indicate that shipping has taken place. If you change it before the transaction has reached a final state in wallee, the plugin may changed the order status again. If you want different order statuses to be set, you can change the behaviour in the plugin configuration.</p>
 </div>					</div>
-</div>			</div>
 </div>					<div class="section" id="_state_mapping_of_magento_invoices">
 	<div class="section-title">
 		<h2>
@@ -539,13 +530,6 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 		<span class="item-number">4.3</span>
 		<span class="item-title">State mapping of Magento orders</span>
 			</a>
-        	<ul  class="nav">
-    		    			<li class="nav-level-3">
-	<a href="#_general_remarks_regarding_order_statuses">
-		<span class="item-number">4.3.1</span>
-		<span class="item-title">General remarks regarding order statuses</span>
-			</a>
-    </li>    		    	</ul>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_state_mapping_of_magento_invoices">
 		<span class="item-number">4.4</span>

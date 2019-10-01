@@ -10,6 +10,7 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener\Refund;
 
+use Magento\CatalogInventory\Api\StockConfigurationInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Sales\Api\CreditmemoManagementInterface;
 use Magento\Sales\Api\CreditmemoRepositoryInterface;
@@ -71,6 +72,12 @@ class SuccessfulCommand extends AbstractCommand
 
     /**
      *
+     * @var StockConfigurationInterface
+     */
+    private $stockConfiguration;
+
+    /**
+     *
      * @var LineItemReductionService
      */
     private $lineItemReductionService;
@@ -95,6 +102,7 @@ class SuccessfulCommand extends AbstractCommand
      * @param CreditmemoManagementInterface $creditmemoManagement
      * @param OrderRepositoryInterface $orderRepository
      * @param InvoiceRepositoryInterface $invoiceRepository
+     * @param StockConfigurationInterface $stockConfiguration
      * @param LineItemReductionService $lineItemReductionService
      * @param TransactionService $transactionService
      * @param Helper $helper
@@ -102,8 +110,8 @@ class SuccessfulCommand extends AbstractCommand
     public function __construct(RefundJobRepositoryInterface $refundJobRepository,
         CreditmemoRepositoryInterface $creditmemoRepository, CreditmemoFactory $creditmemoFactory,
         CreditmemoManagementInterface $creditmemoManagement, OrderRepositoryInterface $orderRepository,
-        InvoiceRepositoryInterface $invoiceRepository, LineItemReductionService $lineItemReductionService,
-        TransactionService $transactionService, Helper $helper)
+        InvoiceRepositoryInterface $invoiceRepository, StockConfigurationInterface $stockConfiguration,
+        LineItemReductionService $lineItemReductionService, TransactionService $transactionService, Helper $helper)
     {
         parent::__construct($refundJobRepository);
         $this->refundJobRepository = $refundJobRepository;
@@ -112,6 +120,7 @@ class SuccessfulCommand extends AbstractCommand
         $this->creditmemoManagement = $creditmemoManagement;
         $this->orderRepository = $orderRepository;
         $this->invoiceRepository = $invoiceRepository;
+        $this->stockConfiguration = $stockConfiguration;
         $this->lineItemReductionService = $lineItemReductionService;
         $this->transactionService = $transactionService;
         $this->helper = $helper;
@@ -182,6 +191,11 @@ class SuccessfulCommand extends AbstractCommand
         $creditmemo->setAutomaticallyCreated(true);
         $creditmemo->addComment(\__('The credit memo has been created automatically.'));
         $creditmemo->setWalleeExternalId($refund->getExternalId());
+
+        foreach ($creditmemo->getAllItems() as $creditmemoItem) {
+            $creditmemoItem->setBackToStock($this->stockConfiguration->isAutoReturnEnabled());
+        }
+
         $this->creditmemoManagement->refund($creditmemo);
     }
 

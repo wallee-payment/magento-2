@@ -214,6 +214,9 @@
 	<type name="Magento\Customer\Model\AccountManagement">
 		<plugin name="wallee_payment_customer_accountmanagement" type="Wallee\Payment\Plugin\Customer\Model\AccountManagement" />
 	</type>
+	<type name="Magento\Sales\Model\ResourceModel\Order\Handler\State">
+		<plugin name="wallee_payment_sales_order_handler_state" type="Wallee\Payment\Plugin\Sales\Model\ResourceModel\Order\Handler\State" />
+	</type>
 	
 	<!-- Console Commands -->
 	<type name="Magento\Framework\Console\CommandListInterface">
