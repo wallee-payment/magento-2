@@ -20,6 +20,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Address;
 use Magento\Sales\Model\Order\Invoice;
@@ -89,6 +90,12 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @var OrderRepositoryInterface
+     */
+    private $orderRepository;
+
+    /**
+     *
      * @var LineItemService
      */
     private $lineItemService;
@@ -119,6 +126,7 @@ class TransactionService extends AbstractTransactionService
      * @param ManagerInterface $eventManager
      * @param CustomerRegistry $customerRegistry
      * @param CartRepositoryInterface $quoteRepository
+     * @param OrderRepositoryInterface $orderRepository
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
@@ -129,10 +137,10 @@ class TransactionService extends AbstractTransactionService
      */
     public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
         ManagerInterface $eventManager, CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository,
-        TimezoneInterface $timezone, PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
-        ApiClient $apiClient, CookieManagerInterface $cookieManager, LoggerInterface $logger,
-        LineItemService $lineItemService, LineItemHelper $lineItemHelper,
-        TransactionInfoRepositoryInterface $transactionInfoRepository)
+        OrderRepositoryInterface $orderRepository, TimezoneInterface $timezone,
+        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
+        CookieManagerInterface $cookieManager, LoggerInterface $logger, LineItemService $lineItemService,
+        LineItemHelper $lineItemHelper, TransactionInfoRepositoryInterface $transactionInfoRepository)
     {
         parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
             $paymentMethodConfigurationManagement, $apiClient, $cookieManager);
@@ -140,6 +148,7 @@ class TransactionService extends AbstractTransactionService
         $this->scopeConfig = $scopeConfig;
         $this->eventManager = $eventManager;
         $this->quoteRepository = $quoteRepository;
+        $this->orderRepository = $orderRepository;
         $this->logger = $logger;
         $this->lineItemService = $lineItemService;
         $this->lineItemHelper = $lineItemHelper;
@@ -163,6 +172,9 @@ class TransactionService extends AbstractTransactionService
     {
         if ($transaction->getState() == TransactionState::CONFIRMED) {
             return $transaction;
+        } elseif ($transaction->getState() != TransactionState::PENDING) {
+            $this->cancelOrder($order, $invoice);
+            throw new LocalizedException(\__('wallee_checkout_failure'));
         }
 
         $spaceId = $order->getWalleeSpaceId();
@@ -175,7 +187,8 @@ class TransactionService extends AbstractTransactionService
                         return $transaction;
                     } elseif (! ($transaction instanceof Transaction) ||
                         $transaction->getState() != TransactionState::PENDING) {
-                        throw new LocalizedException(\__('The order failed because the payment timed out.'));
+                        $this->cancelOrder($order, $invoice);
+                        throw new LocalizedException(\__('wallee_checkout_failure'));
                     }
                 }
 
@@ -193,6 +206,23 @@ class TransactionService extends AbstractTransactionService
             }
         }
         throw new VersioningException();
+    }
+
+    /**
+     * Cancels the given order and invoice linked to the transaction.
+     *
+     * @param Order $order
+     * @param Invoice $invoice
+     */
+    private function cancelOrder(Order $order, Invoice $invoice)
+    {
+        if ($invoice) {
+            $order->setWalleeInvoiceAllowManipulation(true);
+            $invoice->cancel();
+            $order->addRelatedObject($invoice);
+        }
+        $order->registerCancellation(null, false);
+        $this->orderRepository->save($order);
     }
 
     /**

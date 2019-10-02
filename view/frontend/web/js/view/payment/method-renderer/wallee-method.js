@@ -14,6 +14,7 @@ define([
 	'Magento_Checkout/js/model/payment/method-list',
 	'mage/url',
 	'Magento_Checkout/js/model/quote',
+	'Magento_Checkout/js/model/payment/additional-validators',
 	'Wallee_Payment/js/model/checkout-handler'
 ], function(
 	$,
@@ -22,6 +23,7 @@ define([
 	methodList,
 	urlBuilder,
 	quote,
+	additionalValidators,
 	checkoutHandler
 ){
 	'use strict';
@@ -129,6 +131,42 @@ define([
 				this.placeOrder();
 			}
 		},
+		
+        placeOrder: function (data, event) {
+            var self = this;
+
+            if (event) {
+                event.preventDefault();
+            }
+
+            if (this.validate() && additionalValidators.validate()) {
+                this.isPlaceOrderActionAllowed(false);
+
+                this.getPlaceOrderDeferredObject()
+                    .fail(
+                        function (response) {
+                        	var error = null;
+                        	try {
+                                error = JSON.parse(response.responseText);
+                            } catch (exception) {
+                            }
+                        	if (typeof error == 'object' && error.message == 'wallee_checkout_failure') {
+                        		window.location.replace(urlBuilder.build("wallee_payment/checkout/failure"));
+                        	} else {
+                        		self.isPlaceOrderActionAllowed(true);
+                        	}
+                        }
+                    ).done(
+                        function () {
+                            self.afterPlaceOrder();
+                        }
+                    );
+
+                return true;
+            }
+
+            return false;
+        },
 		
 		afterPlaceOrder: function(){
 			if (this.handler) {

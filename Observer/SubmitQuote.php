@@ -13,6 +13,7 @@ namespace Wallee\Payment\Observer;
 use Magento\Framework\DB\TransactionFactory as DBTransactionFactory;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
@@ -106,7 +107,7 @@ class SubmitQuote implements ObserverInterface
         if (! empty($transactionId)) {
             if (! $this->checkTransactionInfo($order)) {
                 $this->cancelOrder($order);
-                return;
+                throw new LocalizedException(\__('wallee_checkout_failure'));
             }
 
             $transaction = $this->transactionService->getTransaction($order->getWalleeSpaceId(),
@@ -211,4 +212,5 @@ class SubmitQuote implements ObserverInterface
             }
         }
     }
+
 }
