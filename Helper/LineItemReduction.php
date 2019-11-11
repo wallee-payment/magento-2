@@ -59,10 +59,12 @@ class LineItemReduction extends AbstractHelper
             }
 
             $lineItem = $lineItemMap[$reduction->getLineItemUniqueId()];
-            $unitPrice = $lineItem->getAmountIncludingTax() / $lineItem->getQuantity();
-            $amount += $unitPrice * $reduction->getQuantityReduction();
-            $amount += $reduction->getUnitPriceReduction() *
-                ($lineItem->getQuantity() - $reduction->getQuantityReduction());
+            if ($lineItem->getQuantity() != 0) {
+                $unitPrice = $lineItem->getAmountIncludingTax() / $lineItem->getQuantity();
+                $amount += $unitPrice * $reduction->getQuantityReduction();
+                $amount += $reduction->getUnitPriceReduction() *
+                    ($lineItem->getQuantity() - $reduction->getQuantityReduction());
+            }
         }
 
         return $this->helper->roundAmount($amount, $currency);
