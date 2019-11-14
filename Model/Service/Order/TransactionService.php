@@ -259,7 +259,7 @@ class TransactionService extends AbstractTransactionService
         }
         if ($transaction instanceof TransactionCreate) {
             $transaction->setSpaceViewId(
-                $this->scopeConfig->getValue('wallee_payment/general/store_view_id',
+                $this->scopeConfig->getValue('wallee_payment/general/space_view_id',
                     ScopeInterface::SCOPE_STORE, $order->getStoreId()));
             $transaction->setDeviceSessionIdentifier($this->getDeviceSessionIdentifier());
         }
