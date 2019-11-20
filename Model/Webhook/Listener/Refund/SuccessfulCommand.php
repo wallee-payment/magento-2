@@ -252,8 +252,7 @@ class SuccessfulCommand extends AbstractCommand
                     }
 
                     if ($shippingAmount == $order->getShippingInclTax()) {
-                        $shippingAmount = $order->getShippingAmount();
-                        $creditmemoAmount += $shippingAmount + $order->getShippingTaxAmount();
+                        $creditmemoAmount += $shippingAmount;
                     } elseif ($shippingAmount <= $order->getShippingInclTax() - $order->getShippingRefunded()) {
                         $creditmemoAmount += $shippingAmount;
                     } else {
