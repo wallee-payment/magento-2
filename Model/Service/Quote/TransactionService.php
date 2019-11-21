@@ -34,6 +34,8 @@ use Wallee\Sdk\Model\TransactionCreate;
 use Wallee\Sdk\Model\TransactionPending;
 use Wallee\Sdk\Model\TransactionState;
 use Wallee\Sdk\Service\TransactionService as TransactionApiService;
+use Wallee\Sdk\Service\TransactionIframeService;
+use Wallee\Sdk\Service\TransactionPaymentPageService;
 
 /**
  * Service to handle transactions in quote context.
@@ -133,7 +135,7 @@ class TransactionService extends AbstractTransactionService
     public function getJavaScriptUrl(Quote $quote)
     {
         $transaction = $this->getTransactionByQuote($quote);
-        return $this->apiClient->getService(TransactionApiService::class)->buildJavaScriptUrl(
+        return $this->apiClient->getService(TransactionIframeService::class)->javascriptUrl(
             $transaction->getLinkedSpaceId(), $transaction->getId());
     }
 
@@ -146,7 +148,7 @@ class TransactionService extends AbstractTransactionService
     public function getPaymentPageUrl(Quote $quote)
     {
         $transaction = $this->getTransactionByQuote($quote);
-        return $this->apiClient->getService(TransactionApiService::class)->buildPaymentPageUrl(
+        return $this->apiClient->getService(TransactionPaymentPageService::class)->paymentPageUrl(
             $transaction->getLinkedSpaceId(), $transaction->getId());
     }
 
