@@ -233,6 +233,7 @@ class TransactionService extends AbstractTransactionService
         $createTransaction = new TransactionCreate();
         $createTransaction->setCustomersPresence(CustomersPresence::VIRTUAL_PRESENT);
         $createTransaction->setAutoConfirmationEnabled(false);
+        $createTransaction->setChargeRetryEnabled(false);
         $this->assembleTransactionDataFromQuote($createTransaction, $quote);
         $transaction = $this->apiClient->getService(TransactionApiService::class)->create($spaceId, $createTransaction);
         $this->updateQuote($quote, $transaction);
