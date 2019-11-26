@@ -10,7 +10,6 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener;
 
-use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\NotFoundException;
 use Magento\Sales\Model\Order;
@@ -54,12 +53,6 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
 
     /**
      *
-     * @var SearchCriteriaBuilder
-     */
-    private $searchCriteriaBuilder;
-
-    /**
-     *
      * @var CommandPoolInterface
      */
     private $commandPool;
@@ -82,21 +75,19 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      * @param LoggerInterface $logger
      * @param OrderFactory $orderFactory
      * @param OrderResourceModel $orderResourceModel
-     * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param CommandPoolInterface $commandPool
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param TransactionInfoManagementInterface $transactionInfoManagement
      */
     public function __construct(ResourceConnection $resource, LoggerInterface $logger, OrderFactory $orderFactory,
-        OrderResourceModel $orderResourceModel, SearchCriteriaBuilder $searchCriteriaBuilder,
-        CommandPoolInterface $commandPool, TransactionInfoRepositoryInterface $transactionInfoRepository,
+        OrderResourceModel $orderResourceModel, CommandPoolInterface $commandPool,
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
         TransactionInfoManagementInterface $transactionInfoManagement)
     {
         $this->resource = $resource;
         $this->logger = $logger;
         $this->orderFactory = $orderFactory;
         $this->orderResourceModel = $orderResourceModel;
-        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->commandPool = $commandPool;
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->transactionInfoManagement = $transactionInfoManagement;

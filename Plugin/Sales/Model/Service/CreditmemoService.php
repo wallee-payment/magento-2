@@ -89,7 +89,7 @@ class CreditmemoService
                 try {
                     $this->refundJobRepository->delete(
                         $this->refundJobRepository->getByOrderId($creditmemo->getOrderId()));
-                } catch (NoSuchEntityException $e) {}
+                } catch (NoSuchEntityException $exc) {}
             }
             throw $e;
         }

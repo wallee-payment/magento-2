@@ -10,9 +10,7 @@
  */
 namespace Wallee\Payment\Plugin\Framework\App\Config\Initial;
 
-use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Magento\Framework\Api\Search\FilterGroupBuilder;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Config\Initial\SchemaLocator;
@@ -43,18 +41,6 @@ class Converter
      * @var SearchCriteriaBuilder
      */
     private $searchCriteriaBuilder;
-
-    /**
-     *
-     * @var FilterBuilder
-     */
-    private $filterBuilder;
-
-    /**
-     *
-     * @var FilterGroupBuilder
-     */
-    private $filterGroupBuilder;
 
     /**
      *
@@ -108,8 +94,6 @@ class Converter
      *
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param FilterBuilder $filterBuilder
-     * @param FilterGroupBuilder $filterGroupBuilder
      * @param StoreManagerInterface $storeManager
      * @param ScopeConfigInterface $scopeConfig
      * @param ResourceConnection $resourceConnection
@@ -119,15 +103,12 @@ class Converter
      * @param DriverPool $driverPool
      */
     public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, FilterBuilder $filterBuilder,
-        FilterGroupBuilder $filterGroupBuilder, StoreManagerInterface $storeManager, ScopeConfigInterface $scopeConfig,
-        ResourceConnection $resourceConnection, DomFactory $domFactory, SchemaLocator $schemaLocator,
-        ModuleDirReader $moduleReader, DriverPool $driverPool)
+        SearchCriteriaBuilder $searchCriteriaBuilder, StoreManagerInterface $storeManager,
+        ScopeConfigInterface $scopeConfig, ResourceConnection $resourceConnection, DomFactory $domFactory,
+        SchemaLocator $schemaLocator, ModuleDirReader $moduleReader, DriverPool $driverPool)
     {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->filterBuilder = $filterBuilder;
-        $this->filterGroupBuilder = $filterGroupBuilder;
         $this->storeManager = $storeManager;
         $this->scopeConfig = $scopeConfig;
         $this->resourceConnection = $resourceConnection;
@@ -152,19 +133,11 @@ class Converter
             ]);
         $configMerger->setDom($source);
 
-        $stateFilter = $this->filterBuilder->setConditionType('in')
-            ->setField(PaymentMethodConfigurationInterface::STATE)
-            ->setValue([
-            PaymentMethodConfiguration::STATE_ACTIVE,
-            PaymentMethodConfiguration::STATE_INACTIVE
-        ])
-            ->create();
-        $filterGroup = $this->filterGroupBuilder->setFilters([
-            $stateFilter
-        ])->create();
-        $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
-            $filterGroup
-        ])->create();
+        $searchCriteria = $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
+            [
+                PaymentMethodConfiguration::STATE_ACTIVE,
+                PaymentMethodConfiguration::STATE_INACTIVE
+            ], 'in')->create();
 
         $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
         foreach ($configurations as $configuration) {

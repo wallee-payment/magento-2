@@ -10,7 +10,6 @@
  */
 namespace Wallee\Payment\Model\Webhook\Listener;
 
-use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Sales\Model\OrderFactory;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
@@ -39,18 +38,17 @@ class DeliveryIndicationListener extends AbstractOrderRelatedListener
      * @param LoggerInterface $logger
      * @param OrderFactory $orderFactory
      * @param OrderResourceModel $orderResourceModel
-     * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param CommandPoolInterface $commandPool
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param TransactionInfoManagementInterface $transactionInfoManagement
      * @param ApiClient $apiClient
      */
     public function __construct(ResourceConnection $resource, LoggerInterface $logger, OrderFactory $orderFactory,
-        OrderResourceModel $orderResourceModel, SearchCriteriaBuilder $searchCriteriaBuilder,
-        CommandPoolInterface $commandPool, TransactionInfoRepositoryInterface $transactionInfoRepository,
+        OrderResourceModel $orderResourceModel, CommandPoolInterface $commandPool,
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
         TransactionInfoManagementInterface $transactionInfoManagement, ApiClient $apiClient)
     {
-        parent::__construct($resource, $logger, $orderFactory, $orderResourceModel, $searchCriteriaBuilder, $commandPool,
+        parent::__construct($resource, $logger, $orderFactory, $orderResourceModel, $commandPool,
             $transactionInfoRepository, $transactionInfoManagement);
         $this->apiClient = $apiClient;
     }

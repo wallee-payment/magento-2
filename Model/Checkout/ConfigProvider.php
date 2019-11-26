@@ -12,9 +12,7 @@ namespace Wallee\Payment\Model\Checkout;
 
 use Magento\Checkout\Model\ConfigProviderInterface;
 use Magento\Checkout\Model\Session as CheckoutSession;
-use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Magento\Framework\Api\Search\FilterGroupBuilder;
 use Magento\Payment\Helper\Data as PaymentHelper;
 use Psr\Log\LoggerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
@@ -49,18 +47,6 @@ class ConfigProvider implements ConfigProviderInterface
 
     /**
      *
-     * @var FilterBuilder
-     */
-    private $filterBuilder;
-
-    /**
-     *
-     * @var FilterGroupBuilder
-     */
-    private $filterGroupBuilder;
-
-    /**
-     *
      * @var CheckoutSession
      */
     private $checkoutSession;
@@ -82,22 +68,17 @@ class ConfigProvider implements ConfigProviderInterface
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param TransactionService $transactionService
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param FilterBuilder $filterBuilder
-     * @param FilterGroupBuilder $filterGroupBuilder
      * @param CheckoutSession $checkoutSession
      * @param LoggerInterface $logger
      * @param PaymentHelper $paymentHelper
      */
     public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
         TransactionService $transactionService, SearchCriteriaBuilder $searchCriteriaBuilder,
-        FilterBuilder $filterBuilder, FilterGroupBuilder $filterGroupBuilder, CheckoutSession $checkoutSession,
-        LoggerInterface $logger, PaymentHelper $paymentHelper)
+        CheckoutSession $checkoutSession, LoggerInterface $logger, PaymentHelper $paymentHelper)
     {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->transactionService = $transactionService;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->filterBuilder = $filterBuilder;
-        $this->filterGroupBuilder = $filterGroupBuilder;
         $this->checkoutSession = $checkoutSession;
         $this->logger = $logger;
         $this->paymentHelper = $paymentHelper;
@@ -126,19 +107,11 @@ class ConfigProvider implements ConfigProviderInterface
             $this->logger->critical($e);
         }
 
-        $stateFilter = $this->filterBuilder->setConditionType('in')
-            ->setField(PaymentMethodConfigurationInterface::STATE)
-            ->setValue([
-            PaymentMethodConfiguration::STATE_ACTIVE,
-            PaymentMethodConfiguration::STATE_INACTIVE
-        ])
-            ->create();
-        $filterGroup = $this->filterGroupBuilder->setFilters([
-            $stateFilter
-        ])->create();
-        $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
-            $filterGroup
-        ])->create();
+        $searchCriteria = $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
+            [
+                PaymentMethodConfiguration::STATE_ACTIVE,
+                PaymentMethodConfiguration::STATE_INACTIVE
+            ], 'in')->create();
 
         $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
         foreach ($configurations as $configuration) {
@@ -160,10 +133,12 @@ class ConfigProvider implements ConfigProviderInterface
     }
 
     /**
+     *
      * @param string $methodCode
      * @return Adapter
      */
-    private function getPaymentMethodInstance($methodCode) {
+    private function getPaymentMethodInstance($methodCode)
+    {
         try {
             $instance = $this->paymentHelper->getMethodInstance($methodCode);
             if ($instance instanceof Adapter) {

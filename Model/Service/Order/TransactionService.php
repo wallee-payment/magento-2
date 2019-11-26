@@ -280,7 +280,10 @@ class TransactionService extends AbstractTransactionService
         if ($token != null) {
             $transaction->setToken($token->getId());
         }
-        $transaction->setMetaData($this->collectMetaData($order));
+        $metaData = $this->collectMetaData($order);
+        if (! empty($metaData)) {
+            $transaction->setMetaData();
+        }
     }
 
     /**

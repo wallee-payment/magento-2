@@ -10,9 +10,7 @@
  */
 namespace Wallee\Payment\Plugin\Checkout\Block\Checkout;
 
-use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Magento\Framework\Api\Search\FilterGroupBuilder;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Store\Model\StoreManagerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
@@ -39,18 +37,6 @@ class LayoutProcessor
 
     /**
      *
-     * @var FilterBuilder
-     */
-    private $filterBuilder;
-
-    /**
-     *
-     * @var FilterGroupBuilder
-     */
-    private $filterGroupBuilder;
-
-    /**
-     *
      * @var StoreManagerInterface
      */
     private $storeManager;
@@ -65,20 +51,15 @@ class LayoutProcessor
      *
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param FilterBuilder $filterBuilder
-     * @param FilterGroupBuilder $filterGroupBuilder
      * @param StoreManagerInterface $storeManager
      * @param ResourceConnection $resourceConnection
      */
     public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, FilterBuilder $filterBuilder,
-        FilterGroupBuilder $filterGroupBuilder, StoreManagerInterface $storeManager,
+        SearchCriteriaBuilder $searchCriteriaBuilder, StoreManagerInterface $storeManager,
         ResourceConnection $resourceConnection)
     {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->filterBuilder = $filterBuilder;
-        $this->filterGroupBuilder = $filterGroupBuilder;
         $this->storeManager = $storeManager;
         $this->resourceConnection = $resourceConnection;
     }
@@ -93,19 +74,11 @@ class LayoutProcessor
 
         if (isset(
             $jsLayout['components']['checkout']['children']['steps']['children']['billing-step']['children']['payment']['children']['renders']['children']['wallee_payment']['methods'])) {
-            $stateFilter = $this->filterBuilder->setConditionType('in')
-                ->setField(PaymentMethodConfigurationInterface::STATE)
-                ->setValue([
-                PaymentMethodConfiguration::STATE_ACTIVE,
-                PaymentMethodConfiguration::STATE_INACTIVE
-            ])
-                ->create();
-            $filterGroup = $this->filterGroupBuilder->setFilters([
-                $stateFilter
-            ])->create();
-            $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
-                $filterGroup
-            ])->create();
+            $searchCriteria = $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
+                [
+                    PaymentMethodConfiguration::STATE_ACTIVE,
+                    PaymentMethodConfiguration::STATE_INACTIVE
+                ], 'in')->create();
 
             $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
             foreach ($configurations as $configuration) {

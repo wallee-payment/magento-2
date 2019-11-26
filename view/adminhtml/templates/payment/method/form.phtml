@@ -24,13 +24,13 @@ $tokens = $block->getTokens();
 		</div>
     </div>
     <?php if (! empty($tokens)) : ?>
-		<div class="admin__field _required">
+		<div class="admin__field">
             <label class="admin__field-label" for="<?=$block->escapeHtml($code)?>_token">
                 <span><?=$block->escapeHtml(\__('Token:'))?></span>
             </label>
             <div class="admin__field-control">
-                <select id="<?=$block->escapeHtml($code)?>_token" name="payment[<?=$block->escapeHtml($block->getTransportName())?>]" class="required-entry admin__control-select">
-                    <option value=""></option>
+                <select id="<?=$block->escapeHtml($code)?>_token" name="payment[<?=$block->escapeHtml($block->getTransportName())?>]" class="admin__control-select">
+                    <option value="">No token</option>
                     <?php foreach ($tokens as $token) : ?>
                         <option value="<?=$block->escapeHtml($token->getId())?>"
                         <?=($token->getId() == $block->getInfoData($block->getTransportName())) ? ' selected="selected"' : '';?>>

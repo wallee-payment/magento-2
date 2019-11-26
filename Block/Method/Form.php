@@ -11,9 +11,7 @@
 namespace Wallee\Payment\Block\Method;
 
 use Magento\Backend\Model\Session\Quote as SessionQuote;
-use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Magento\Framework\Api\Search\FilterGroupBuilder;
 use Magento\Framework\View\Element\Template\Context;
 use Wallee\Payment\Api\TokenInfoRepositoryInterface;
 use Wallee\Payment\Api\Data\TokenInfoInterface;
@@ -44,18 +42,6 @@ class Form extends \Magento\Payment\Block\Form
 
     /**
      *
-     * @var FilterBuilder
-     */
-    private $filterBuilder;
-
-    /**
-     *
-     * @var FilterGroupBuilder
-     */
-    private $filterGroupBuilder;
-
-    /**
-     *
      * @var string
      */
     protected $_template = 'Wallee_Payment::payment/method/form.phtml';
@@ -66,20 +52,16 @@ class Form extends \Magento\Payment\Block\Form
      * @param SessionQuote $backendQuoteSession
      * @param TokenInfoRepositoryInterface $tokenInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param FilterBuilder $filterBuilder
-     * @param FilterGroupBuilder $filterGroupBuilder
      * @param array $data
      */
     public function __construct(Context $context, SessionQuote $backendQuoteSession,
         TokenInfoRepositoryInterface $tokenInfoRepository, SearchCriteriaBuilder $searchCriteriaBuilder,
-        FilterBuilder $filterBuilder, FilterGroupBuilder $filterGroupBuilder, array $data = [])
+        array $data = [])
     {
         parent::__construct($context, $data);
         $this->backendQuoteSession = $backendQuoteSession;
         $this->tokenInfoRepository = $tokenInfoRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->filterBuilder = $filterBuilder;
-        $this->filterGroupBuilder = $filterGroupBuilder;
 
         $this->setTransportName('wallee_token');
     }
@@ -94,21 +76,10 @@ class Form extends \Magento\Payment\Block\Form
         $quote = $this->backendQuoteSession->getQuote();
         $method = $this->getMethod();
 
-        $customerFilter = $this->filterBuilder->setConditionType('eq')
-            ->setField(TokenInfoInterface::CUSTOMER_ID)
-            ->setValue($quote->getCustomerId())
+        $searchCriteria = $this->searchCriteriaBuilder->addFilter(TokenInfoInterface::CUSTOMER_ID,
+            $quote->getCustomerId())
+            ->addFilter(TokenInfoInterface::PAYMENT_METHOD_ID, $method->getPaymentMethodConfigurationId())
             ->create();
-        $paymentMethodFilter = $this->filterBuilder->setConditionType('eq')
-            ->setField(TokenInfoInterface::PAYMENT_METHOD_ID)
-            ->setValue($method->getPaymentMethodConfigurationId())
-            ->create();
-        $filterGroup = $this->filterGroupBuilder->setFilters([
-            $customerFilter,
-            $paymentMethodFilter
-        ])->create();
-        $searchCriteria = $this->searchCriteriaBuilder->setFilterGroups([
-            $filterGroup
-        ])->create();
 
         return $this->tokenInfoRepository->getList($searchCriteria)->getItems();
     }
