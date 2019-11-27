@@ -52,7 +52,7 @@ define([
 		},
 		
 		isActive: function(){
-			return quote.paymentMethod() ? quote.paymentMethod().method == this.getCode() : null;
+			return quote.paymentMethod() ? quote.paymentMethod().method == this.getCode() : false;
 		},
 		
 		isShowDescription: function(){

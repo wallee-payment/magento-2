@@ -77,17 +77,28 @@ define([
 		}
 		
 		function validateAddresses(){
-			return getCheckoutAdapter().validateAddresses();
+			if (!quote.isVirtual()) {
+				return getCheckoutAdapter().validateAddresses();
+			} else {
+				return true;
+			}
 		}
 		
 		function updateAddresses(callback) {
-			storeShippingAddress();
-			setShippingInformationAction().done(function(){
+			if (!quote.isVirtual()) {
+				storeShippingAddress();
+				setShippingInformationAction().done(function(){
+					if (typeof callback == 'function') {
+						callback();
+					}
+					loadPaymentForm();
+				});
+			} else {
 				if (typeof callback == 'function') {
 					callback();
 				}
 				loadPaymentForm();
-			});
+			}
 		}
 		
 		function checkAddresses(){
