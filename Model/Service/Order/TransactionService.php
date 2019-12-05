@@ -281,8 +281,8 @@ class TransactionService extends AbstractTransactionService
             $transaction->setToken($token->getId());
         }
         $metaData = $this->collectMetaData($order);
-        if (! empty($metaData)) {
-            $transaction->setMetaData();
+        if (! empty($metaData) && is_array($metaData)) {
+            $transaction->setMetaData($metaData);
         }
     }
 
