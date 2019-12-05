@@ -14,8 +14,8 @@
 	<default>
 		<wallee_payment>
 			<information>
-				<version>1.0.70</version>
-				<sdk_version>2.0.8</sdk_version>
+				<version>1.0.71</version>
+				<sdk_version>2.0.9</sdk_version>
 			</information>
 			<general>
 				<base_gateway_url>https://app-wallee.com/</base_gateway_url>
