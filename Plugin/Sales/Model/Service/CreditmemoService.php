@@ -20,6 +20,7 @@ use Wallee\Payment\Api\Data\RefundJobInterface;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\RefundJobFactory;
 use Wallee\Payment\Model\Payment\Method\Adapter as PaymentMethodAdapter;
+use Wallee\Payment\Model\Service\LineItemReductionException;
 use Wallee\Payment\Model\Service\LineItemReductionService;
 use Wallee\Sdk\Model\RefundCreate;
 use Wallee\Sdk\Model\RefundType;
@@ -168,7 +169,14 @@ class CreditmemoService
     {
         $refund = new RefundCreate();
         $refund->setExternalId(\uniqid($creditmemo->getOrderId() . '-'));
-        $refund->setReductions($this->lineItemReductionService->convertCreditmemo($creditmemo));
+
+        try {
+            $reductions = $this->lineItemReductionService->convertCreditmemo($creditmemo);
+            $refund->setReductions($reductions);
+        } catch (LineItemReductionException $e) {
+            $refund->setAmount($creditmemo->getGrandTotal());
+        }
+
         $refund->setTransaction($creditmemo->getOrder()
             ->getWalleeTransactionId());
         $refund->setType(RefundType::MERCHANT_INITIATED_ONLINE);

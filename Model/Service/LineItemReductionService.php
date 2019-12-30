@@ -89,6 +89,7 @@ class LineItemReductionService
      *
      * @param Creditmemo $creditmemo
      * @return LineItemReductionCreate[]
+     * @throws LineItemReductionException
      */
     public function convertCreditmemo(Creditmemo $creditmemo)
     {
@@ -130,7 +131,8 @@ class LineItemReductionService
                 'creditmemo' => $creditmemo,
                 'baseLineItems' => $baseLineItems
             ]);
-        return $this->fixReductions($transport->getData('items'), $creditmemo, $baseLineItems);
+        $this->validateReductions($transport->getData('items'), $creditmemo, $baseLineItems);
+        return $transport->getData('items');
     }
 
     /**
@@ -203,130 +205,21 @@ class LineItemReductionService
     }
 
     /**
-     * Returns the fixed line item reductions for the creditmemo.
-     *
-     * If the amount of the given reductions does not match the creditmemo's grand total, the amount to refund is
-     * distributed equally to the line items.
+     * Validates whether the given reductions total amount matches the one of the creditmemo.
      *
      * @param LineItemReductionCreate[] $reductions
      * @param Creditmemo $creditmemo
      * @param \Wallee\Sdk\Model\LineItem[] $baseLineItems
-     * @return LineItemReductionCreate[]
+     * @throws LineItemReductionException
      */
-    private function fixReductions(array $reductions, Creditmemo $creditmemo, $baseLineItems)
+    private function validateReductions(array $reductions, Creditmemo $creditmemo, $baseLineItems)
     {
         $reducedAmount = $this->reductionHelper->getReducedAmount($baseLineItems, $reductions,
             $creditmemo->getOrderCurrencyCode());
         if ($this->helper->compareAmounts($reducedAmount, $creditmemo->getGrandTotal(),
             $creditmemo->getOrderCurrencyCode()) != 0) {
-            $baseAmount = $this->lineItemHelper->getTotalAmountIncludingTax($baseLineItems);
-            $rate = $creditmemo->getGrandTotal() / $baseAmount;
-            $fixedReductions = [];
-            foreach ($baseLineItems as $lineItem) {
-                if ($lineItem->getQuantity() > 0) {
-                    $reduction = new LineItemReductionCreate();
-                    $reduction->setLineItemUniqueId($lineItem->getUniqueId());
-                    $reduction->setQuantityReduction(0);
-                    $reduction->setUnitPriceReduction(
-                        $this->helper->roundAmount(
-                            $lineItem->getAmountIncludingTax() * $rate / $lineItem->getQuantity(),
-                            $creditmemo->getOrderCurrencyCode()));
-                    $fixedReductions[] = $reduction;
-                }
-            }
-            $fixedReductionAmount = $this->reductionHelper->getReducedAmount($baseLineItems, $fixedReductions,
-                $creditmemo->getOrderCurrencyCode());
-            $roundingDifference = $creditmemo->getGrandTotal() - $fixedReductionAmount;
-            return $this->distributeRoundingDifference($fixedReductions, 0, $roundingDifference, $baseLineItems,
-                $creditmemo->getOrderCurrencyCode());
-        } else {
-            return $reductions;
+            throw new LineItemReductionException();
         }
-    }
-
-    /**
-     *
-     * @param LineItemReductionCreate[] $reductions
-     * @param int $index
-     * @param number $remainder
-     * @param \Wallee\Sdk\Model\LineItem[] $baseLineItems
-     * @param string $currencyCode
-     * @throws \Exception
-     * @return LineItemReductionCreate[]
-     */
-    private function distributeRoundingDifference(array $reductions, $index, $remainder, array $baseLineItems,
-        $currencyCode)
-    {
-        $digits = $this->helper->getCurrencyFractionDigits($currencyCode);
-        $currentReduction = $reductions[$index];
-        $delta = $remainder;
-        $change = false;
-        $positive = $delta > 0;
-        $newReduction = null;
-        $appliedDelta = null;
-        if ($currentReduction->getUnitPriceReduction() != 0 && $currentReduction->getQuantityReduction() == 0) {
-            $lineItem = $this->getLineItemByUniqueId($baseLineItems, $currentReduction->getLineItemUniqueId());
-            if ($lineItem != null) {
-                while ($delta != 0) {
-                    if ($currentReduction->getUnitPriceReduction() < 0) {
-                        $newReduction = $this->helper->roundAmount(
-                            $currentReduction->getUnitPriceReduction() - ($delta / $lineItem->getQuantity()),
-                            $currencyCode);
-                    } else {
-                        $newReduction = $this->helper->roundAmount(
-                            $currentReduction->getUnitPriceReduction() + ($delta / $lineItem->getQuantity()),
-                            $currencyCode);
-                    }
-                    $appliedDelta = ($newReduction - $currentReduction->getUnitPriceReduction()) *
-                        $lineItem->getQuantity();
-                    if ($appliedDelta <= $delta &&
-                        $this->helper->compareAmounts($newReduction, $lineItem->getUnitPriceIncludingTax(),
-                            $currencyCode) <= 0) {
-                        $change = true;
-                        break;
-                    }
-
-                    $newDelta = \round((\abs($delta) - \pow(0.1, $digits + 1)) * ($positive ? 1 : - 1), 10);
-                    if (($positive xor $newDelta > 0) && $delta != 0) {
-                        break;
-                    }
-                    $delta = $newDelta;
-                }
-            }
-        }
-
-        if ($change) {
-            $currentReduction->setUnitPriceReduction($newReduction);
-            $newRemainder = $remainder - $appliedDelta;
-        } else {
-            $newRemainder = $remainder;
-        }
-
-        if ($index + 1 < \count($reductions) && $newRemainder != 0) {
-            return $this->distributeRoundingDifference($reductions, $index + 1, $newRemainder, $baseLineItems,
-                $currencyCode);
-        } else {
-            if ($newRemainder > \pow(0.1, $digits + 1)) {
-                throw new LocalizedException(\__('Could not distribute the rounding difference.'));
-            } else {
-                return $reductions;
-            }
-        }
-    }
-
-    /**
-     *
-     * @param \Wallee\Sdk\Model\LineItem[] $lineItems
-     * @param string $uniqueId
-     */
-    private function getLineItemByUniqueId(array $lineItems, $uniqueId)
-    {
-        foreach ($lineItems as $lineItem) {
-            if ($lineItem->getUniqueId() == $uniqueId) {
-                return $lineItem;
-            }
-        }
-        return null;
     }
 
     /**
