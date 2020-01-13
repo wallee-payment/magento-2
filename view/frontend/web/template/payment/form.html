@@ -44,7 +44,7 @@
             <div class="primary">
                 <button class="action primary checkout"
                         type="submit"
-                        data-bind="click: validateIframe,
+                        data-bind="click: validateWallee,
                         attr: {'title': $t('Place Order')},
                         enable: (getCode() == isChecked()),
                         css: {disabled: !isPlaceOrderActionAllowed()}"

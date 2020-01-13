@@ -18,7 +18,7 @@
 			<resource>Wallee_Payment::config</resource>
 			<group id="information" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 				<label>Information</label>
-				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/1.0.72/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
+				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/1.0.73/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
 				<field id="version" translate="label" type="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 					<label>Module Version</label>
 				</field>
@@ -43,6 +43,14 @@
 				<field id="space_view_id" translate="label" type="text" sortOrder="40" showInDefault="0" showInWebsite="1" showInStore="1">
 					<label>Space View Id</label>
 					<comment>The Space View Id allows to control the styling of the payment form and the payment page. It allows in multistore setups to adapt the payment form to different styling per substore without requiring a dedicated space.</comment>
+				</field>
+			</group>
+			<group id="checkout" translate="label" type="text" sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="0">
+				<label>Checkout</label>
+				<field id="integration_method" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+					<label>Payment Form Integration Method</label>
+					<comment>Define how the payment form should be integrated into the checkout.</comment>
+					<source_model>Wallee\Payment\Model\Config\Source\IntegrationMethod</source_model>
 				</field>
 			</group>
 			<group id="email" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">

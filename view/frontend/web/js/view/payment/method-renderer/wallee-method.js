@@ -40,7 +40,10 @@ define([
 		 */
 		initialize: function(){
 			this._super();
-			this.checkoutHandler = checkoutHandler(this.getFormId(), this.isActive.bind(this), this.createHandler.bind(this));
+			
+			if (window.checkoutConfig.wallee.integrationMethod == 'iframe') {
+				this.checkoutHandler = checkoutHandler(this.getFormId(), this.isActive.bind(this), this.createIframeHandler.bind(this));
+			}
 		},
 		
 		getFormId: function(){
@@ -71,7 +74,7 @@ define([
 			return window.checkoutConfig.payment[this.getCode()].imageUrl;
 		},
 		
-		createHandler: function(){
+		createIframeHandler: function(){
 			if (this.handler) {
 				this.checkoutHandler.selectPaymentMethod();
 			} else if (typeof window.IframeCheckoutHandler != 'undefined' && this.isActive() && this.checkoutHandler.validateAddresses()) {
@@ -113,19 +116,27 @@ define([
 		},
 		
 		selectPaymentMethod: function(){
-			this.checkoutHandler.updateAddresses(this._super.bind(this));
-			return true;
+			if (this.checkoutHandler) {
+				this.checkoutHandler.updateAddresses(this._super.bind(this));
+				return true;
+			} else {
+				return this._super();
+			}
 		},
 		
-		validateIframe: function(){
-			if (this.loadingIframe) {
-				return;
-			}
-			if (this.handler) {
-				if (this.checkoutHandler.isPrimaryActionReplaced()) {
-					this.handler.trigger();
+		validateWallee: function(){
+			if (window.checkoutConfig.wallee.integrationMethod == 'iframe') {
+				if (this.loadingIframe) {
+					return;
+				}
+				if (this.handler) {
+					if (this.checkoutHandler.isPrimaryActionReplaced()) {
+						this.handler.trigger();
+					} else {
+						this.handler.validate();
+					}
 				} else {
-					this.handler.validate();
+					this.placeOrder();
 				}
 			} else {
 				this.placeOrder();
@@ -169,15 +180,25 @@ define([
         },
 		
 		afterPlaceOrder: function(){
-			if (this.handler) {
+			var self = this;
+			
+			if (window.checkoutConfig.wallee.integrationMethod == 'iframe' && this.handler) {
 				this.handler.submit();
+			} else if (window.checkoutConfig.wallee.integrationMethod == 'lightbox' && typeof window.LightboxCheckoutHandler != 'undefined') {
+				window.LightboxCheckoutHandler.startPayment(this.getConfigurationId(), function(){
+					self.fallbackToPaymentPage();
+				});
 			} else {
-				fullScreenLoader.startLoader();
-				if (window.checkoutConfig.wallee.paymentPageUrl) {
-					window.location.replace(window.checkoutConfig.wallee.paymentPageUrl + "&paymentMethodConfigurationId=" + this.getConfigurationId());
-				} else {
-					window.location.replace(urlBuilder.build("wallee_payment/checkout/failure"));
-				}
+				this.fallbackToPaymentPage();
+			}
+		},
+		
+		fallbackToPaymentPage: function(){
+			fullScreenLoader.startLoader();
+			if (window.checkoutConfig.wallee.paymentPageUrl) {
+				window.location.replace(window.checkoutConfig.wallee.paymentPageUrl + "&paymentMethodConfigurationId=" + this.getConfigurationId());
+			} else {
+				window.location.replace(urlBuilder.build("wallee_payment/checkout/failure"));
 			}
 		},
 		
