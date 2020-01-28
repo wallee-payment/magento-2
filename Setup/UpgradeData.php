@@ -34,29 +34,38 @@ class UpgradeData implements UpgradeDataInterface
 
     private function addOrderStatusShipped(ModuleDataSetupInterface $setup)
     {
-        $data = [
-            [
-                'status' => 'shipped_wallee',
-                'label' => \__('Shipped')
-            ]
-        ];
-        $setup->getConnection()->insertArray($setup->getTable('sales_order_status'), [
-            'status',
-            'label'
-        ], $data);
+        $select = $setup->getConnection()
+            ->select()
+            ->from($setup->getTable('sales_order_status'), [
+            'status'
+        ])
+            ->where('status = ?', 'shipped_wallee');
 
-        $data = [
-            [
-                'status' => 'shipped_wallee',
-                'state' => 'processing',
-                'is_default' => 0
-            ]
-        ];
-        $setup->getConnection()->insertArray($setup->getTable('sales_order_status_state'),
-            [
+        if (count($setup->getConnection()->fetchAll($select)) == 0) {
+            $data = [
+                [
+                    'status' => 'shipped_wallee',
+                    'label' => \__('Shipped')
+                ]
+            ];
+            $setup->getConnection()->insertArray($setup->getTable('sales_order_status'), [
                 'status',
-                'state',
-                'is_default'
+                'label'
             ], $data);
+
+            $data = [
+                [
+                    'status' => 'shipped_wallee',
+                    'state' => 'processing',
+                    'is_default' => 0
+                ]
+            ];
+            $setup->getConnection()->insertArray($setup->getTable('sales_order_status_state'),
+                [
+                    'status',
+                    'state',
+                    'is_default'
+                ], $data);
+        }
     }
 }
