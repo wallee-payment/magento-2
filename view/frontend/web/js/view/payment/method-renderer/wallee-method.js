@@ -182,6 +182,8 @@ define([
 		afterPlaceOrder: function(){
 			var self = this;
 			
+			fullScreenLoader.startLoader();
+			
 			if (window.checkoutConfig.wallee.integrationMethod == 'iframe' && this.handler) {
 				this.handler.submit();
 			} else if (window.checkoutConfig.wallee.integrationMethod == 'lightbox' && typeof window.LightboxCheckoutHandler != 'undefined') {
