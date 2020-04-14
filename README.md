@@ -10,7 +10,13 @@ This repository contains the Magento 2.3 extension that enables to process payme
 
 ## Documentation
 
-* [Documentation](https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/1.0.75/docs/en/documentation.html)
+* [Documentation](https://plugin-documentation.wallee.com/wallee-payment/magento-2.3/1.0.76/docs/en/documentation.html)
+
+
+## Support
+
+Support queries can be issued on the [wallee support site](https://app-wallee.com/space/select?target=/support).
+
 
 ## Supported One Step Checkouts
 
@@ -22,4 +28,4 @@ We do provide special integrations for the following one step checkouts:
 
 ## License
 
-Please see the [license file](https://github.com/wallee-payment/magento-2.3/blob/1.0.75/LICENSE) for more information.
+Please see the [license file](https://github.com/wallee-payment/magento-2.3/blob/1.0.76/LICENSE) for more information.
