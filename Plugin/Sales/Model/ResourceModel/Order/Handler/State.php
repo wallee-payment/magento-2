@@ -20,10 +20,13 @@ class State
 
     public function aroundCheck(StateHandler $stateHandler, callable $proceed, Order $order)
     {
-        if ($order->getState() == Order::STATE_PROCESSING && $order->getPayment()->getMethodInstance() instanceof Adapter &&
-            $this->hasOpenInvoices($order)) {
+        if ($order->getState() == Order::STATE_PROCESSING
+            && $order->getPayment()->getMethodInstance() instanceof Adapter
+            && $this->hasOpenInvoices($order)) {
             if ($order->hasShipments()) {
-                $order->setState(Order::STATE_PROCESSING)->setStatus('shipped_wallee');
+                if ($order->getStatus() == $order->getConfig()->getStateDefaultStatus(Order::STATE_PROCESSING)) {
+                    $order->setState(Order::STATE_PROCESSING)->setStatus('shipped_wallee');
+                }
                 return $order;
             } else if ($order->getIsVirtual()) {
                 return $order;
