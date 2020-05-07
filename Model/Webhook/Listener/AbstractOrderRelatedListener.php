@@ -109,7 +109,7 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
                     return;
                 }
                 $this->lock($order);
-                $this->process($entity, $this->loadOrder($order->getId()));
+                $this->process($this->loadEntity($request), $this->loadOrder($order->getId()));
             }
             $connection->commit();
         } catch (\Exception $e) {
