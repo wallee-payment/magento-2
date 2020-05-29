@@ -263,6 +263,12 @@ class TransactionService extends AbstractTransactionService
     {
         for ($i = 0; $i < 5; $i ++) {
             try {
+                $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
+                    ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+                if ($quote->getWalleeSpaceId() != $spaceId) {
+                    return $this->createTransactionByQuote($quote);
+                }
+                
                 $transaction = $this->apiClient->getService(TransactionApiService::class)->read(
                     $quote->getWalleeSpaceId(), $quote->getWalleeTransactionId());
                 if (! ($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
