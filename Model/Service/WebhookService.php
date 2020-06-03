@@ -37,7 +37,7 @@ use Wallee\Sdk\Service\WebhookListenerService;
 use Wallee\Sdk\Service\WebhookUrlService;
 
 /**
- * Service to handler webhooks.
+ * Service to handle webhooks.
  */
 class WebhookService
 {
