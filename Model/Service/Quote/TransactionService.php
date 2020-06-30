@@ -268,7 +268,7 @@ class TransactionService extends AbstractTransactionService
                 if ($quote->getWalleeSpaceId() != $spaceId) {
                     return $this->createTransactionByQuote($quote);
                 }
-                
+
                 $transaction = $this->apiClient->getService(TransactionApiService::class)->read(
                     $quote->getWalleeSpaceId(), $quote->getWalleeTransactionId());
                 if (! ($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
@@ -400,7 +400,9 @@ class TransactionService extends AbstractTransactionService
         $address->setOrganizationName(
             $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCompany()), 100));
         $address->setPhoneNumber($customerAddress->getTelephone());
-        $address->setPostalState($customerAddress->getRegionCode());
+        if (! empty($customerAddress->getCountryId()) && ! empty($customerAddress->getRegionCode())) {
+            $address->setPostalState($customerAddress->getCountryId() . '-' . $customerAddress->getRegionCode());
+        }
         $address->setPostCode(
             $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPostcode()), 40));
         $address->setStreet($this->helper->fixLength($customerAddress->getStreetFull(), 300));
