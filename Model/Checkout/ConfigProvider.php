@@ -111,6 +111,10 @@ class ConfigProvider implements ConfigProviderInterface
             ScopeInterface::SCOPE_STORE, $quote->getStoreId());
         $config['wallee']['integrationMethod'] = $integrationMethod;
 
+        $config['wallee']['restoreCartUrl'] = $quote->getStore()->getUrl('wallee_payment/checkout/restoreCart', [
+            '_secure' => true
+        ]);
+
         if ($integrationMethod == IntegrationMethod::IFRAME) {
             try {
                 $config['wallee']['javascriptUrl'] = $this->transactionService->getJavaScriptUrl($quote);

@@ -182,6 +182,8 @@ define([
 		afterPlaceOrder: function(){
 			var self = this;
 			
+			window.history.pushState({}, document.title, window.checkoutConfig.wallee.restoreCartUrl);
+			
 			fullScreenLoader.startLoader();
 			
 			if (window.checkoutConfig.wallee.integrationMethod == 'iframe' && this.handler) {
