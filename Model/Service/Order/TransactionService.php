@@ -205,7 +205,7 @@ class TransactionService extends AbstractTransactionService
                 // Try to update the transaction again, if a versioning exception occurred.
             }
         }
-        throw new VersioningException();
+        throw new VersioningException(__FUNCTION__);
     }
 
     /**
