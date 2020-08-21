@@ -14,7 +14,7 @@
 	<default>
 		<wallee_payment>
 			<information>
-				<version>1.0.83</version>
+				<version>1.0.84</version>
 				<sdk_version>2.0.18</sdk_version>
 			</information>
 			<general>
