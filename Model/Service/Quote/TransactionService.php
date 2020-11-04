@@ -5,7 +5,7 @@
  * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com/).
  *
  * @package Wallee_Payment
- * @author customweb GmbH (http://www.customweb.com/)
+ * @author wallee AG (http://www.wallee.com/)
  * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
  */
 namespace Wallee\Payment\Model\Service\Quote;
@@ -170,17 +170,31 @@ class TransactionService extends AbstractTransactionService
     /**
      * Gets the payment methods that can be used with the given quote.
      *
-     * @param Quote $quote
-     * @return \Wallee\Sdk\Model\PaymentMethodConfiguration[]
+	 * @param Quote $quote
+	 * @return \Wallee\Sdk\Model\PaymentMethodConfiguration
+	 * @throws ApiException
+	 * @throws VersioningException
+	 * @throws \Wallee\Payment\Model\ApiClientException
+	 * @throws \Wallee\Sdk\Http\ConnectionException
      */
     public function getPossiblePaymentMethods(Quote $quote)
     {
-        if (! \array_key_exists($quote->getId(), $this->possiblePaymentMethodCache) ||
-            $this->possiblePaymentMethodCache[$quote->getId()] == null) {
+        if (
+        	! \array_key_exists($quote->getId(), $this->possiblePaymentMethodCache) ||
+            is_null($this->possiblePaymentMethodCache[$quote->getId()])
+		) {
             $transaction = $this->getTransactionByQuote($quote);
+			$integrationMethod = $this->scopeConfig->getValue(
+				'wallee_payment/checkout/integration_method',
+				ScopeInterface::SCOPE_STORE,
+				$quote->getStoreId()
+			);
             try {
-                $paymentMethods = $this->apiClient->getService(TransactionApiService::class)->fetchPossiblePaymentMethods(
-                    $transaction->getLinkedSpaceId(), $transaction->getId());
+                $paymentMethods = $this->apiClient->getApiClient()->getTransactionService()->fetchPaymentMethods(
+                    $transaction->getLinkedSpaceId(),
+					$transaction->getId(),
+					$integrationMethod
+				);
             } catch (ApiException $e) {
                 $this->possiblePaymentMethodCache[$quote->getId()] = [];
                 throw $e;
@@ -247,7 +261,7 @@ class TransactionService extends AbstractTransactionService
         $createTransaction->setAutoConfirmationEnabled(false);
         $createTransaction->setChargeRetryEnabled(false);
         $this->assembleTransactionDataFromQuote($createTransaction, $quote);
-        $transaction = $this->apiClient->getService(TransactionApiService::class)->create($spaceId, $createTransaction);
+        $transaction = $this->apiClient->getApiClient()->getTransactionService()->create($spaceId, $createTransaction);
         $this->updateQuote($quote, $transaction);
         return $transaction;
     }
