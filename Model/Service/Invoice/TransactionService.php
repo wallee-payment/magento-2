@@ -151,9 +151,16 @@ class TransactionService extends AbstractTransactionService
         } catch (NoSuchEntityException $e) {}
 
         $authorizationTransaction = $payment->getAuthorizationTransaction();
-        $authorizationTransaction->close(false);
-        $invoice->getOrder()
-            ->addRelatedObject($invoice)
-            ->addRelatedObject($authorizationTransaction);
+        if($authorizationTransaction) {
+            $authorizationTransaction->close(false);
+            $invoice->getOrder()
+                ->addRelatedObject($invoice)
+                ->addRelatedObject($authorizationTransaction);
+        }
+        else {
+            throw new \Magento\Framework\Exception\LocalizedException(
+                \__('The capture of the invoice failed in the store: %1.',
+                    \__('The associated authorization transaction for the payment could not be found.')));
+        }
     }
 }

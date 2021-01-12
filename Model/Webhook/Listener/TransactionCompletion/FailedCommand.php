@@ -51,11 +51,19 @@ class FailedCommand extends AbstractCommand
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $payment = $order->getPayment();
             $authTransaction = $payment->getAuthorizationTransaction();
-            $authTransaction->setIsClosed(false);
-
-            $order->addRelatedObject($invoice);
-            $order->addRelatedObject($authTransaction);
-            $this->orderRepository->save($order);
+            if($authTransaction) {
+                $authTransaction->setIsClosed(false);
+    
+                $order->addRelatedObject($invoice);
+                $order->addRelatedObject($authTransaction);
+                $this->orderRepository->save($order);
+            }
+            else {
+                throw new \Magento\Framework\Exception\LocalizedException(
+                \__('Failing authorization in store failed: %1.',
+                    \__('The associated authorization transaction for the payment could not be found.')));
+            
+            }
         }
     }
 }
