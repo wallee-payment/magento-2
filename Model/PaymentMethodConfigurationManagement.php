@@ -117,7 +117,11 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
     public function synchronize(OutputInterface $output = null)
     {
         $existingConfigurations = $this->paymentMethodConfigurationRepository->getList(
-            $this->searchCriteriaBuilder->create())
+            $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
+                [
+                    PaymentMethodConfiguration::STATE_ACTIVE,
+                    PaymentMethodConfiguration::STATE_INACTIVE
+                ], 'in')->create())
             ->getItems();
         foreach ($existingConfigurations as $existingConfiguration) {
             /** @var PaymentMethodConfiguration $existingConfiguration */
