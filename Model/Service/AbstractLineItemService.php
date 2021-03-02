@@ -285,7 +285,7 @@ abstract class AbstractLineItemService
                     $attribute = new LineItemAttributeCreate();
                     $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($label), 512));
                     $attribute->setValue($this->helper->fixLength($this->helper->getFirstLine($value), 512));
-                    $attributes['product_' . $productAttributeCode] = $attribute;
+                    $attributes['product_' . $this->helper->fixLength($productAttributeCode, 32)] = $attribute;
                 }
             }
         }

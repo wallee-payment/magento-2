@@ -167,7 +167,10 @@ class Data extends AbstractHelper
      */
     public function getFirstLine($string)
     {
-        return \rtrim(\strtok($string, "\n"));
+        if (\is_array($string)) {
+            $string = \implode(', ', $string);
+        }
+        return \rtrim(\strtok((string) $string, "\n"));
     }
 
     /**
