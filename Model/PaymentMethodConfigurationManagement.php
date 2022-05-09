@@ -119,8 +119,9 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         $existingConfigurations = $this->paymentMethodConfigurationRepository->getList(
             $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
                 [
-                    PaymentMethodConfiguration::STATE_ACTIVE,
-                    PaymentMethodConfiguration::STATE_INACTIVE
+		    PaymentMethodConfiguration::STATE_ACTIVE,
+		    PaymentMethodConfiguration::STATE_INACTIVE,
+		    PaymentMethodConfiguration::STATE_HIDDEN
                 ], 'in')->create())
             ->getItems();
         foreach ($existingConfigurations as $existingConfiguration) {
