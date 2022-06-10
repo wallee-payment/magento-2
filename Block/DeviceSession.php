@@ -70,9 +70,15 @@ class DeviceSession extends \Magento\Framework\View\Element\Template
      */
     public function getScriptUrl()
     {
+        $device = $this->scopeConfig->getValue('wallee_payment/checkout/fingerprint', ScopeInterface::SCOPE_STORE, $this->_storeManager->getStore());
+        if ($device!=1) {
+            return false;
+        }
+
         $baseUrl = \rtrim($this->scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
         $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
             ScopeInterface::SCOPE_STORE, $this->_storeManager->getStore());
+
         if (! empty($spaceId)) {
             return $baseUrl . '/s/' . $spaceId . '/payment/device.js?sessionIdentifier=';
         }

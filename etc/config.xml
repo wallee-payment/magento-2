@@ -14,7 +14,7 @@
 	<default>
 		<wallee_payment>
 			<information>
-				<version>1.1.7</version>
+				<version>1.1.8</version>
 				<sdk_version>2.1.6</sdk_version>
 			</information>
 			<general>
@@ -23,6 +23,7 @@
 			</general>
 			<checkout>
 				<integration_method>iframe</integration_method>
+				<fingerprint>1</fingerprint>
 			</checkout>
 			<email>
 				<order>1</order>

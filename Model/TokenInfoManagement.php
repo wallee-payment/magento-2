@@ -131,15 +131,20 @@ class TokenInfoManagement implements TokenInfoManagementInterface
             $tokenInfo->setData(TokenInfoInterface::CUSTOMER_ID, $tokenVersion->getToken()
                 ->getCustomerId());
             $tokenInfo->setData(TokenInfoInterface::NAME, $tokenVersion->getName());
-            $tokenInfo->setData(TokenInfoInterface::PAYMENT_METHOD_ID,
-                $this->paymentMethodConfigurationRepository->getByConfigurationId($tokenVersion->getLinkedSpaceId(),
+            try {
+                $tokenInfo->setData(TokenInfoInterface::PAYMENT_METHOD_ID,
+                    $this->paymentMethodConfigurationRepository->getByConfigurationId($tokenVersion->getLinkedSpaceId(),
+                        $tokenVersion->getPaymentConnectorConfiguration()
+                            ->getPaymentMethodConfiguration()
+                            ->getId())
+                        ->getId());
+                $tokenInfo->setData(TokenInfoInterface::CONNECTOR_ID,
                     $tokenVersion->getPaymentConnectorConfiguration()
-                        ->getPaymentMethodConfiguration()
-                        ->getId())
-                    ->getId());
-            $tokenInfo->setData(TokenInfoInterface::CONNECTOR_ID,
-                $tokenVersion->getPaymentConnectorConfiguration()
-                    ->getId());
+                        ->getId());
+            } catch (\Error $e) { //Catching, but not showing, ticket WAL-69414
+                $error = $e;
+            }
+
             $tokenInfo->setData(TokenInfoInterface::SPACE_ID, $tokenVersion->getLinkedSpaceId());
             $tokenInfo->setData(TokenInfoInterface::STATE, $tokenVersion->getToken()
                 ->getState());
