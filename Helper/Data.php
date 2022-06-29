@@ -156,6 +156,10 @@ class Data extends AbstractHelper
      */
     public function removeLinebreaks($string)
     {
+        if($string == NULL) //PHP8.1 does not support NULL on preg_replace
+        {
+            $string='';
+        }
         return \preg_replace("/\r|\n/", ' ', $string);
     }
 
