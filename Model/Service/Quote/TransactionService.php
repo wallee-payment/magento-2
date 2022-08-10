@@ -210,16 +210,13 @@ class TransactionService extends AbstractTransactionService
      *
      * @param Quote $quote
      * @param int $paymentMethodConfigurationId
-     * @param int $paymentMethodConfigurationSpaceId
      * @return boolean
      */
-    public function isPaymentMethodAvailable(Quote $quote, $paymentMethodConfigurationId, $paymentMethodConfigurationSpaceId)
+    public function isPaymentMethodAvailable(Quote $quote, $paymentMethodConfigurationId)
     {
         $possiblePaymentMethods = $this->getPossiblePaymentMethods($quote);
         foreach ($possiblePaymentMethods as $possiblePaymentMethod) {
-            if ($possiblePaymentMethod->getId() == $paymentMethodConfigurationId
-                && $possiblePaymentMethod->getSpaceId() == $paymentMethodConfigurationSpaceId
-	    ) {
+            if ($possiblePaymentMethod->getId() == $paymentMethodConfigurationId) {
                 return true;
             }
         }

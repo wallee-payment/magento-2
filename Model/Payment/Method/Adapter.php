@@ -200,15 +200,11 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
         if ($quote != null && $this->apiClient->checkApiClientData()) {
             $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
                 ScopeInterface::SCOPE_STORE, $quote->getStoreId());
-	    $paymentMethodConfiguration = $this->getPaymentMethodConfiguration();
-
-	    if (! empty($spaceId)) {
+            if (! empty($spaceId)) {
                 try {
-                    if (!$this->transactionService->isPaymentMethodAvailable(
-                        $quote,
-                        $paymentMethodConfiguration->getConfigurationId(),
-                        $paymentMethodConfiguration->getSpaceId())
-		    ) {
+                    if (! $this->transactionService->isPaymentMethodAvailable($quote,
+                        $this->getPaymentMethodConfiguration()
+                            ->getConfigurationId())) {
                         return false;
                     }
                 } catch (\Exception $e) {

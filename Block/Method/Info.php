@@ -205,8 +205,7 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function formatAmount($amount)
     {
-        //NULL was changed to 0 because PHP8.1 does not allow NULL as parameter
-        return $this->priceCurrency->format($amount, 0, 0, 0, $this->getTransaction()
+        return $this->priceCurrency->format($amount, null, null, null, $this->getTransaction()
             ->getCurrency());
     }
 
