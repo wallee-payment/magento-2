@@ -19,6 +19,7 @@ use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\Document as DocumentHelper;
 use Wallee\Payment\Helper\Locale as LocaleHelper;
+use Magento\Framework\Url as UrlHelper;
 use Wallee\Payment\Model\Provider\LabelDescriptorGroupProvider;
 use Wallee\Payment\Model\Provider\LabelDescriptorProvider;
 use Wallee\Sdk\Model\TransactionState;
@@ -28,6 +29,12 @@ use Wallee\Sdk\Model\TransactionState;
  */
 class Info extends \Magento\Payment\Block\Info
 {
+
+    /**
+     *
+     * @var urlHelper
+     */
+    protected $urlHelper;
 
     /**
      *
@@ -103,7 +110,7 @@ class Info extends \Magento\Payment\Block\Info
      * @param array $data
      */
     public function __construct(Context $context, PriceCurrencyInterface $priceCurrency, Registry $registry,
-        Helper $helper, LocaleHelper $localeHelper, DocumentHelper $documentHelper,
+        Helper $helper, LocaleHelper $localeHelper, DocumentHelper $documentHelper, UrlHelper $urlHelper,
         TransactionInfoRepositoryInterface $transactionInfoRepository, LabelDescriptorProvider $labelDescriptorProvider,
         LabelDescriptorGroupProvider $labelDescriptorGroupProvider, array $data = [])
     {
@@ -113,6 +120,7 @@ class Info extends \Magento\Payment\Block\Info
         $this->helper = $helper;
         $this->localeHelper = $localeHelper;
         $this->documentHelper = $documentHelper;
+        $this->urlHelper = $urlHelper;
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->labelDescriptorProvider = $labelDescriptorProvider;
         $this->labelDescriptorGroupProvider = $labelDescriptorGroupProvider;
@@ -203,6 +211,7 @@ class Info extends \Magento\Payment\Block\Info
      * @param float $amount
      * @return number
      */
+    #[\ReturnTypeWillChange]
     public function formatAmount($amount)
     {
         //NULL was changed to 0 because PHP8.1 does not allow NULL as parameter
@@ -215,6 +224,7 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return string
      */
+    #[\ReturnTypeWillChange]
     public function getTransactionUrl()
     {
         return \rtrim($this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/') .
@@ -227,6 +237,7 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return string
      */
+    #[\ReturnTypeWillChange]
     public function getCustomerUrl()
     {
         return \rtrim($this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/') .
@@ -239,6 +250,7 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return \Wallee\Payment\Model\TransactionInfo|false
      */
+    #[\ReturnTypeWillChange]
     public function getTransaction()
     {
         if ($this->transaction === null) {
@@ -260,9 +272,10 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return string
      */
+    #[\ReturnTypeWillChange]
     public function getInvoiceDownloadUrl()
     {
-        return $this->getUrl('wallee_payment/order/downloadInvoice',
+        return $this->urlHelper->getUrl('wallee_payment/order/downloadInvoice',
             [
                 'order_id' => $this->getTransaction()
                     ->getOrderId()
@@ -274,9 +287,10 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return string
      */
+    #[\ReturnTypeWillChange]
     public function getPackingSlipDownloadUrl()
     {
-        return $this->getUrl('wallee_payment/order/downloadPackingSlip',
+        return $this->urlHelper->getUrl('wallee_payment/order/downloadPackingSlip',
             [
                 'order_id' => $this->getTransaction()
                     ->getOrderId()
@@ -288,9 +302,10 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return string
      */
+    #[\ReturnTypeWillChange]
     public function getRefundDownloadUrl()
     {
-        return $this->getUrl('wallee_payment/order/downloadRefund',
+        return $this->urlHelper('wallee_payment/order/downloadRefund',
             [
                 'creditmemo_id' => $this->registry->registry('current_creditmemo')
                     ->getId()
@@ -302,6 +317,7 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return boolean
      */
+    #[\ReturnTypeWillChange]
     public function isInvoiceDownloadAllowed()
     {
         if ($this->getTransaction()) {
@@ -322,6 +338,7 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return boolean
      */
+    #[\ReturnTypeWillChange]
     public function isPackingSlipDownloadAllowed()
     {
         if ($this->getTransaction()) {
@@ -342,6 +359,7 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return boolean
      */
+    #[\ReturnTypeWillChange]
     public function isRefundDownloadAllowed()
     {
         $creditmemo = $this->registry->registry('current_creditmemo');
@@ -363,6 +381,7 @@ class Info extends \Magento\Payment\Block\Info
      *
      * @return LabelGroup[]
      */
+    #[\ReturnTypeWillChange]
     public function getGroupedLabels()
     {
         if ($this->getTransaction() && $this->getTransaction()->getLabels()) {
@@ -400,6 +419,7 @@ class Info extends \Magento\Payment\Block\Info
      * @param array $translatedString
      * @return string|NULL
      */
+    #[\ReturnTypeWillChange]
     public function translate($translatedString)
     {
         return $this->localeHelper->translate($translatedString);

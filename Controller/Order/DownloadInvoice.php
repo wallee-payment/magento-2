@@ -95,11 +95,13 @@ class DownloadInvoice extends \Wallee\Payment\Controller\Order
         $this->apiClient = $apiClient;
     }
 
+    #[\ReturnTypeWillChange]
     public function execute()
     {
         $result = $this->orderLoader->load($this->_request);
         if ($result instanceof ResultInterface) {
-            return $result;
+            $redirect = $this->resultFactory->create(\Magento\Framework\Controller\ResultFactory::TYPE_REDIRECT);
+            return $redirect->setUrl('/sales/order/history');
         }
 
         /** @var \Magento\Sales\Model\Order $order */
