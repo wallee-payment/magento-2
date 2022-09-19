@@ -215,4 +215,25 @@ class LineItem extends AbstractHelper
 
         return $this->ensureUniqueIds($items);
     }
+
+    /**
+     * Creates a Line Item specifically for a gift card.
+     *
+     * @param string $giftCardCode
+     * @param float $giftCardAmount
+     * @param string $currencyCode
+     * @return \Wallee\Sdk\Model\LineItemCreate
+     */
+    public function createGiftCardLineItem(string $giftCardCode, float $giftCardAmount, string $currencyCode) {
+        $giftCardLineItem = new LineItemCreate();
+        $giftCardLineItem->setAmountIncludingTax(-$this->helper->roundAmount($giftCardAmount, $currencyCode));
+        $giftCardLineItem->setName('Gift card: ' . $giftCardCode);
+        $giftCardLineItem->setQuantity(1);
+        $giftCardLineItem->setSku($giftCardCode);
+        $giftCardLineItem->setUniqueId($giftCardCode);
+        $giftCardLineItem->setShippingRequired(false);
+        $giftCardLineItem->setType(LineItemType::DISCOUNT);
+    
+        return $giftCardLineItem;
+    }
 }

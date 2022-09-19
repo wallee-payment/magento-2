@@ -21,6 +21,7 @@ use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
+use Wallee\Payment\Model\Service\Quote\GiftCardAccountWrapper;
 use Wallee\Sdk\Model\LineItemAttributeCreate;
 use Wallee\Sdk\Model\LineItemCreate;
 use Wallee\Sdk\Model\LineItemType;
@@ -87,6 +88,16 @@ abstract class AbstractLineItemService
     private $productRepository;
 
     /**
+     * Stores the gift card account object.
+     * This property is a wrapper, which will return the GiftCardAccountManagement if it exists.
+     * 
+     * @var GiftCardAccountWrapper
+     * 
+     * @see \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement
+     */
+    private $giftCardAccountManagement;
+
+    /**
      *
      * @param Helper $helper
      * @param LineItemHelper $lineItemHelper
@@ -97,11 +108,12 @@ abstract class AbstractLineItemService
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
      * @param ProductRepositoryInterface $productRepository
+     * @param GiftCardAccountWrapper $giftCardAccountManagement
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
         CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
-        ProductRepositoryInterface $productRepository)
+        ProductRepositoryInterface $productRepository, GiftCardAccountWrapper $giftCardAccountManagement = null)
     {
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
@@ -112,6 +124,7 @@ abstract class AbstractLineItemService
         $this->groupRegistry = $groupRegistry;
         $this->eventManager = $eventManager;
         $this->productRepository = $productRepository;
+        $this->giftCardAccountManagement = $giftCardAccountManagement;
     }
 
     /**
@@ -133,6 +146,22 @@ abstract class AbstractLineItemService
         $shippingLineItems = $this->convertShippingLineItem($entity);
         if ($shippingLineItems instanceof LineItemCreate) {
             $items[] = $shippingLineItems;
+        }
+
+        if ($this->giftCardAccountManagement instanceof \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement) {
+            /**
+             * @var Magento\GiftCardAccount\Model\Giftcardaccount
+             */
+            $giftCardaccount = $this->giftCardAccountManagement->getListByQuoteId($entity->get()['entity_id']);
+
+            if ($giftCardaccount instanceof \Magento\GiftCardAccount\Model\Giftcardaccount && count($giftCardaccount->getGiftCards()) > 0) {
+                $giftCardCode = current($giftCardaccount->getGiftCards());
+                $ammount = $giftCardaccount->getGiftCardsAmountUsed();
+                $currencyCode = $this->getCurrencyCode($entity);
+
+                // Builds the LineItem with gift card ammount.
+                $items[] = $this->lineItemHelper->createGiftCardLineItem($giftCardCode, $ammount, $currencyCode);
+            }
         }
 
         $transport = new DataObject([

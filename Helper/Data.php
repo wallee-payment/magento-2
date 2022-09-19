@@ -66,7 +66,7 @@ class Data extends AbstractHelper
      * Gets the fraction digits of the given currency.
      *
      * @param string $currencyCode
-     * @return number
+     * @return float
      */
     public function getCurrencyFractionDigits($currencyCode)
     {
@@ -83,7 +83,7 @@ class Data extends AbstractHelper
      *
      * @param float $amount
      * @param string $currencyCode
-     * @return number
+     * @return float
      */
     public function roundAmount($amount, $currencyCode)
     {
@@ -96,7 +96,7 @@ class Data extends AbstractHelper
      * @param float $amount1
      * @param float $amount2
      * @param string $currencyCode
-     * @return number
+     * @return float
      */
     public function compareAmounts($amount1, $amount2, $currencyCode)
     {

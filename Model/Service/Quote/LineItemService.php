@@ -67,14 +67,16 @@ class LineItemService extends AbstractLineItemService
      * @param EventManagerInterface $eventManager
      * @param ProductRepositoryInterface $productRepository
      * @param ProductConfigurationHelper $productConfigurationHelper
+     * @param GiftCardAccountWrapper $giftCardAccountManagement
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
         CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
-        ProductRepositoryInterface $productRepository, ProductConfigurationHelper $productConfigurationHelper)
+        ProductRepositoryInterface $productRepository, ProductConfigurationHelper $productConfigurationHelper,
+        GiftCardAccountWrapper $giftCardAccountManagement)
     {
         parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
-            $groupRegistry, $eventManager, $productRepository);
+            $groupRegistry, $eventManager, $productRepository, $giftCardAccountManagement);
         $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
@@ -82,7 +84,7 @@ class LineItemService extends AbstractLineItemService
     }
 
     /**
-     * Convers the quote's items to line items.
+     * Converts the quote's items to line items.
      *
      * @param Quote $quote
      * @return \Wallee\Sdk\Model\LineItemCreate[]
