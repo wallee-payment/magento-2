@@ -15,6 +15,7 @@ use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
@@ -90,9 +91,9 @@ abstract class AbstractLineItemService
     /**
      * Stores the gift card account object.
      * This property is a wrapper, which will return the GiftCardAccountManagement if it exists.
-     * 
+     *
      * @var GiftCardAccountWrapper
-     * 
+     *
      * @see \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement
      */
     private $giftCardAccountManagement;
@@ -419,9 +420,18 @@ abstract class AbstractLineItemService
      */
     protected function getShippingTax($entity)
     {
-        $customerGroup = $this->groupRegistry->retrieve($entity->getCustomerGroupId());
+        $taxClassId = null;
+        try {
+            $groupId = $entity->getCustomerGroupId();
+            if ($groupId) {
+                $customerGroup = $this->groupRegistry->retrieve($groupId);
+                $taxClassId = $customerGroup->getTaxClassId();
+            }
+        } catch (NoSuchEntityException $e) {
+            // group not found, do nothing
+        }
         $taxRateRequest = $this->taxCalculation->getRateRequest($entity->getShippingAddress(),
-            $entity->getBillingAddress(), $customerGroup->getTaxClassId(), $entity->getStore());
+            $entity->getBillingAddress(), $taxClassId, $entity->getStore());
         $shippingTaxClassId = $this->scopeConfig->getValue(
             \Magento\Tax\Model\Config::CONFIG_XML_PATH_SHIPPING_TAX_CLASS, ScopeInterface::SCOPE_STORE,
             $entity->getStoreId());
