@@ -11,6 +11,7 @@
 namespace Wallee\Payment\Observer;
 
 use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\ObjectManagerInterface;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
@@ -242,9 +243,18 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      */
     protected function getTax($entity, $code)
     {
-        $customerGroup = $this->groupRegistry->retrieve($entity->getCustomerGroupId());
+        $taxClassId = null;
+        try {
+            $groupId = $entity->getCustomerGroupId();
+            if ($groupId) {
+                $customerGroup = $this->groupRegistry->retrieve($groupId);
+                $taxClassId = $customerGroup->getTaxClassId();
+            }
+        } catch (NoSuchEntityException $e) {
+            // group not found, do nothing
+        }
         $taxRateRequest = $this->taxCalculation->getRateRequest($entity->getShippingAddress(),
-            $entity->getBillingAddress(), $customerGroup->getTaxClassId(), $entity->getStore());
+            $entity->getBillingAddress(), $taxClassId, $entity->getStore());
 
         /* @var \Fooman\Surcharge\Helper\Surcharge $surchargeHelper */
         $surchargeHelper = $this->objectManager->get('Fooman\Surcharge\Helper\Surcharge');
