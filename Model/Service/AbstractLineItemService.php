@@ -15,7 +15,6 @@ use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
@@ -91,9 +90,9 @@ abstract class AbstractLineItemService
     /**
      * Stores the gift card account object.
      * This property is a wrapper, which will return the GiftCardAccountManagement if it exists.
-     *
+     * 
      * @var GiftCardAccountWrapper
-     *
+     * 
      * @see \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement
      */
     private $giftCardAccountManagement;
@@ -418,8 +417,7 @@ abstract class AbstractLineItemService
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
      * @return TaxCreate
      */
-    protected function getShippingTax($entity)
-    {
+    protected function getShippingTax($entity) {
         $taxClassId = null;
         try {
             $groupId = $entity->getCustomerGroupId();
