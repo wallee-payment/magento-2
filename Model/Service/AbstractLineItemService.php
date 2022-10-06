@@ -15,6 +15,7 @@ use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
