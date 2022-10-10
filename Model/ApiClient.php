@@ -12,6 +12,7 @@ namespace Wallee\Payment\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
+use Wallee\Payment\Model\ApiClientHeaders;
 
 /**
  * Service to provide wallee API client.
@@ -84,6 +85,8 @@ class ApiClient
                 $client = new \Wallee\Sdk\ApiClient($userId, $this->encrypter->decrypt($applicationKey));
                 $client->setBasePath($this->getBaseGatewayUrl() . '/api');
                 $this->apiClient = $client;
+                $apiClientHeaders = new ApiClientHeaders();
+                $apiClientHeaders->addHeaders($this->apiClient);
             } else {
                 throw new \Wallee\Payment\Model\ApiClientException(
                     'The wallee API user data are incomplete.');

@@ -20,6 +20,8 @@ use Magento\Sales\Model\Order\Invoice;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Sdk\Model\LineItemCreate;
 use Wallee\Sdk\Model\LineItemType;
+use Magento\Framework\App\Helper\Context;
+use Magento\Framework\Module\ModuleListInterface;
 
 /**
  * Observer to collect the line items for the amasty checkout.
@@ -47,15 +49,23 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
 
     /**
      *
+     * @var ModuleListInterface
+     */
+    protected $_moduleList;
+
+    /**
+     *
      * @param ObjectManagerInterface $objectManager
      * @param ModuleManager $moduleManager
      * @param Helper $helper
+     * @param ModuleListInterface $moduleList
      */
-    public function __construct(ObjectManagerInterface $objectManager, ModuleManager $moduleManager, Helper $helper)
+    public function __construct(ObjectManagerInterface $objectManager, ModuleManager $moduleManager, Helper $helper, ModuleListInterface $moduleList)
     {
         $this->objectManager = $objectManager;
         $this->moduleManager = $moduleManager;
         $this->helper = $helper;
+        $this->_moduleList = $moduleList;
     }
 
     public function execute(Observer $observer)
@@ -92,7 +102,13 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
      */
     protected function convertGiftWrapLineItem($entity)
     {
-        $feeRepository = $this->objectManager->get('Amasty\Checkout\Api\FeeRepositoryInterface');
+        $moduleInfo = $this->_moduleList->getOne('Amasty_Checkout');
+
+        if (version_compare($moduleInfo['setup_version'], '4.0.0', '>=')) {
+            $feeRepository = $this->objectManager->get('Amasty\CheckoutCore\Api\FeeRepositoryInterface');
+        } else {
+            $feeRepository = $this->objectManager->get('Amasty\Checkout\Api\FeeRepositoryInterface');
+        }
 
         $currency = null;
         $fee = null;
