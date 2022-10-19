@@ -69,7 +69,7 @@ class CaptureCommand extends AbstractCommand
                 /** @var \Magento\Sales\Model\Order\Payment $payment */
                 $payment = $order->getPayment();
                 $payment->registerCaptureNotification($entity->getAmount());
-                if (! ($invoice instanceof InvoiceInterface)) {
+                if (! ($invoice instanceof InvoiceInterface) && !empty($payment->getCreatedInvoice())) {
                     $invoice = $payment->getCreatedInvoice();
                     $order->addRelatedObject($invoice);
                 } else {
