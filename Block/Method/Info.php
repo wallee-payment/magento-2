@@ -15,6 +15,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\View\Element\Template\Context;
 use Magento\Sales\Model\Order\Payment;
+use Magento\Backend\Helper\Data as urlBackendHelper;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\Document as DocumentHelper;
@@ -98,11 +99,18 @@ class Info extends \Magento\Payment\Block\Info
 
     /**
      *
+     * @var urlBackendHelper
+     */
+    private $urlBackendHelper;
+
+    /**
+     *
      * @param Context $context
      * @param PriceCurrencyInterface $priceCurrency
      * @param Registry $registry
      * @param Helper $helper
      * @param LocaleHelper $localeHelper
+     * @param urlBackendHelper $urlBackendHelper
      * @param DocumentHelper $documentHelper
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param LabelDescriptorProvider $labelDescriptorProvider
@@ -110,7 +118,7 @@ class Info extends \Magento\Payment\Block\Info
      * @param array $data
      */
     public function __construct(Context $context, PriceCurrencyInterface $priceCurrency, Registry $registry,
-        Helper $helper, LocaleHelper $localeHelper, DocumentHelper $documentHelper, UrlHelper $urlHelper,
+        Helper $helper, LocaleHelper $localeHelper, DocumentHelper $documentHelper, UrlHelper $urlHelper, urlBackendHelper $urlBackendHelper,
         TransactionInfoRepositoryInterface $transactionInfoRepository, LabelDescriptorProvider $labelDescriptorProvider,
         LabelDescriptorGroupProvider $labelDescriptorGroupProvider, array $data = [])
     {
@@ -124,6 +132,7 @@ class Info extends \Magento\Payment\Block\Info
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->labelDescriptorProvider = $labelDescriptorProvider;
         $this->labelDescriptorGroupProvider = $labelDescriptorGroupProvider;
+        $this->urlBackendHelper = $urlBackendHelper;
     }
 
     /**
@@ -218,6 +227,15 @@ class Info extends \Magento\Payment\Block\Info
         return $this->priceCurrency->format($amount, 0, 0, 0, $this->getTransaction()
             ->getCurrency());
     }
+    /**
+     * Gets the proper URL if youre in backend or frontend
+     *
+     * @return string
+     */
+    public function isHelperBackend()
+    {
+        return ($this->getArea() == \Magento\Framework\App\Area::AREA_ADMINHTML)?"urlBackendHelper":"urlHelper";
+    }
 
     /**
      * Gets the URL to the transaction detail view in wallee.
@@ -275,7 +293,8 @@ class Info extends \Magento\Payment\Block\Info
     #[\ReturnTypeWillChange]
     public function getInvoiceDownloadUrl()
     {
-        return $this->urlHelper->getUrl('wallee_payment/order/downloadInvoice',
+        $class_backend = $this->isHelperBackend();
+        return $this->$class_backend->getUrl('wallee_payment/order/downloadInvoice',
             [
                 'order_id' => $this->getTransaction()
                     ->getOrderId()
@@ -305,7 +324,8 @@ class Info extends \Magento\Payment\Block\Info
     #[\ReturnTypeWillChange]
     public function getRefundDownloadUrl()
     {
-        return $this->urlHelper('wallee_payment/order/downloadRefund',
+        $class_backend = $this->isHelperBackend();
+        return $this->$class_backend->getUrl('wallee_payment/order/downloadRefund',
             [
                 'creditmemo_id' => $this->registry->registry('current_creditmemo')
                     ->getId()
