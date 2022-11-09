@@ -309,7 +309,8 @@ class Info extends \Magento\Payment\Block\Info
     #[\ReturnTypeWillChange]
     public function getPackingSlipDownloadUrl()
     {
-        return $this->urlHelper->getUrl('wallee_payment/order/downloadPackingSlip',
+        $class_backend = $this->isHelperBackend();
+        return  $this->$class_backend->getUrl('wallee_payment/order/downloadPackingSlip',
             [
                 'order_id' => $this->getTransaction()
                     ->getOrderId()

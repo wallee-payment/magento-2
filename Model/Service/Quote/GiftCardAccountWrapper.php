@@ -14,5 +14,6 @@ namespace Wallee\Payment\Model\Service\Quote;
 if (class_exists('\Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement')) {
     class GiftCardAccountWrapper extends \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement {}
 } else {
+    // @codingStandardsIgnoreStart
     class GiftCardAccountWrapper {}
 }
