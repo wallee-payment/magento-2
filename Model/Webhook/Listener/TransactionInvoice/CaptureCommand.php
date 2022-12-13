@@ -82,7 +82,12 @@ class CaptureCommand extends AbstractCommand
                         }
                     }
                 }
-                $invoice->setWalleeCapturePending(false);
+
+                if ($invoice instanceof InvoiceInterface) {
+                    $invoice->setWalleeCapturePending(false);
+                } else {
+                    return false;
+                }
             }
 
             if ($transaction->getState() == TransactionState::COMPLETED) {
