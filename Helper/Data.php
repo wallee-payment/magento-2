@@ -14,7 +14,7 @@ use Magento\Framework\App\Area as AppArea;
 use Magento\Framework\App\State as AppState;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
-use Wallee\Payment\Model\Provider\CurrencyProvider;
+use Magento\Framework\Pricing\Helper\Data as MagentoCurrencyHelper;
 use Wallee\Sdk\Model\CriteriaOperator;
 use Wallee\Sdk\Model\EntityQueryFilter;
 use Wallee\Sdk\Model\EntityQueryFilterType;
@@ -32,24 +32,24 @@ class Data extends AbstractHelper
      * @var AppState
      */
     private $appState;
-
+    
     /**
      *
-     * @var CurrencyProvider
+     * @var MagentoCurrencyHelper
      */
-    private $currencyProvider;
+    private $magentoCurrencyHelper;
 
     /**
      *
      * @param Context $context
      * @param AppState $appState
-     * @param CurrencyProvider $currencyProvider
+     * @param MagentoCurrencyHelper $magentoCurrencyHelper
      */
-    public function __construct(Context $context, AppState $appState, CurrencyProvider $currencyProvider)
+    public function __construct(Context $context, AppState $appState, MagentoCurrencyHelper $magentoCurrencyHelper)
     {
         parent::__construct($context);
         $this->appState = $appState;
-        $this->currencyProvider = $currencyProvider;
+        $this->magentoCurrencyHelper = $magentoCurrencyHelper;
     }
 
     /**
@@ -87,11 +87,12 @@ class Data extends AbstractHelper
      */
     public function roundAmount($amount, $currencyCode)
     {
-        return \round($amount, $this->getCurrencyFractionDigits($currencyCode));
+        $roundedAmount = $this->magentoCurrencyHelper->currency($amount, false, false);
+        return $roundedAmount;
     }
 
     /**
-     * Compares the given amounts.
+     * Compares the given amounts.`
      *
      * @param float $amount1
      * @param float $amount2

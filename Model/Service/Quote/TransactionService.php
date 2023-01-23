@@ -373,6 +373,11 @@ class TransactionService extends AbstractTransactionService
         }
 
         $address = $this->convertAddress($quote->getBillingAddress());
+        // removing GDPR sensitive information
+        $address->setDateOfBirth('');
+        $address->setFamilyName('');
+        $address->setGivenName('');
+        $address->setStreet('');
         $address->setDateOfBirth($this->getDateOfBirth($quote->getCustomerDob(), $quote->getCustomerId()));
         $address->setEmailAddress($this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId()));
         $address->setGender($this->getGender($quote->getCustomerGender(), $quote->getCustomerId()));
@@ -393,6 +398,11 @@ class TransactionService extends AbstractTransactionService
         }
 
         $address = $this->convertAddress($quote->getShippingAddress());
+        // removing GDPR sensitive information
+        $address->setDateOfBirth('');
+        $address->setFamilyName('');
+        $address->setGivenName('');
+        $address->setStreet('');
         $address->setEmailAddress($this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId()));
         return $address;
     }

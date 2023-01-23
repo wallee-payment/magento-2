@@ -128,6 +128,15 @@ abstract class AbstractLineItemService
         $this->giftCardAccountManagement = $giftCardAccountManagement;
     }
 
+    /*
+    * @return bool
+    */
+    protected function checkIsAdmin() {
+        $om = \Magento\Framework\App\ObjectManager::getInstance();
+        $state =  $om->get('Magento\Framework\App\State');
+        return 'adminhtml' === $state->getAreaCode();
+    }
+
     /**
      * Convers the entity's items to line items.
      *
@@ -149,19 +158,21 @@ abstract class AbstractLineItemService
             $items[] = $shippingLineItems;
         }
 
-        if ($this->giftCardAccountManagement instanceof \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement) {
-            /**
-             * @var Magento\GiftCardAccount\Model\Giftcardaccount
-             */
-            $giftCardaccount = $this->giftCardAccountManagement->getListByQuoteId($entity->get()['entity_id']);
+        if (!$this->checkIsAdmin()) {
+            if ($this->giftCardAccountManagement instanceof \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement) {
+                /**
+                * @var Magento\GiftCardAccount\Model\Giftcardaccount
+                */
+                $giftCardaccount = $this->giftCardAccountManagement->getListByQuoteId($entity->get()['entity_id']);
 
-            if ($giftCardaccount instanceof \Magento\GiftCardAccount\Model\Giftcardaccount && count($giftCardaccount->getGiftCards()) > 0) {
-                $giftCardCode = current($giftCardaccount->getGiftCards());
-                $ammount = $giftCardaccount->getGiftCardsAmountUsed();
-                $currencyCode = $this->getCurrencyCode($entity);
+                if ($giftCardaccount instanceof \Magento\GiftCardAccount\Model\Giftcardaccount && count($giftCardaccount->getGiftCards()) > 0) {
+                    $giftCardCode = current($giftCardaccount->getGiftCards());
+                    $ammount = $giftCardaccount->getGiftCardsAmountUsed();
+                    $currencyCode = $this->getCurrencyCode($entity);
 
-                // Builds the LineItem with gift card ammount.
-                $items[] = $this->lineItemHelper->createGiftCardLineItem($giftCardCode, $ammount, $currencyCode);
+                    // Builds the LineItem with gift card ammount.
+                    $items[] = $this->lineItemHelper->createGiftCardLineItem($giftCardCode, $ammount, $currencyCode);
+                }
             }
         }
 
