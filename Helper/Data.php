@@ -87,7 +87,7 @@ class Data extends AbstractHelper
      */
     public function roundAmount($amount, $currencyCode)
     {
-        $roundedAmount = $this->magentoCurrencyHelper->currency($amount, false, false);
+        $roundedAmount = round($amount,2);
         return $roundedAmount;
     }
 
