@@ -373,6 +373,17 @@ class TransactionService extends AbstractTransactionService
         }
 
         $address = $this->convertAddress($quote->getBillingAddress());
+
+        $gdprEnabled = $this->scopeConfig->getValue('wallee_payment/gdpr/gdpr_enabled',
+            ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+
+        if ($gdprEnabled == 'enabled') {
+            // removing GDPR sensitive information
+            $address->setDateOfBirth('');
+            $address->setFamilyName('');
+            $address->setGivenName('');
+            $address->setStreet('');
+        }
         $address->setDateOfBirth($this->getDateOfBirth($quote->getCustomerDob(), $quote->getCustomerId()));
         $address->setEmailAddress($this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId()));
         $address->setGender($this->getGender($quote->getCustomerGender(), $quote->getCustomerId()));
@@ -393,6 +404,16 @@ class TransactionService extends AbstractTransactionService
         }
 
         $address = $this->convertAddress($quote->getShippingAddress());
+        $gdprEnabled = $this->scopeConfig->getValue('wallee_payment/gdpr/gdpr_enabled',
+            ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+
+        if ($gdprEnabled == 'enabled') {
+            // removing GDPR sensitive information
+            $address->setDateOfBirth('');
+            $address->setFamilyName('');
+            $address->setGivenName('');
+            $address->setStreet('');
+        }
         $address->setEmailAddress($this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId()));
         return $address;
     }

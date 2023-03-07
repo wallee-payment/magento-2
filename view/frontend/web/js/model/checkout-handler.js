@@ -67,7 +67,7 @@ define([
 		function hasAddressesChanged(){
 			var currentShippingAddress = covertToCacheableAddress(getCheckoutAdapter().getShippingAddress()),
 				currentBillingAddress = covertToCacheableAddress(quote.billingAddress());
-			
+
 			return !_.isEqual(shippingAddressCache, currentShippingAddress)
 				|| (!_.isEqual({}, currentBillingAddress) && !_.isEqual(billingAddressCache, currentBillingAddress));
 		}
@@ -136,11 +136,11 @@ define([
 			require(['wallee_checkout_adapter'], function(adapter){
 				pluginCheckoutAdapter = adapter;
 				pluginCheckoutAdapter.formId = formId;
-				checkAddresses();
+			//	checkAddresses(); Commenting this due it's affecting onestepcheckout plugin and doesn't affect regular checkout.
 			});
 		} else {
 			defaultCheckoutAdapter.formId = formId;
-			checkAddresses();
+			//checkAddresses(); Commenting this due it's affecting onestepcheckout plugin and doesn't affect regular checkout.
 		}
 		
 		return getInstance();

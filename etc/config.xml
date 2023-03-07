@@ -14,7 +14,7 @@
 	<default>
 		<wallee_payment>
 			<information>
-				<version>1.3.18</version>
+				<version>1.3.19</version>
 				<sdk_version>3.1.2</sdk_version>
 			</information>
 			<general>
@@ -28,6 +28,9 @@
 			<email>
 				<order>1</order>
 			</email>
+			<gdpr>
+				<gdpr_enabled>disabled</gdpr_enabled>
+			</gdpr>
 			<document>
 				<customer_download_invoice>1</customer_download_invoice>
 				<customer_download_packing_slip>1</customer_download_packing_slip>

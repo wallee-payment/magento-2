@@ -4,6 +4,8 @@ use \Magento\Framework\Setup\Patch\DataPatchInterface;
 use \Magento\Framework\Setup\Patch\PatchVersionInterface;
 use \Magento\Framework\Module\Setup\Migration;
 use \Magento\Framework\Setup\ModuleDataSetupInterface;
+use Magento\Framework\App\ResourceConnection;
+
 
 
 /**
@@ -13,17 +15,15 @@ use \Magento\Framework\Setup\ModuleDataSetupInterface;
 
 class UpdateStatusStateData implements DataPatchInterface, PatchVersionInterface
 {
-    private $status;
-
     /**
-     *
-     * @param \Wallee\Payment\Model\Author $status
-     */
+     * @var \Magento\Framework\Setup\ModuleDataSetupInterface
+    */
+    protected $moduleDataSetup;
 
     public function __construct(
-        \Magento\Sales\Model\Order\Status $status
+        ModuleDataSetupInterface $moduleDataSetup
     ) {
-        $this->status = $status;
+        $this->moduleDataSetup = $moduleDataSetup;
     }
 
     /**
@@ -31,12 +31,9 @@ class UpdateStatusStateData implements DataPatchInterface, PatchVersionInterface
      * @return:none
      */
     public function apply(){
-        $object_Manager = \Magento\Framework\App\ObjectManager::getInstance();
-        $get_resource   = $object_Manager->get('Magento\Framework\App\ResourceConnection');
-        $connection     = $get_resource->getConnection(); // get connection
-        
-        $update_sql = "UPDATE sales_order_status_state SET is_default = 1 WHERE status = 'processing_wallee'";
-        $connection->query($update_sql);
+        $tableName  = $this->moduleDataSetup->getTable('sales_order_status_state');
+        $updateSql = "UPDATE " . $tableName . " SET is_default = 1 WHERE status = 'processing_wallee'";
+        $this->moduleDataSetup->getConnection()->query($updateSql);
     }
 
     /**
@@ -53,7 +50,7 @@ class UpdateStatusStateData implements DataPatchInterface, PatchVersionInterface
      */
 
     public static function getVersion(){
-        return '1.3.20';
+        return '1.3.30';
     }
 
     /**

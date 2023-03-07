@@ -18,7 +18,7 @@
 			<resource>Wallee_Payment::config</resource>
 			<group id="information" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 				<label>Information</label>
-				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2/1.3.18/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
+				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2/1.3.19/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
 				<field id="version" translate="label" type="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 					<label>Module Version</label>
 				</field>
@@ -64,6 +64,15 @@
 					<label>Send Order Email</label>
 					<comment>Send the Magento store's order email.</comment>
 					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+			</group>
+
+			<group id="gdpr" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+				<label>GDPR Settings</label>
+				<field id="gdpr_enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+					<label>GDPR Mode</label>
+					<comment>Enabled: this can impact certain payment methods and slow down the payment process</comment>
+					<source_model>Wallee\Payment\Model\Config\Source\GdprMode</source_model>
 				</field>
 			</group>
 			<group id="document" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">

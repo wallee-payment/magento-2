@@ -57,7 +57,7 @@ class AddSetupData implements DataPatchInterface, PatchVersionInterface
      */
 
     public static function getVersion(){
-        return '1.3.20';
+        return '1.3.30';
     }
 
     /**

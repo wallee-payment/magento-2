@@ -50,7 +50,7 @@
 "Gift Wrap","Confezione regalo"
 "Hold Delivery","Sospendi la consegna"
 "ID required","ID richiesto"
-"If you need help setting up the wallee extension, check out the <a href=""https://plugin-documentation.wallee.com/wallee-payment/magento-2/1.3.18/docs/en/documentation.html"" target=""_blank"">documentation</a>.","Se hai bisogno di aiuto per configurare l'estensione wallee, consulta la <a href=""https://plugin-documentation.wallee.com/wallee-payment/magento-2/1.3.18/docs/en/documentation.html"" target=""_blank"">documentazione</a> an."
+"If you need help setting up the wallee extension, check out the <a href=""https://plugin-documentation.wallee.com/wallee-payment/magento-2/1.3.19/docs/en/documentation.html"" target=""_blank"">documentation</a>.","Se hai bisogno di aiuto per configurare l'estensione wallee, consulta la <a href=""https://plugin-documentation.wallee.com/wallee-payment/magento-2/1.3.19/docs/en/documentation.html"" target=""_blank"">documentazione</a> an."
 "Inactive","Inattivo"
 "Information","Informazione"
 "Invoice","Fattura"
@@ -136,3 +136,4 @@
 "Failing authorization in store failed: %1.","L'autorizzazione in negozio non è riuscita: %1."
 "The capture of the invoice failed in the store: %1.","L'acquisizione della fattura nel negozio non è riuscita: %1."
 "The associated authorization transaction for the payment could not be found.","Impossibile trovare la transazione di autorizzazione associata per il pagamento."
+"Enabled: this can impact certain payment methods and slow down the payment process","Abilitato: può influire su alcuni metodi di pagamento e rallentare il processo di pagamento."
