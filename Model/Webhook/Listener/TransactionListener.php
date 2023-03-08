@@ -26,6 +26,11 @@ use Wallee\Sdk\Service\TransactionService;
  */
 class TransactionListener extends AbstractOrderRelatedListener
 {
+    /**
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
 
     /**
      *
@@ -55,6 +60,7 @@ class TransactionListener extends AbstractOrderRelatedListener
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param TransactionInfoManagementInterface $transactionInfoManagement
      * @param ApiClient $apiClient
+     * @param LoggerInterface $logger
      */
     public function __construct(ResourceConnection $resource, LoggerInterface $logger, OrderFactory $orderFactory,
         OrderResourceModel $orderResourceModel, CommandPoolInterface $commandPool,
@@ -66,6 +72,7 @@ class TransactionListener extends AbstractOrderRelatedListener
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->transactionInfoManagement = $transactionInfoManagement;
         $this->apiClient = $apiClient;
+        $this->logger=$logger;
     }
 
     /**
@@ -76,6 +83,7 @@ class TransactionListener extends AbstractOrderRelatedListener
      */
     protected function process($entity, Order $order)
     {
+        $this->logger->debug("TRANSACTION-LISTENER::process");
         $transactionInfo = $this->transactionInfoRepository->getByOrderId($order->getId());
         if ($transactionInfo->getState() != $entity->getState()) {
             parent::process($entity, $order);

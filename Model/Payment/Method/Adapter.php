@@ -189,39 +189,46 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
 
     public function isAvailable(CartInterface $quote = null)
     {
+        $this->logger->debug("ADAPTER::isAvailable - INIT");
         if ($quote != null && $quote->getGrandTotal() < 0.0001) {
+            $this->logger->debug("ADAPTER::isAvailable - FINISH");
             return false;
         }
 
         if (! parent::isAvailable($quote)) {
+            $this->logger->debug("ADAPTER::isAvailable - FINISH");
             return false;
         }
 
         if ($quote != null && $this->apiClient->checkApiClientData()) {
             $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
                 ScopeInterface::SCOPE_STORE, $quote->getStoreId());
-	    $paymentMethodConfiguration = $this->getPaymentMethodConfiguration();
+	        $paymentMethodConfiguration = $this->getPaymentMethodConfiguration();
 
-	    if (! empty($spaceId)) {
+	        if (! empty($spaceId)) {
                 try {
                     if (!$this->transactionService->isPaymentMethodAvailable(
                         $quote,
                         $paymentMethodConfiguration->getConfigurationId(),
                         $paymentMethodConfiguration->getSpaceId())
-		    ) {
+		            ) {
+                        $this->logger->debug("ADAPTER::isAvailable - FINISH");
                         return false;
                     }
                 } catch (\Exception $e) {
                     $this->logger->critical($e);
+                    $this->logger->debug("ADAPTER::isAvailable - FINISH");
                     return false;
                 }
             } else {
+                $this->logger->debug("ADAPTER::isAvailable - FINISH");
                 return false;
             }
         } else {
+            $this->logger->debug("ADAPTER::isAvailable - FINISH");
             return false;
         }
-
+        $this->logger->debug("ADAPTER::isAvailable - FINISH");
         return true;
     }
 }

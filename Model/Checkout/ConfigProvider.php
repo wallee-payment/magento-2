@@ -97,6 +97,7 @@ class ConfigProvider implements ConfigProviderInterface
 
     public function getConfig()
     {
+        $this->logger->debug("CONFIG-PROVIDER::getConfig - INIT");
         $config = [
             'payment' => [],
             'wallee' => []
@@ -106,7 +107,6 @@ class ConfigProvider implements ConfigProviderInterface
         $quote = $this->checkoutSession->getQuote();
         // Make sure that the quote's totals are collected before generating javascript and payment page URLs.
         $quote->collectTotals();
-
         $integrationMethod = $this->scopeConfig->getValue('wallee_payment/checkout/integration_method',
             ScopeInterface::SCOPE_STORE, $quote->getStoreId());
         $config['wallee']['integrationMethod'] = $integrationMethod;
@@ -121,20 +121,19 @@ class ConfigProvider implements ConfigProviderInterface
             } catch (\Exception $e) {
                 $this->logger->critical($e);
             }
-        } else {
+        } else if ($integrationMethod == IntegrationMethod::LIGHTBOX){
             try {
                 $config['wallee']['lightboxUrl'] = $this->transactionService->getLightboxUrl($quote);
             } catch (\Exception $e) {
                 $this->logger->critical($e);
             }
+        } else {
+            try {
+                $config['wallee']['paymentPageUrl'] = $this->transactionService->getPaymentPageUrl($quote);
+            } catch (\Exception $e) {
+                $this->logger->critical($e);
+            }
         }
-
-        try {
-            $config['wallee']['paymentPageUrl'] = $this->transactionService->getPaymentPageUrl($quote);
-        } catch (\Exception $e) {
-            $this->logger->critical($e);
-        }
-
         $searchCriteria = $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
             [
                 PaymentMethodConfiguration::STATE_ACTIVE,
@@ -156,7 +155,7 @@ class ConfigProvider implements ConfigProviderInterface
                 ];
             }
         }
-
+        $this->logger->debug("CONFIG-PROVIDER::getConfig - FINISH");
         return $config;
     }
 

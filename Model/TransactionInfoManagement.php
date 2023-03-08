@@ -30,7 +30,6 @@ use Wallee\Sdk\Service\ChargeAttemptService;
  */
 class TransactionInfoManagement implements TransactionInfoManagementInterface
 {
-
     /**
      *
      * @var Helper

@@ -23,7 +23,6 @@ use Wallee\Sdk\Model\TransactionState;
  */
 class RegisterInvoice implements ObserverInterface
 {
-
     /**
      *
      * @var TransactionService

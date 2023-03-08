@@ -104,16 +104,9 @@ define([
 		function checkAddresses(){
 			if (isActive() && validateAddresses()) {
 				if (hasAddressesChanged()) {
-					hasAddressChanged = true;
 					clearTimeout(addressTimeout);
 					billingAddressCache = covertToCacheableAddress(quote.billingAddress());
 					shippingAddressCache = covertToCacheableAddress(getCheckoutAdapter().getShippingAddress());
-				} else if (hasAddressChanged) {
-					hasAddressChanged = false;
-					clearTimeout(addressTimeout);
-					addressTimeout = setTimeout(function(){
-						updateAddresses();
-					}, 500);
 				}
 			}
 			setTimeout(checkAddresses, 100);

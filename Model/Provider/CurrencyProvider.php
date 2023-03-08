@@ -19,7 +19,6 @@ use Wallee\Sdk\Service\CurrencyService;
  */
 class CurrencyProvider extends AbstractProvider
 {
-
     /**
      *
      * @var ApiClient

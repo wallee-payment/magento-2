@@ -96,7 +96,6 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
     public function execute(Request $request)
     {
         $entity = $this->loadEntity($request);
-
         $connection = $this->beginTransaction();
         try {
             $order = $this->loadOrder($this->getOrderId($entity));

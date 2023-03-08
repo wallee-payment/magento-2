@@ -12,7 +12,7 @@ namespace Wallee\Payment\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
-use Wallee\Payment\Model\ApiClientHeaders;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service to provide wallee API client.
@@ -47,13 +47,21 @@ class ApiClient
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param ScopeConfigInterface $scopeConfig
      * @param EncryptorInterface $encrypter
+     * @param LoggerInterface $logger
      */
-    public function __construct(ScopeConfigInterface $scopeConfig, EncryptorInterface $encrypter)
+    public function __construct(ScopeConfigInterface $scopeConfig, EncryptorInterface $encrypter,  LoggerInterface $logger)
     {
         $this->scopeConfig = $scopeConfig;
         $this->encrypter = $encrypter;
+        $this->logger = $logger;
     }
 
     /**
@@ -63,6 +71,7 @@ class ApiClient
      */
     public function getService($type)
     {
+        $this->logger->debug("API-CLIENT::getService ".$type);
         $type = \ltrim($type, '\\');
         if (! isset($this->sharedInstances[$type])) {
             $this->sharedInstances[$type] = new $type($this->getApiClient());

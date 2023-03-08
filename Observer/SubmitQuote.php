@@ -25,6 +25,8 @@ use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\Order\TransactionService;
 use Wallee\Sdk\Model\TransactionState;
 use Wallee\Sdk\Service\ChargeFlowService;
+use Psr\Log\LoggerInterface;
+use Magento\Checkout\Model\Session as CheckoutSession;
 
 /**
  * Observer to create an invoice and confirm the transaction when the quote is submitted.
@@ -76,6 +78,18 @@ class SubmitQuote implements ObserverInterface
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
+     * @var CheckoutSession
+     */
+    private $checkoutSession;
+
+    /**
+     *
      * @param OrderRepositoryInterface $orderRepository
      * @param DBTransactionFactory $dbTransactionFactory
      * @param Helper $helper
@@ -83,11 +97,12 @@ class SubmitQuote implements ObserverInterface
      * @param TransactionInfoManagementInterface $transactionInfoManagement
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param ApiClient $apiClient
+     * @param LoggerInterface $logger
      */
     public function __construct(OrderRepositoryInterface $orderRepository, DBTransactionFactory $dbTransactionFactory,
         Helper $helper, TransactionService $transactionService,
         TransactionInfoManagementInterface $transactionInfoManagement,
-        TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient)
+        TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient,  LoggerInterface $logger, CheckoutSession $checkoutSession)
     {
         $this->orderRepository = $orderRepository;
         $this->dbTransactionFactory = $dbTransactionFactory;
@@ -96,12 +111,20 @@ class SubmitQuote implements ObserverInterface
         $this->transactionInfoManagement = $transactionInfoManagement;
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->apiClient = $apiClient;
+        $this->logger = $logger;
+        $this->checkoutSession = $checkoutSession;
     }
 
     public function execute(Observer $observer)
     {
         /** @var Order $order */
         $order = $observer->getOrder();
+
+        try{
+            $this->logger->debug("SUBMIT-QUOTE-SERVICE::execute - Clear session");
+            $this->checkoutSession->unsTransaction();
+            $this->checkoutSession->unsPaymentMethods();
+        } catch (LocalizedException $ignored){}
 
         $transactionId = $order->getWalleeTransactionId();
         if (! empty($transactionId)) {

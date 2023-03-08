@@ -54,4 +54,8 @@
 	<event name="sales_quote_payment_import_data_before">
 		<observer name="wallee_payment_import_payment_data" instance="Wallee\Payment\Observer\ImportPaymentData" />
 	</event>
+
+	<event name="checkout_cart_save_after">
+		<observer name="wallee_checkout_cart_save_after" instance="Wallee\Payment\Observer\CartEventListener" />
+	</event>
 </config>

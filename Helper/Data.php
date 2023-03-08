@@ -14,7 +14,6 @@ use Magento\Framework\App\Area as AppArea;
 use Magento\Framework\App\State as AppState;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
-use Magento\Framework\Pricing\Helper\Data as MagentoCurrencyHelper;
 use Wallee\Sdk\Model\CriteriaOperator;
 use Wallee\Sdk\Model\EntityQueryFilter;
 use Wallee\Sdk\Model\EntityQueryFilterType;
@@ -32,24 +31,16 @@ class Data extends AbstractHelper
      * @var AppState
      */
     private $appState;
-    
-    /**
-     *
-     * @var MagentoCurrencyHelper
-     */
-    private $magentoCurrencyHelper;
 
     /**
      *
      * @param Context $context
      * @param AppState $appState
-     * @param MagentoCurrencyHelper $magentoCurrencyHelper
      */
-    public function __construct(Context $context, AppState $appState, MagentoCurrencyHelper $magentoCurrencyHelper)
+    public function __construct(Context $context, AppState $appState)
     {
         parent::__construct($context);
         $this->appState = $appState;
-        $this->magentoCurrencyHelper = $magentoCurrencyHelper;
     }
 
     /**
@@ -60,22 +51,6 @@ class Data extends AbstractHelper
     public function isAdminArea()
     {
         return $this->appState->getAreaCode() == AppArea::AREA_ADMINHTML;
-    }
-
-    /**
-     * Gets the fraction digits of the given currency.
-     *
-     * @param string $currencyCode
-     * @return float
-     */
-    public function getCurrencyFractionDigits($currencyCode)
-    {
-        $currency = $this->currencyProvider->find($currencyCode);
-        if ($currency) {
-            return $currency->getFractionDigits();
-        } else {
-            return 2;
-        }
     }
 
     /**
