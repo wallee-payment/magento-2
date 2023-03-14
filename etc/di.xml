@@ -131,6 +131,7 @@
     	<arguments>
             <argument name="commands" xsi:type="array">
             	<item name="authorized" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\AuthorizedCommand</item>
+            	<item name="completed" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\CompletedCommand</item>
             	<item name="fulfill" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\FulfillCommand</item>
             	<item name="decline" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\DeclineCommand</item>
             	<item name="failed" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\Transaction\FailedCommand</item>
