@@ -181,6 +181,13 @@ class TransactionService extends AbstractTransactionService
      */
     public function getPossiblePaymentMethods(Quote $quote)
     {
+        $gdprEnabled = $this->scopeConfig->getValue('wallee_payment/gdpr/gdpr_enabled',
+        ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+
+        if ($gdprEnabled != 'enabled' ){
+            $this->updateTransactionByQuote($quote);
+        }
+
         $paymentMethodsArray = $this->getPaymentMethodsArrayFromSession();
         if (
             ! $paymentMethodsArray ||
