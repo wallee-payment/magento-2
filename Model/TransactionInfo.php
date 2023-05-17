@@ -112,4 +112,19 @@ class TransactionInfo extends \Magento\Framework\Model\AbstractModel implements 
     {
         return $this->getData(TransactionInfoInterface::TRANSACTION_ID);
     }
+
+	public function getSuccessUrl()
+	{
+		return $this->getData(TransactionInfoInterface::SUCCESS_URL);
+	}
+
+	public function getFailureUrl()
+	{
+		return $this->getData(TransactionInfoInterface::FAILURE_URL);
+	}
+
+	public function isExternalPaymentUrl()
+	{
+		return !empty($this->getSuccessUrl()) && !empty($this->getFailureUrl());
+	}
 }

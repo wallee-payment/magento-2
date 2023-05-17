@@ -29,4 +29,14 @@ interface TransactionInfoManagementInterface
      * @return Data\TransactionInfoInterface
      */
     public function update(Transaction $transaction, Order $order);
+
+	/**
+	 * Update the transaction info with the success and failure URL to redirect the customer after placing the order
+	 *
+	 * @param Transaction $transaction
+	 * @param string $successUrl
+	 * @param string $failureUrl
+	 * @return Data\TransactionInfoInterface
+	 */
+	public function setRedirectUrls(Transaction $transaction, $successUrl, $failureUrl);
 }

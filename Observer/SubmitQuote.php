@@ -168,8 +168,16 @@ class SubmitQuote implements ObserverInterface
     private function checkTransactionInfo(Order $order)
     {
         try {
-            $info = $this->transactionInfoRepository->getByTransactionId($order->getWalleeSpaceId(),
-                $order->getWalleeTransactionId());
+            $info = $this->getTransactionInfo($order);
+
+			if ($info === null) {
+				return true;
+			}
+
+			//if the transaction was created by pwa behaviour, it's nothing to do
+			if ($info->isExternalPaymentUrl()) {
+				return true;
+			}
 
             if ($info->getOrderId() != $order->getId()) {
                 return false;
@@ -177,6 +185,26 @@ class SubmitQuote implements ObserverInterface
         } catch (NoSuchEntityException $e) {}
         return true;
     }
+
+
+
+	/**
+	 * Get the transaction info.
+	 *
+	 * @param Order $order
+	 * @return \Wallee\Payment\Api\Data\TransactionInfoInterface|null
+	 */
+	private function getTransactionInfo(Order $order)
+	{
+		try {
+			return $this->transactionInfoRepository->getByTransactionId(
+				$order->getWalleeSpaceId(),
+				$order->getWalleeTransactionId()
+			);
+		} catch (NoSuchEntityException $e) {
+			return null;
+		}
+	}
 
     /**
      * Creates an invoice for the order.

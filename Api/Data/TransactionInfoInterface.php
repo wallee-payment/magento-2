@@ -102,6 +102,16 @@ interface TransactionInfoInterface extends ExtensibleDataInterface
     const TRANSACTION_ID = 'transaction_id';
 
     /**
+     * Success URL to redirect the customer after placing the order.
+     */
+	const SUCCESS_URL = 'success_url';
+
+	/**
+	 * Failure URL to redirect the customer after placing the order.
+	 */
+	const FAILURE_URL = 'failure_url';
+
+    /**
      * Gets the authorization amount of the transaction info.
      *
      * @return float Authorization amount.
@@ -205,4 +215,25 @@ interface TransactionInfoInterface extends ExtensibleDataInterface
      * @return int Transaction ID.
      */
     public function getTransactionId();
+
+    /**
+     * Gets the success URL to redirection of the transaction info.
+     *
+     * @return int Transaction ID.
+     */
+    public function getSuccessUrl();
+
+    /**
+	 * Gets the failure URL to redirection of the transaction info.
+     *
+     * @return int Transaction ID.
+     */
+    public function getFailureUrl();
+
+	/**
+	 * Check if the transaction is an external payment.
+	 *
+	 * @return bool
+	 */
+	public function isExternalPaymentUrl();
 }

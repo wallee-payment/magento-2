@@ -31,6 +31,7 @@ use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\ApiClient;
+use Wallee\Payment\Model\Config\Source\IntegrationMethod;
 use Wallee\Payment\Model\CustomerIdManipulationException;
 use Wallee\Payment\Model\Service\AbstractTransactionService;
 use Wallee\Sdk\VersioningException;
@@ -49,6 +50,9 @@ use Wallee\Sdk\Model\TransactionState;
 use Wallee\Sdk\Service\DeliveryIndicationService;
 use Wallee\Sdk\Service\TransactionCompletionService;
 use Wallee\Sdk\Service\TransactionInvoiceService;
+use Wallee\Sdk\Service\TransactionIframeService;
+use Wallee\Sdk\Service\TransactionLightboxService;
+use Wallee\Sdk\Service\TransactionPaymentPageService;
 use Wallee\Sdk\Service\TransactionService as TransactionApiService;
 use Wallee\Sdk\Service\TransactionVoidService;
 
@@ -179,6 +183,7 @@ class TransactionService extends AbstractTransactionService
 
         $spaceId = $order->getWalleeSpaceId();
         $transactionId = $order->getWalleeTransactionId();
+
         for ($i = 0; $i < 5; $i ++) {
             try {
                 if ($i > 0) {
@@ -272,10 +277,27 @@ class TransactionService extends AbstractTransactionService
                         ->getConfigurationId()
                 ]);
         } else {
-            $transaction->setSuccessUrl(
-                $this->buildUrl('wallee_payment/transaction/success', $order) . '?utm_nooverride=1');
-            $transaction->setFailedUrl(
-                $this->buildUrl('wallee_payment/transaction/failure', $order) . '?utm_nooverride=1');
+			//default behaviour
+			$successUrl = $this->buildUrl('wallee_payment/transaction/success', $order);
+			$failureUrl = $this->buildUrl('wallee_payment/transaction/failure', $order);
+
+			try {
+				$transactionInfo = $this->transactionInfoRepository->getByTransactionId(
+					$order->getWalleeSpaceId(),
+					$order->getWalleeTransactionId()
+				);
+
+				//external return url to the shop, such as pwa
+				if ($transactionInfo !== null && $transactionInfo->isExternalPaymentUrl()) {
+					$successUrl = $transactionInfo->getSuccessUrl() . $this->buildUrl('wallee_payment/transaction/success', $order, true);
+					$failureUrl= $transactionInfo->getFailedUrl() . $this->buildUrl('wallee_payment/transaction/failure', $order, true);
+				}
+			} catch (\Exception $e) {
+				$this->logger->debug("ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder error: " . $e->getMessage());
+			}
+
+			$transaction->setSuccessUrl(sprintf('%s?utm_nooverride=1', $successUrl));
+			$transaction->setFailedUrl(sprintf('%s?utm_nooverride=1', $failureUrl));
         }
         if ($token != null) {
             $transaction->setToken($token->getId());
@@ -329,13 +351,17 @@ class TransactionService extends AbstractTransactionService
      * @throws \Exception
      * @return string
      */
-    protected function buildUrl($route, Order $order)
+	protected function buildUrl($route, Order $order, $extarnalUrl = false)
     {
         $token = $order->getWalleeSecurityToken();
         if (empty($token)) {
             throw new LocalizedException(
                 \__('The wallee security token needs to be set on the order to build the URL.'));
         }
+
+		if ($extarnalUrl) {
+			return sprintf('%s/order_id/%d/token/%s/', $route, $order->getId(), $token);
+		}
 
         return $order->getStore()->getUrl($route,
             [
@@ -344,6 +370,43 @@ class TransactionService extends AbstractTransactionService
                 'token' => $token
             ]);
     }
+
+	/**
+	 * Gets the payment url of the transaction according to the type of integration.
+	 *
+	 * @param Order $order
+	 * @param string $integrationType
+	 * @return string
+	 */
+	public function getTransactionPaymentUrl(Order $order, string $integrationType)
+	{
+		$transaction = $this->getTransaction(
+			$order->getWalleeSpaceId(),
+			$order->getWalleeTransactionId()
+		);
+
+		switch ($integrationType) {
+			case IntegrationMethod::IFRAME:
+				$serviceClass = TransactionIframeService::class;
+				break;
+			case IntegrationMethod::LIGHTBOX:
+				$serviceClass = TransactionLightboxService::class;
+				break;
+			case IntegrationMethod::PAYMENT_PAGE:
+				$serviceClass = TransactionPaymentPageService::class;
+				break;
+			default:
+				$serviceClass = TransactionPaymentPageService::class;
+		}
+
+		$url = $this->apiClient->getService($serviceClass)->paymentPageUrl(
+			$transaction->getLinkedSpaceId(),
+			$transaction->getId()
+		);
+
+		$this->logger->debug("ORDER-TRANSACTION-SERVICE::getTransactionPaymentUrl URL: " . $url);
+		return $url;
+	}
 
     /**
      * Converts the billing address of the given order.

@@ -18,6 +18,7 @@ class IntegrationMethod implements \Magento\Framework\Option\ArrayInterface
 
     const IFRAME = 'iframe';
     const LIGHTBOX = 'lightbox';
+	const PAYMENT_PAGE = 'paymentpage';
 
     public function toOptionArray()
     {
@@ -29,7 +30,7 @@ class IntegrationMethod implements \Magento\Framework\Option\ArrayInterface
             [
                 'value' => self::LIGHTBOX,
                 'label' => \__('Lightbox')
-            ]
+			]
         ];
     }
 }

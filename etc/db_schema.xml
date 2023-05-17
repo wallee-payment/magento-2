@@ -45,6 +45,8 @@
     <column xsi:type="bigint" name="payment_method_id" padding="20" unsigned="true" nullable="true" identity="false" comment="Payment Method ID"/>
     <column xsi:type="bigint" name="connector_id" padding="20" unsigned="true" nullable="true" identity="false" comment="Connector ID"/>
     <column xsi:type="int" name="order_id" padding="10" unsigned="true" nullable="false" identity="false" comment="Order ID"/>
+    <column xsi:type="text" name="success_url" nullable="true" comment="Success URL to redirect the customer after placing the order"/>
+    <column xsi:type="text" name="failure_url" nullable="true" comment="Failure URL to redirect the customer after placing the order"/>
     <constraint xsi:type="primary" referenceId="PRIMARY">
       <column name="entity_id"/>
     </constraint>
