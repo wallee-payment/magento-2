@@ -21,6 +21,9 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Customer\Model\Session;
 use Magento\GraphQl\Model\Query\ContextInterface;
+use Magento\Quote\Model\Quote;
+use Magento\Quote\Api\CartRepositoryInterface;
+use Magento\Quote\Model\MaskedQuoteIdToQuoteIdInterface;
 use Psr\Log\LoggerInterface;
 use Wallee\Payment\Model\Service\Quote\TransactionService;
 use Wallee\Payment\Api\TransactionInfoManagementInterface;
@@ -45,6 +48,18 @@ class UpdateTransactionUrls implements ResolverInterface
 	 */
 	private $getCustomer;
 
+    /**
+     *
+     * @var CartRepositoryInterface
+     */
+    private $cartRepository;
+
+    /**
+     *
+     * @var MaskedQuoteIdToQuoteIdInterface
+     */
+    private $maskedQuoteIdToQuoteIdService;
+
 	/**
 	 *
 	 * @var TransactionService
@@ -68,6 +83,8 @@ class UpdateTransactionUrls implements ResolverInterface
 		Session                            $customerSession,
 		CheckoutSession                    $checkoutSession,
 		GetCustomer                        $getCustomer,
+		CartRepositoryInterface            $cartRepository,
+		MaskedQuoteIdToQuoteIdInterface    $maskedQuoteIdToQuoteIdService,
 		TransactionService                 $transactionQuoteService,
 		TransactionInfoManagementInterface $transactionInfoManagement,
 		LoggerInterface                    $logger
@@ -75,6 +92,8 @@ class UpdateTransactionUrls implements ResolverInterface
 		$this->customerSession = $customerSession;
 		$this->checkoutSession = $checkoutSession;
 		$this->getCustomer = $getCustomer;
+		$this->cartRepository = $cartRepository;
+		$this->maskedQuoteIdToQuoteIdService = $maskedQuoteIdToQuoteIdService;
 		$this->logger = $logger;
 		$this->transactionQuoteService = $transactionQuoteService;
 		$this->transactionInfoManagement = $transactionInfoManagement;
@@ -98,8 +117,8 @@ class UpdateTransactionUrls implements ResolverInterface
 		try {
 			$successUrl = $args['input']['success_url'];
 			$failureUrl = $args['input']['failure_url'];
-			$cartId = $args['input']['cart_id'];
-			return $this->setTransactionUrls($cartId, $successUrl, $failureUrl);
+			$cartIdMasked = $args['input']['cart_id'];
+			return $this->setTransactionUrls($cartIdMasked, $successUrl, $failureUrl);
 		} catch (NoSuchEntityException $e) {
 			$this->logger->critical($e);
 			throw new GraphQlNoSuchEntityException(__($e->getMessage()));
@@ -109,23 +128,41 @@ class UpdateTransactionUrls implements ResolverInterface
 	/**
 	 * Update transaction urls to redirect the customer after placing the order
 	 *
-	 * @param $cartId
+     * @param $cartIdMasked
 	 * @param $successUrl
 	 * @param $failureUrl
 	 * @return array
 	 * @throws LocalizedException
 	 */
-	private function setTransactionUrls($cartId, $successUrl, $failureUrl)
+    private function setTransactionUrls($cartIdMasked, $successUrl, $failureUrl)
 	{
 		try {
-			$quote = $this->checkoutSession->getQuote();
-			/** @var \Wallee\Payment\Model\ResourceModel\TransactionInfo $transactionInfo */
-			$transactionInfo = $this->transactionQuoteService->getTransactionByQuote($quote);
+			// Convert the masked ID to the real quote ID
+			$quoteId = $this->maskedQuoteIdToQuoteIdService->execute($cartIdMasked);
 
-			$this->transactionInfoManagement->setRedirectUrls($transactionInfo, $successUrl, $failureUrl);
+			// Get the quote using the actual ID
+			/** @var Quote $quote */
+			$quote = $this->cartRepository->get($quoteId);
+
+			//$quoteSession = $this->checkoutSession->getQuote();
+			/** @var \Wallee\Payment\Model\ResourceModel\TransactionInfo $transactionInfo */
+			$transactionInfo = $this->transactionQuoteService->getTransaction(
+				$quote->getWalleeSpaceId(),
+				$quote->getWalleeTransactionId()
+			);
+
+			// Gets the ID reserved for the order from the quotation
+			$orderId = $quote->getReservedOrderId();
+
+			// Checks if the quote does not have an ID reserved for the order
+			if (!$orderId && !$quote->hasReservedOrderId()) {
+				$orderId = $quote->getId();
+			}
+
+			$this->transactionInfoManagement->setRedirectUrls($transactionInfo, $orderId, $successUrl, $failureUrl);
 			return ['result' => 'OK'];
 		} catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-			return ['result' => 'KO. '.$e->getMessage()];
+			return ['result' => 'KO. ' . $e->getMessage()];
 		}
 	}
 }

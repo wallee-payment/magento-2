@@ -289,13 +289,15 @@ class TransactionService extends AbstractTransactionService
 
 				//external return url to the shop, such as pwa
 				if ($transactionInfo !== null && $transactionInfo->isExternalPaymentUrl()) {
-					$successUrl = $transactionInfo->getSuccessUrl() . $this->buildUrl('wallee_payment/transaction/success', $order, true);
-					$failureUrl= $transactionInfo->getFailedUrl() . $this->buildUrl('wallee_payment/transaction/failure', $order, true);
+					$successUrl = $this->buildUrl($transactionInfo->getSuccessUrl(), $order, true);
+					$failureUrl = $this->buildUrl($transactionInfo->getFailureUrl(), $order, true);
 				}
 			} catch (\Exception $e) {
 				$this->logger->debug("ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder error: " . $e->getMessage());
 			}
 
+			$this->logger->debug("ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder url: " . $successUrl . '?utm_nooverride=1');
+			$this->logger->debug("ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder url: " . $failureUrl . '?utm_nooverride=1');
 			$transaction->setSuccessUrl(sprintf('%s?utm_nooverride=1', $successUrl));
 			$transaction->setFailedUrl(sprintf('%s?utm_nooverride=1', $failureUrl));
         }

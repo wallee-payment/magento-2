@@ -114,12 +114,13 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
 	 * Update the transaction info with the success and failure URL to redirect the customer after placing the order
 	 *
 	 * @param Transaction $transaction
+     * @param int $orderId
 	 * @param string $successUrl
 	 * @param string $failureUrl
 	 * @return TransactionInfoInterface|TransactionInfo
 	 * @throws \Magento\Framework\Exception\CouldNotSaveException
 	 */
-	public function setRedirectUrls(Transaction $transaction, $successUrl, $failureUrl)
+	public function setRedirectUrls(Transaction $transaction, $orderId, $successUrl, $failureUrl)
 	{
 		try {
 			$info = $this->transactionInfoRepository->getByTransactionId(
@@ -133,6 +134,7 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
 		$info->setData(TransactionInfoInterface::TRANSACTION_ID, $transaction->getId());
 		$info->setData(TransactionInfoInterface::SPACE_ID, $transaction->getLinkedSpaceId());
 		$info->setData(TransactionInfoInterface::SPACE_VIEW_ID, $transaction->getSpaceViewId());
+		$info->setData(TransactionInfoInterface::ORDER_ID, $orderId);
 		$info->setData(TransactionInfoInterface::STATE, $transaction->getState());
 		$info->setData(TransactionInfoInterface::LANGUAGE, $transaction->getLanguage());
 		$info->setData(TransactionInfoInterface::CURRENCY, $transaction->getCurrency());

@@ -110,7 +110,7 @@ class LineItemService extends AbstractLineItemService
 
             $attribute = new LineItemAttributeCreate();
             $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($option['label']), 512));
-            $attribute->setValue($this->helper->fixLength($this->helper->getFirstLine($value), 512));
+            $attribute->setValue(strip_tags($this->helper->fixLength($this->helper->getFirstLine($value), 512)));
             $attributes[$this->getAttributeKey($option)] = $attribute;
         }
 
