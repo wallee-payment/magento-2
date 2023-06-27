@@ -368,16 +368,8 @@ class TransactionService extends AbstractTransactionService
                 $transaction = $this->apiClient->getService(TransactionApiService::class)->read(
                     $quote->getWalleeSpaceId(), $quote->getWalleeTransactionId());
 
-				try {
-					//only it needs to create a new one whether there is no any transaction stored in transaction_info table
-					$info = $this->transactionInfoRepository->getByTransactionId($transaction->getLinkedSpaceId(), $transaction->getId());
-				} catch (LocalizedException $ignored) {}
-
-
-				if (empty($info)) {
-					if (!($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
-						return $this->createTransactionByQuote($quote);
-					}
+				if (!($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
+					return $this->createTransactionByQuote($quote);
 				}
 
                 if (! empty($transaction->getCustomerId()) && $transaction->getCustomerId() != $quote->getCustomerId()) {
