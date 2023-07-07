@@ -22,7 +22,7 @@
 		</a>
 	</li>
 	<li>
-		<a href="https://github.com/wallee-payment/magento-2/releases/tag/2.0.3/">
+		<a href="https://github.com/wallee-payment/magento-2/releases/tag/2.0.4/">
 			Source
 		</a>
 	</li>
@@ -89,6 +89,10 @@
 </div>
 </li>
 </ol>
+</div><div class="paragraph">
+<p>If you do the installation via FTP upload with our GitHub repositories, ensure that you are using:
+- the <a href="https://github.com/wallee-payment/magento-2.2" target="_blank">magento-2.2</a> repository, if your magento version is lower than 2.3
+- the <a href="https://github.com/wallee-payment/magento-2" target="_blank">magento-2</a> repository, if your magento version is higher than or equal 2.3</p>
 </div>					</div>
 </div>	<div class="chapter" id="_configuration">
 	<div class="chapter-title">
@@ -472,10 +476,30 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 <a href="https://amasty.com/one-step-checkout-for-magento-2.html" target="_blank">One Step Checkout for Magento 2</a></p>
 </div>					</div>
 </div>			</div>
+</div>	<div class="chapter" id="_troubleshooting">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">8</span>Troubleshooting					</h1>
+	</div>
+	<div class="chapter-body">
+							<div class="section" id="__unique_constraint_violation_found_during_installation">
+	<div class="section-title">
+		<h2>
+			<span class="title-number">8.1</span>"Unique Constraint Violation Found" during installation					</h2>
+	</div>
+	<div class="section-body">
+					<div class="paragraph">
+<p>This issue can happen in case the installation failed or you used the plugin already in another context.
+We recommend that you delete all payment method configurations in the database of the webshop and then
+simply enter your credentials again as described in this manual.</p>
+</div><div class="paragraph">
+<p>This should finally trigger the creation of the payment methods again.</p>
+</div>					</div>
+</div>			</div>
 </div>	<div class="chapter" id="_support">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">8</span>Support					</h1>
+			<span class="title-number">9</span>Support					</h1>
 	</div>
 	<div class="chapter-body">
 					<div class="paragraph">
@@ -611,8 +635,20 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
-	<a href="#_support">
+	<a href="#_troubleshooting">
 		<span class="item-number">8</span>
+		<span class="item-title">Troubleshooting</span>
+			</a>
+        	<ul  class="nav">
+    		    			<li class="nav-level-2">
+	<a href="#__unique_constraint_violation_found_during_installation">
+		<span class="item-number">8.1</span>
+		<span class="item-title">&quot;Unique Constraint Violation Found&quot; during installation</span>
+			</a>
+    </li>    		    	</ul>
+    </li>					<li class="nav-level-1">
+	<a href="#_support">
+		<span class="item-number">9</span>
 		<span class="item-title">Support</span>
 			</a>
     </li>			</ul>
