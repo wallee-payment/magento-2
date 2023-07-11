@@ -11,7 +11,7 @@ use \Magento\Framework\Setup\ModuleDataSetupInterface;
  * @package Wallee\Payment\Setup\Patch\Data
  */
 
-class AddSetupData implements DataPatchInterface, PatchVersionInterface
+class AddSetupDataState implements DataPatchInterface
 {
     private $status;
 
@@ -49,15 +49,6 @@ class AddSetupData implements DataPatchInterface, PatchVersionInterface
 
     public static function getDependencies(){
         return [];
-    }
-
-    /**
-     * @description: Under the version number, it will run (if new version is 1.3.5, put 1.3.6)
-     * @return int:
-     */
-
-    public static function getVersion(){
-        return '1.3.30';
     }
 
     /**

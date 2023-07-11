@@ -76,36 +76,13 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
             $info = $this->transactionInfoRepository->getByTransactionId($transaction->getLinkedSpaceId(),
                 $transaction->getId());
 
-			if ($info->getOrderId() != $order->getId() && !$info->isExternalPaymentUrl()) {
-                throw new \Exception('The wallee transaction info is already linked to a different order.');
+            if ($info->getOrderId() != $order->getId() && !$info->isExternalPaymentUrl()) {
+				throw new \Exception('The wallee transaction info is already linked to a different order.');
             }
         } catch (NoSuchEntityException $e) {
             $info = $this->transactionInfoFactory->create();
         }
-        $info->setData(TransactionInfoInterface::TRANSACTION_ID, $transaction->getId());
-        $info->setData(TransactionInfoInterface::AUTHORIZATION_AMOUNT, $transaction->getAuthorizationAmount());
-        $info->setData(TransactionInfoInterface::ORDER_ID, $order->getId());
-        $info->setData(TransactionInfoInterface::STATE, $transaction->getState());
-        $info->setData(TransactionInfoInterface::SPACE_ID, $transaction->getLinkedSpaceId());
-        $info->setData(TransactionInfoInterface::SPACE_VIEW_ID, $transaction->getSpaceViewId());
-        $info->setData(TransactionInfoInterface::LANGUAGE, $transaction->getLanguage());
-        $info->setData(TransactionInfoInterface::CURRENCY, $transaction->getCurrency());
-        $info->setData(TransactionInfoInterface::CONNECTOR_ID,
-            $transaction->getPaymentConnectorConfiguration() != null ? $transaction->getPaymentConnectorConfiguration()
-                ->getConnector() : null);
-        $info->setData(TransactionInfoInterface::PAYMENT_METHOD_ID,
-            $transaction->getPaymentConnectorConfiguration() != null &&
-            $transaction->getPaymentConnectorConfiguration()
-                ->getPaymentMethodConfiguration() != null ? $transaction->getPaymentConnectorConfiguration()
-                ->getPaymentMethodConfiguration()
-                ->getPaymentMethod() : null);
-        $info->setData(TransactionInfoInterface::IMAGE, $this->getPaymentMethodImage($transaction, $order));
-        $info->setData(TransactionInfoInterface::LABELS, $this->getTransactionLabels($transaction));
-        if ($transaction->getState() == TransactionState::FAILED || $transaction->getState() == TransactionState::DECLINE) {
-            $info->setData(TransactionInfoInterface::FAILURE_REASON,
-                $transaction->getFailureReason() instanceof FailureReason ? $transaction->getFailureReason()
-                    ->getDescription() : null);
-        }
+		$info = $this->setTransactionData($transaction, $info, null, $order);
         $this->transactionInfoRepository->save($info);
         return $info;
     }
@@ -114,7 +91,7 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
 	 * Update the transaction info with the success and failure URL to redirect the customer after placing the order
 	 *
 	 * @param Transaction $transaction
-     * @param int $orderId
+	 * @param int $orderId
 	 * @param string $successUrl
 	 * @param string $failureUrl
 	 * @return TransactionInfoInterface|TransactionInfo
@@ -131,17 +108,65 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
 			$info = $this->transactionInfoFactory->create();
 		}
 
-		$info->setData(TransactionInfoInterface::TRANSACTION_ID, $transaction->getId());
-		$info->setData(TransactionInfoInterface::SPACE_ID, $transaction->getLinkedSpaceId());
-		$info->setData(TransactionInfoInterface::SPACE_VIEW_ID, $transaction->getSpaceViewId());
-		$info->setData(TransactionInfoInterface::ORDER_ID, $orderId);
-		$info->setData(TransactionInfoInterface::STATE, $transaction->getState());
-		$info->setData(TransactionInfoInterface::LANGUAGE, $transaction->getLanguage());
-		$info->setData(TransactionInfoInterface::CURRENCY, $transaction->getCurrency());
-		$info->setData(TransactionInfoInterface::SUCCESS_URL, $successUrl);
-		$info->setData(TransactionInfoInterface::FAILURE_URL, $failureUrl);
+		$info = $this->setTransactionData($transaction, $info, $orderId, null, $successUrl, $failureUrl);
 		$this->transactionInfoRepository->save($info);
 		return $info;
+	}
+
+	/**
+	 * Update the transaction info
+	 *
+	 * @param Transaction $transaction
+	 * @param TransactionInfo $transactionInfo,
+	 * @param int|null $orderId
+	 * @param Order|null $order
+	 * @param string|null $successUrl
+	 * @param string|null $failureUrl
+	 * @return TransactionInfoInterface|TransactionInfo
+	 */
+	private function setTransactionData(
+		Transaction $transaction,
+		TransactionInfo $transactionInfo,
+		$orderId = null,
+		Order $order = null,
+		$successUrl = null,
+		$failureUrl = null
+	) {
+		$transactionInfo->setData(TransactionInfoInterface::TRANSACTION_ID, $transaction->getId());
+		$transactionInfo->setData(TransactionInfoInterface::AUTHORIZATION_AMOUNT, $transaction->getAuthorizationAmount());
+		$transactionInfo->setData(TransactionInfoInterface::ORDER_ID, $order instanceof Order ? $order->getId() : $orderId);
+		$transactionInfo->setData(TransactionInfoInterface::STATE, $transaction->getState());
+		$transactionInfo->setData(TransactionInfoInterface::SPACE_ID, $transaction->getLinkedSpaceId());
+		$transactionInfo->setData(TransactionInfoInterface::SPACE_VIEW_ID, $transaction->getSpaceViewId());
+		$transactionInfo->setData(TransactionInfoInterface::LANGUAGE, $transaction->getLanguage());
+		$transactionInfo->setData(TransactionInfoInterface::CURRENCY, $transaction->getCurrency());
+		$transactionInfo->setData(TransactionInfoInterface::CONNECTOR_ID,
+			$transaction->getPaymentConnectorConfiguration() != null
+				? $transaction->getPaymentConnectorConfiguration()->getConnector() : null);
+		$transactionInfo->setData(TransactionInfoInterface::PAYMENT_METHOD_ID,
+			$transaction->getPaymentConnectorConfiguration() != null &&
+			$transaction->getPaymentConnectorConfiguration()
+				->getPaymentMethodConfiguration() != null ? $transaction->getPaymentConnectorConfiguration()
+				->getPaymentMethodConfiguration()
+				->getPaymentMethod() : null);
+		$transactionInfo->setData(TransactionInfoInterface::LABELS, $this->getTransactionLabels($transaction));
+
+		if (!empty($order) && $order instanceof Order) {
+			$transactionInfo->setData(TransactionInfoInterface::IMAGE, $this->getPaymentMethodImage($transaction, $order));
+		}
+
+		if (!empty($successUrl) || !empty($failureUrl)) {
+			$transactionInfo->setData(TransactionInfoInterface::SUCCESS_URL, $successUrl);
+			$transactionInfo->setData(TransactionInfoInterface::FAILURE_URL, $failureUrl);
+		}
+
+		if ($transaction->getState() == TransactionState::FAILED || $transaction->getState() == TransactionState::DECLINE) {
+			$transactionInfo->setData(TransactionInfoInterface::FAILURE_REASON,
+				$transaction->getFailureReason() instanceof FailureReason ? $transaction->getFailureReason()
+					->getDescription() : null);
+		}
+
+		return $transactionInfo;
 	}
 
     /**

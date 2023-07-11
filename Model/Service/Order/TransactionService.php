@@ -291,6 +291,15 @@ class TransactionService extends AbstractTransactionService
 				if ($transactionInfo !== null && $transactionInfo->isExternalPaymentUrl()) {
 					$successUrl = $this->buildUrl($transactionInfo->getSuccessUrl(), $order, true);
 					$failureUrl = $this->buildUrl($transactionInfo->getFailureUrl(), $order, true);
+
+					//force a particular payment method
+					$transaction->setAllowedPaymentMethodConfigurations(
+						[
+							$order->getPayment()
+								->getMethodInstance()
+								->getPaymentMethodConfiguration()
+								->getConfigurationId()
+						]);
 				}
 			} catch (\Exception $e) {
 				$this->logger->debug("ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder error: " . $e->getMessage());
