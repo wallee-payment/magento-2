@@ -47,6 +47,10 @@ use Psr\Log\LoggerInterface;
  */
 class TransactionService extends AbstractTransactionService
 {
+	/**
+	 * Number of attempts to call the portal API
+	 */
+	const NUMBER_OF_ATTEMPTS = 3;
 
 	/**
 	 *
@@ -357,7 +361,7 @@ class TransactionService extends AbstractTransactionService
      */
     private function updateTransactionByQuote(Quote $quote)
     {
-        for ($i = 0; $i < 5; $i ++) {
+        for ($i = 0; $i < self::NUMBER_OF_ATTEMPTS; $i ++) {
             try {
                 $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
                     ScopeInterface::SCOPE_STORE, $quote->getStoreId());

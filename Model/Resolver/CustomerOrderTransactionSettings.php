@@ -21,7 +21,7 @@ use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Customer\Model\Session;
 use Magento\GraphQl\Model\Query\ContextInterface;
-use Magento\Sales\Api\OrderRepositoryInterface;
+use Wallee\Payment\Api\OrderRepositoryInterface;
 use Psr\Log\LoggerInterface;
 use Wallee\Payment\Model\Service\Quote\TransactionService as TransactionQuoteService;
 use Wallee\Payment\Model\Service\Order\TransactionService as TransactionOrderService;
@@ -124,7 +124,7 @@ class CustomerOrderTransactionSettings implements ResolverInterface
 	private function getTransactionSettings(int $orderId, string $integrationType)
 	{
 		/** @var \Magento\Sales\Model\Order  $order */
-		$order = $this->orderRepository->get($orderId);
+		$order = $this->orderRepository->getOrderByIncrementId($orderId);
 		$transaction = $this->transactionQuoteService->getTransaction(
 			$order->getWalleeSpaceId(),
 			$order->getWalleeTransactionId()

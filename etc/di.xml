@@ -15,6 +15,7 @@
 	<preference for="Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface" type="Wallee\Payment\Model\PaymentMethodConfigurationManagement" />
 	<preference for="Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface" type="Wallee\Payment\Model\PaymentMethodConfiguration" />
 	<preference for="Wallee\Payment\Api\Data\PaymentMethodConfigurationSearchResultsInterface" type="Magento\Framework\Api\SearchResults" />
+	<preference for="Wallee\Payment\Api\OrderRepositoryInterface" type="Wallee\Payment\Model\OrderRepository" />
 	<preference for="Wallee\Payment\Api\TransactionInfoRepositoryInterface" type="Wallee\Payment\Model\TransactionInfoRepository" />
 	<preference for="Wallee\Payment\Api\TransactionInfoManagementInterface" type="Wallee\Payment\Model\TransactionInfoManagement" />
 	<preference for="Wallee\Payment\Api\Data\TransactionInfoInterface" type="Wallee\Payment\Model\TransactionInfo" />
