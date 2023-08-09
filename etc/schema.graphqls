@@ -2,19 +2,21 @@ type Query {
     customerOrderTransaction(
         order_id: Int! @doc(description: "Specify the id of the order.")
         integration_type: String! @doc(description: "Sort of integration: 'JAVASCRIPT', 'LIGHTBOX', 'PAYMENTPAGE'.")
-    ): customerOrderTransactionOutput
-    @resolver( class: "\\Wallee\\Payment\\Model\\Resolver\\CustomerOrderTransactionSettings")
-    @doc(description: "Customer order transaction's settings")
+    ): CustomerOrderTransactionOutput @resolver( class: "\\Wallee\\Payment\\Model\\Resolver\\CustomerOrderTransactionSettings") @doc(description: "Customer order transaction's settings") @cache(cacheable: false)
 }
 
-type customerOrderTransactionOutput {
+type Mutation {
+    updateTransactionUrls(input: UpdateTransactionUrlsInput!): UpdateTransactionUrlsOutput @resolver( class: "\\Wallee\\Payment\\Model\\Resolver\\UpdateTransactionUrls") @doc(description: "Update transaction urls to redirect the customer after placing the order")
+    restoreQuote(input: RestoreQuoteInput!): RestoreQuoteOutput @resolver( class: "\\Wallee\\Payment\\Model\\Resolver\\RestoreQuote") @doc(description: "restores a quote if payment fails or is cancelled")
+}
+
+type CustomerOrderTransactionOutput {
     order_id: Int @doc(description: "Order id")
     transaction_id: Int @doc(description: "WhiteLabelMachineName transaction id")
     transaction_state: String @doc(description: "WhiteLabelMachineName transaction state")
     payment_url: String @doc(description: "WhiteLabelMachineName payment url to integrate external payment")
     integration_type: String @doc(description: "Integration type")
 }
-
 
 input UpdateTransactionUrlsInput {
     cart_id: String!
@@ -26,8 +28,11 @@ type UpdateTransactionUrlsOutput {
     result: String
 }
 
-type Mutation {
-    updateTransactionUrls(input: UpdateTransactionUrlsInput!): UpdateTransactionUrlsOutput
-    @resolver( class: "\\Wallee\\Payment\\Model\\Resolver\\UpdateTransactionUrls")
-    @doc(description: "Update transaction urls to redirect the customer after placing the order")
+input RestoreQuoteInput {
+    cart_id: String!
+}
+
+type RestoreQuoteOutput {
+    result: String!
+    cart_id: String
 }

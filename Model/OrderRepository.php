@@ -112,4 +112,15 @@ class OrderRepository implements OrderRepositoryInterface
 		}
 		return $orderData;
 	}
+
+	/**
+	 * Get Order data by Id
+	 *
+	 * @param $id
+	 * @return OrderInterface|null
+	 */
+	public function getOrderById($id)
+	{
+		return $this->orderRepository->get($id);
+	}
 }

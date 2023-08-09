@@ -27,4 +27,12 @@ interface OrderRepositoryInterface
 	 * @return OrderInterface|null
 	 */
     public function getOrderByIncrementId($incrementId);
+
+	/**
+	 * Get order by Id
+	 *
+	 * @param $id
+	 * @return OrderInterface|null
+	 */
+    public function getOrderById($id);
 }

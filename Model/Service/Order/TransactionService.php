@@ -375,7 +375,7 @@ class TransactionService extends AbstractTransactionService
         }
 
 		if ($extarnalUrl) {
-			return sprintf('%s/order_id/%d/token/%s/', $route, $order->getId(), $token);
+			return sprintf('%s/order/%d/token/%s/', $route, $order->getId(), $token);
 		}
 
         return $order->getStore()->getUrl($route,

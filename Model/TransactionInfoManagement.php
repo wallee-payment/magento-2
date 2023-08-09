@@ -104,6 +104,12 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
 				$transaction->getLinkedSpaceId(),
 				$transaction->getId()
 			);
+
+			//prevents a new transaction info from being created by duplicating the order id
+			if ($info->getOrderId() != (int)$orderId) {
+				$info = $this->transactionInfoRepository->getByOrderId($orderId);
+			}
+
 		} catch (NoSuchEntityException $e) {
 			$info = $this->transactionInfoFactory->create();
 		}
