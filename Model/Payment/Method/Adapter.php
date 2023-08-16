@@ -195,40 +195,50 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
             return false;
         }
 
-        if (! parent::isAvailable($quote)) {
+        if (!parent::isAvailable($quote)) {
             $this->logger->debug("ADAPTER::isAvailable - FINISH");
             return false;
         }
 
-        if ($quote != null && $this->apiClient->checkApiClientData()) {
-            $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
-                ScopeInterface::SCOPE_STORE, $quote->getStoreId());
-	        $paymentMethodConfiguration = $this->getPaymentMethodConfiguration();
+        if ($quote == null && !$this->apiClient->checkApiClientData()) {
+            $this->logger->debug("ADAPTER::isAvailable - FINISH");
+            return false;
+        }
 
-	        if (! empty($spaceId)) {
-                try {
-                    if (!$this->transactionService->isPaymentMethodAvailable(
-                        $quote,
-                        $paymentMethodConfiguration->getConfigurationId(),
-                        $paymentMethodConfiguration->getSpaceId())
-		            ) {
-                        $this->logger->debug("ADAPTER::isAvailable - FINISH");
-                        return false;
-                    }
-                } catch (\Exception $e) {
-                    $this->logger->critical($e);
-                    $this->logger->debug("ADAPTER::isAvailable - FINISH");
-                    return false;
-                }
-            } else {
-                $this->logger->debug("ADAPTER::isAvailable - FINISH");
-                return false;
+        $spaceId = $this->scopeConfig->getValue(
+            'wallee_payment/general/space_id',
+            ScopeInterface::SCOPE_STORE, $quote->getStoreId()
+        );
+        $paymentMethodConfiguration = $this->getPaymentMethodConfiguration();
+
+        if (empty($spaceId)) {
+            $this->logger->debug("ADAPTER::isAvailable - FINISH");
+            return false;
+        }
+
+        try {
+            if (!$quote->getData('wallee_payment_payment_options_response')
+             || ($quote->getData('wallee_payment_payment_tmp_currency') != $quote->getQuoteCurrencyCode())) {
+                $payment_options_response = $this->transactionService->getPossiblePaymentMethods($quote);
+                $quote->setData('wallee_payment_payment_options_response', $payment_options_response);
+                $quote->setData('wallee_payment_payment_tmp_currency', $quote->getQuoteCurrencyCode());
+                $quote->save();
             }
-        } else {
+
+            $payment_options_response = $quote->getData('wallee_payment_payment_options_response');
+
+            foreach ($payment_options_response as $pay) {
+                if ($pay->getId() == $paymentMethodConfiguration->getConfigurationId()) {
+                    return true;
+                }
+
+            }
+        } catch (\Exception $e) {
+            $this->logger->critical($e);
             $this->logger->debug("ADAPTER::isAvailable - FINISH");
             return false;
         }
         $this->logger->debug("ADAPTER::isAvailable - FINISH");
-        return true;
+        return false;
     }
 }

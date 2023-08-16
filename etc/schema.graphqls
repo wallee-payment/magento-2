@@ -1,6 +1,6 @@
 type Query {
     customerOrderTransaction(
-        order_id: Int! @doc(description: "Specify the id of the order.")
+        order_id: String! @doc(description: "Specify the increment id of the order.")
         integration_type: String! @doc(description: "Sort of integration: 'JAVASCRIPT', 'LIGHTBOX', 'PAYMENTPAGE'.")
     ): CustomerOrderTransactionOutput @resolver( class: "\\Wallee\\Payment\\Model\\Resolver\\CustomerOrderTransactionSettings") @doc(description: "Customer order transaction's settings") @cache(cacheable: false)
 }

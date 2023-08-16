@@ -121,10 +121,10 @@ class CustomerOrderTransactionSettings implements ResolverInterface
 	 * @throws NoSuchEntityException
 	 * @throws LocalizedException
 	 */
-	private function getTransactionSettings(int $orderId, string $integrationType)
+	private function getTransactionSettings(string $incrementId, string $integrationType)
 	{
 		/** @var \Magento\Sales\Model\Order  $order */
-		$order = $this->orderRepository->getOrderByIncrementId($orderId);
+		$order = $this->orderRepository->getOrderByIncrementId($incrementId);
 		$transaction = $this->transactionQuoteService->getTransaction(
 			$order->getWalleeSpaceId(),
 			$order->getWalleeTransactionId()
