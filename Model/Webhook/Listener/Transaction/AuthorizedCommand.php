@@ -63,8 +63,8 @@ class AuthorizedCommand extends AbstractCommand
         $payment->registerAuthorizationNotification($entity->getAuthorizationAmount());
 
         if ($entity->getState() != TransactionState::FULFILL) {
-            $order->setState(Order::STATE_PROCESSING);
-            $order->addStatusToHistory('processing_wallee',
+            $order->setState(Order::STATE_PAYMENT_REVIEW);
+            $order->addStatusToHistory('pending',
                 \__('The order should not be fulfilled yet, as the payment is not guaranteed.'));
         }
 

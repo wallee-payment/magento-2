@@ -91,7 +91,7 @@ class CaptureCommand extends AbstractCommand
             }
 
             if ($transaction->getState() == TransactionState::COMPLETED) {
-                $order->setStatus('processing_wallee');
+                $order->setStatus('processing');
             }
 
             if ($isOrderInReview) {

@@ -56,7 +56,7 @@ class FulfillCommand extends AbstractCommand
             $payment = $order->getPayment();
             $payment->setIsTransactionApproved(true);
             $payment->update(false);
-        } elseif ($order->getStatus() == 'processing_wallee') {
+        } elseif ($order->getStatus() == 'processing') {
             $order->setState(Order::STATE_PROCESSING);
             $order->addStatusToHistory(true, \__('The order can be fulfilled now.'));
         }
