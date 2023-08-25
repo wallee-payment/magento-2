@@ -81,14 +81,14 @@ class RestoreQuote implements ResolverInterface
 
 
 	public function __construct(
-		Session                                      $customerSession,
-		CheckoutSession                              $checkoutSession,
-		GetCustomer                                  $getCustomer,
-		CartRepositoryInterface                      $cartRepository,
-		\Wallee\Payment\Api\OrderRepositoryInterface $orderRepository,
-		MaskedQuoteIdToQuoteIdInterface              $maskedQuoteIdToQuoteIdService,
-		ManagerInterface                             $eventManager,
-		LoggerInterface                              $logger
+		Session                         $customerSession,
+		CheckoutSession                 $checkoutSession,
+		GetCustomer                     $getCustomer,
+		CartRepositoryInterface         $cartRepository,
+		OrderRepositoryInterface        $orderRepository,
+		MaskedQuoteIdToQuoteIdInterface $maskedQuoteIdToQuoteIdService,
+		ManagerInterface                $eventManager,
+		LoggerInterface                 $logger
 	) {
 		$this->checkoutSession = $checkoutSession;
 		$this->customerSession = $customerSession;
