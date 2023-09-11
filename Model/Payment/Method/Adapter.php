@@ -207,7 +207,8 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
 
         $spaceId = $this->scopeConfig->getValue(
             'wallee_payment/general/space_id',
-            ScopeInterface::SCOPE_STORE, $quote->getStoreId()
+            ScopeInterface::SCOPE_STORE,
+            $quote->getStoreId()
         );
         $paymentMethodConfiguration = $this->getPaymentMethodConfiguration();
 
