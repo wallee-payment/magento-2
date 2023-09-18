@@ -205,46 +205,37 @@ class TransactionService extends AbstractTransactionService
      */
     public function getPossiblePaymentMethods(Quote $quote)
     {
-        $gdprEnabled = $this->scopeConfig->getValue('wallee_payment/gdpr/gdpr_enabled',
-        ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+        $gdprEnabled = $this->scopeConfig->getValue(
+            'wallee_payment/gdpr/gdpr_enabled',
+            ScopeInterface::SCOPE_STORE, $quote->getStoreId()
+        );
 
-        if ($gdprEnabled != 'enabled' ){
+        if ($gdprEnabled != 'enabled') {
             $this->updateTransactionByQuote($quote);
         }
 
-        $paymentMethodsArray = $this->getPaymentMethodsArrayFromSession();
-        if (
-            ! $paymentMethodsArray ||
-            ! \array_key_exists($quote->getId(), $paymentMethodsArray) ||
-            is_null($paymentMethodsArray[$quote->getId()])
-		) {
-            $transaction = $this->getTransactionByQuote($quote);
-			$integrationMethod = $this->scopeConfig->getValue(
-				'wallee_payment/checkout/integration_method',
-				ScopeInterface::SCOPE_STORE,
-				$quote->getStoreId()
-			);
+        $transaction = $this->getTransactionByQuote($quote);
+        $integrationMethod = $this->scopeConfig->getValue(
+            'wallee_payment/checkout/integration_method',
+            ScopeInterface::SCOPE_STORE,
+            $quote->getStoreId()
+        );
+        try {
+            $paymentMethods = $this->apiClient->getApiClient()->getTransactionService()->fetchPaymentMethods(
+                $transaction->getLinkedSpaceId(),
+                $transaction->getId(),
+                $integrationMethod
+            );
+        } catch (ApiException $e) {
+            $paymentMethodsArray[$quote->getId()] = null;
             try {
-                $paymentMethods = $this->apiClient->getApiClient()->getTransactionService()->fetchPaymentMethods(
-                    $transaction->getLinkedSpaceId(),
-					$transaction->getId(),
-					$integrationMethod
-				);
-            } catch (ApiException $e) {
-                $paymentMethodsArray[$quote->getId()] = null;
-                try{
-                    $this->checkoutSession->setPaymentMethods($paymentMethodsArray);
-                } catch (LocalizedException $ignored){}
-                throw $e;
-            }
-            $this->updatePaymentMethodConfigurations($paymentMethods);
-
-            $paymentMethodsArray[$quote->getId()] = $paymentMethods;
-            try{
                 $this->checkoutSession->setPaymentMethods($paymentMethodsArray);
-            } catch (LocalizedException $ignored){}
+            } catch (LocalizedException $ignored) {
+            }
+            throw $e;
         }
-        return $paymentMethodsArray[$quote->getId()];
+        $this->updatePaymentMethodConfigurations($paymentMethods);
+        return $paymentMethods;
     }
 
     /**
