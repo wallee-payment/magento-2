@@ -41,7 +41,7 @@ class LabelDescriptorProvider extends AbstractProvider
     /**
      * Gets the label descriptor by the given id.
      *
-     * @param int $id
+     * @param string $id
      * @return \Wallee\Sdk\Model\LabelDescriptor
      */
     public function find($id)
@@ -59,6 +59,9 @@ class LabelDescriptorProvider extends AbstractProvider
         return parent::getAll();
     }
 
+    /**
+     * @return mixed
+     */
     protected function fetchData()
     {
         return $this->apiClient->getService(LabelDescriptionService::class)->all();

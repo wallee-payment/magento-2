@@ -40,6 +40,7 @@ abstract class AbstractCommand extends AbstractOrderRelatedCommand
      * Deletes the refund job of the given refund if existing.
      *
      * @param Refund $refund
+     * @return void
      */
     protected function deleteRefundJob(Refund $refund)
     {

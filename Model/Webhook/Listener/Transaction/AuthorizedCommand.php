@@ -78,6 +78,7 @@ class AuthorizedCommand extends AbstractCommand
      * Sends the order email if not already sent.
      *
      * @param Order $order
+     * @return void
      */
     private function sendOrderEmail(Order $order)
     {

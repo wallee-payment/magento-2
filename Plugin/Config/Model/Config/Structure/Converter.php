@@ -14,7 +14,6 @@ use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Filesystem\DriverPool;
 use Magento\Framework\Module\Dir\Reader as ModuleDirReader;
-use Magento\Store\Model\StoreManagerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
 use Wallee\Payment\Model\PaymentMethodConfiguration;
@@ -37,12 +36,6 @@ class Converter
      * @var SearchCriteriaBuilder
      */
     private $searchCriteriaBuilder;
-
-    /**
-     *
-     * @var StoreManagerInterface
-     */
-    private $storeManager;
 
     /**
      *
@@ -78,25 +71,29 @@ class Converter
      *
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param StoreManagerInterface $storeManager
      * @param ResourceConnection $resourceConnection
      * @param Reader $reader
      * @param ModuleDirReader $moduleReader
      * @param DriverPool $driverPool
      */
     public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, StoreManagerInterface $storeManager,
-        ResourceConnection $resourceConnection, Reader $reader, ModuleDirReader $moduleReader, DriverPool $driverPool)
+        SearchCriteriaBuilder $searchCriteriaBuilder, ResourceConnection $resourceConnection,
+        Reader $reader, ModuleDirReader $moduleReader, DriverPool $driverPool)
     {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->storeManager = $storeManager;
         $this->resourceConnection = $resourceConnection;
         $this->reader = $reader;
         $this->moduleReader = $moduleReader;
         $this->driverPool = $driverPool;
     }
 
+    /**
+     * @param \Magento\Config\Model\Config\Structure\Converter $subject
+     * @param mixed $source
+     * @return array
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
     public function beforeConvert(\Magento\Config\Model\Config\Structure\Converter $subject, $source)
     {
         if (! $this->isTableExists()) {
@@ -124,6 +121,11 @@ class Converter
         ];
     }
 
+    /**
+     * @param PaymentMethodConfigurationInterface $configuration
+     * @return array|string|string[]
+     * @throws \Magento\Framework\Exception\FileSystemException
+     */
     private function generateXml(PaymentMethodConfigurationInterface $configuration)
     {
         return str_replace([
@@ -146,6 +148,10 @@ class Converter
             $this->resourceConnection->getTableName('wallee_payment_method_configuration'));
     }
 
+    /**
+     * @return string
+     * @throws \Magento\Framework\Exception\FileSystemException
+     */
     private function getTemplate()
     {
         if ($this->template == null) {

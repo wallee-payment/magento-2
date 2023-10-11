@@ -15,8 +15,6 @@ use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Stdlib\CookieManagerInterface;
-use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
-use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Address;
 use Magento\Store\Model\ScopeInterface;
@@ -39,7 +37,6 @@ use Wallee\Sdk\Service\TransactionIframeService;
 use Wallee\Sdk\Service\TransactionLightboxService;
 use Wallee\Sdk\Service\TransactionPaymentPageService;
 use Wallee\Sdk\Service\TransactionService as TransactionApiService;
-use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -47,64 +44,52 @@ use Psr\Log\LoggerInterface;
  */
 class TransactionService extends AbstractTransactionService
 {
-	/**
-	 * Number of attempts to call the portal API
-	 */
-	const NUMBER_OF_ATTEMPTS = 3;
+    /**
+     * Number of attempts to call the portal API
+     */
+    const NUMBER_OF_ATTEMPTS = 3;
 
-	/**
-	 *
-	 * @var Helper
-	 */
-	private $helper;
+    /**
+     *
+     * @var Helper
+     */
+    private $helper;
 
-	/**
-	 *
-	 * @var ScopeConfigInterface
-	 */
-	private $scopeConfig;
+    /**
+     *
+     * @var ScopeConfigInterface
+     */
+    private $scopeConfig;
 
-	/**
-	 *
-	 * @var CustomerRegistry
-	 */
-	private $customerRegistry;
+    /**
+     *
+     * @var ApiClient
+     */
+    private $apiClient;
 
-	/**
-	 *
-	 * @var ApiClient
-	 */
-	private $apiClient;
+    /**
+     *
+     * @var LineItemService
+     */
+    private $lineItemService;
 
-	/**
-	 *
-	 * @var LineItemService
-	 */
-	private $lineItemService;
+    /**
+     *
+     * @var CheckoutSession
+     */
+    private $checkoutSession;
 
-	/**
-	 *
-	 * @var CheckoutSession
-	 */
-	private $checkoutSession;
+    /**
+     *
+     * @var boolean
+     */
+    private $submittingOrder = false;
 
-	/**
-	 *
-	 * @var boolean
-	 */
-	private $submittingOrder = false;
-
-	/**
-	 *
-	 * @var TransactionInfoRepositoryInterface
-	 */
-	private $transactionInfoRepository;
-
-	/**
-	 *
-	 * @var LoggerInterface
-	 */
-	private $logger;
+    /**
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
 
     /**
      *
@@ -112,42 +97,26 @@ class TransactionService extends AbstractTransactionService
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
-     * @param CartRepositoryInterface $quoteRepository
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
      * @param LineItemService $lineItemService
      * @param CheckoutSession $checkoutSession
      * @param LoggerInterface $logger
-	 * @param TransactionInfoRepositoryInterface $transactionInfoRepository
-	 */
-	public function __construct(
-		ResourceConnection                            $resource,
-		Helper                                        $helper,
-		ScopeConfigInterface                          $scopeConfig,
-		CustomerRegistry                              $customerRegistry,
-		CartRepositoryInterface                       $quoteRepository,
-		TimezoneInterface                             $timezone,
-		PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
-		ApiClient                                     $apiClient,
-		CookieManagerInterface                        $cookieManager,
-		LineItemService                               $lineItemService,
-		CheckoutSession                               $checkoutSession,
-		LoggerInterface                               $logger,
-		TransactionInfoRepositoryInterface            $transactionInfoRepository
-	)
-	{
-		parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
-			$paymentMethodConfigurationManagement, $apiClient, $cookieManager);
-		$this->helper = $helper;
-		$this->scopeConfig = $scopeConfig;
-		$this->customerRegistry = $customerRegistry;
-		$this->apiClient = $apiClient;
-		$this->lineItemService = $lineItemService;
-		$this->checkoutSession = $checkoutSession;
-		$this->transactionInfoRepository = $transactionInfoRepository;
-		$this->logger = $logger;
-	}
+     */
+    public function __construct(ResourceConnection $resource,Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
+    ApiClient $apiClient,PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,CookieManagerInterface $cookieManager,
+    LineItemService $lineItemService, CheckoutSession $checkoutSession, LoggerInterface $logger)
+    {
+        parent::__construct($resource, $customerRegistry, $paymentMethodConfigurationManagement,
+        $apiClient, $cookieManager);
+        $this->helper = $helper;
+        $this->scopeConfig = $scopeConfig;
+        $this->apiClient = $apiClient;
+        $this->lineItemService = $lineItemService;
+        $this->checkoutSession = $checkoutSession;
+        $this->logger = $logger;
+    }
 
     /**
      * Gets the URL to the JavaScript library that is required to display the iframe payment form.
@@ -196,12 +165,12 @@ class TransactionService extends AbstractTransactionService
     /**
      * Gets the payment methods that can be used with the given quote.
      *
-	 * @param Quote $quote
-	 * @return \Wallee\Sdk\Model\PaymentMethodConfiguration
-	 * @throws ApiException
-	 * @throws VersioningException
-	 * @throws \Wallee\Payment\Model\ApiClientException
-	 * @throws \Wallee\Sdk\Http\ConnectionException
+     * @param Quote $quote
+     * @return \Wallee\Sdk\Model\PaymentMethodConfiguration
+     * @throws ApiException
+     * @throws VersioningException
+     * @throws \Wallee\Payment\Model\ApiClientException
+     * @throws \Wallee\Sdk\Http\ConnectionException
      */
     public function getPossiblePaymentMethods(Quote $quote)
     {
@@ -251,8 +220,7 @@ class TransactionService extends AbstractTransactionService
         $possiblePaymentMethods = $this->getPossiblePaymentMethods($quote);
         foreach ($possiblePaymentMethods as $possiblePaymentMethod) {
             if ($possiblePaymentMethod->getId() == $paymentMethodConfigurationId
-                && $possiblePaymentMethod->getSpaceId() == $paymentMethodConfigurationSpaceId
-	    ) {
+                && $possiblePaymentMethod->getSpaceId() == $paymentMethodConfigurationSpaceId) {
                 return true;
             }
         }
@@ -286,41 +254,42 @@ class TransactionService extends AbstractTransactionService
         return $transactionArray[$quote->getId()];
     }
 
-	/**
-	 * Check if the cached transaction is still available or not on the portal.
-	 *
-	 * @param Quote $quote
-	 * @return bool
-	 */
-	private function checkTransactionIsStillAvailable(Quote $quote)
-	{
-		$transactionArray = $this->getTransactionArrayFromSession();
-		if ($transactionArray[$quote->getId()] !== null) {
-			$transactionInSession = $transactionArray[$quote->getId()];
+    /**
+     * Check if the cached transaction is still available or not on the portal.
+     *
+     * @param Quote $quote
+     * @return bool
+     */
+    private function checkTransactionIsStillAvailable(Quote $quote)
+    {
+        $transactionArray = $this->getTransactionArrayFromSession();
+        $transaction = null;
+        if ($transactionArray[$quote->getId()] !== null) {
+            $transactionInSession = $transactionArray[$quote->getId()];
 
-			//If the status of the transaction in cache is PENDING,
-			//you should check its status in the portal, it may be closed, failed or declined.
-			if ($transactionInSession->getState() == TransactionState::PENDING) {
-				$transaction = $this->apiClient->getService(TransactionApiService::class)->read(
-					$quote->getWalleeSpaceId(),
-					$quote->getWalleeTransactionId()
-				);
-			}
+            //If the status of the transaction in cache is PENDING,
+            //you should check its status in the portal, it may be closed, failed or declined.
+            if ($transactionInSession->getState() == TransactionState::PENDING) {
+                $transaction = $this->apiClient->getService(TransactionApiService::class)->read(
+                    $quote->getWalleeSpaceId(),
+                    $quote->getWalleeTransactionId()
+                );
+            }
 
-			$states = [
-				TransactionState::DECLINE,
-				TransactionState::FAILED
-			];
-			if ($transaction instanceof Transaction && in_array($transaction->getState(), $states)) {
-				return false;
-			}
-			//here we make sure that both portal and session transactions are the same.
-			if ($transaction->getId() !== $transactionInSession->getId()) {
-				return false;
-			}
-		}
-		return true;
-	}
+            $states = [
+                TransactionState::DECLINE,
+                TransactionState::FAILED
+            ];
+            if ($transaction instanceof Transaction && in_array($transaction->getState(), $states)) {
+                return false;
+            }
+            //here we make sure that both portal and session transactions are the same.
+            if ($transaction->getId() !== $transactionInSession->getId()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * Creates a transaction for the given quote.
@@ -363,9 +332,9 @@ class TransactionService extends AbstractTransactionService
                 $transaction = $this->apiClient->getService(TransactionApiService::class)->read(
                     $quote->getWalleeSpaceId(), $quote->getWalleeTransactionId());
 
-				if (!($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
-					return $this->createTransactionByQuote($quote);
-				}
+                if (!($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
+                    return $this->createTransactionByQuote($quote);
+                }
 
                 if (! empty($transaction->getCustomerId()) && $transaction->getCustomerId() != $quote->getCustomerId()) {
                     if ($this->submittingOrder) {
@@ -375,7 +344,7 @@ class TransactionService extends AbstractTransactionService
                     }
                 }
 
-				return $this->createTransactionPending($quote, $transaction);
+                return $this->createTransactionPending($quote, $transaction);
             } catch (VersioningException $e) {
                 // Try to update the transaction again, if a versioning exception occurred.
             }
@@ -383,21 +352,27 @@ class TransactionService extends AbstractTransactionService
         throw new VersioningException(__FUNCTION__);
     }
 
-	private function createTransactionPending(Quote $quote, $transaction)
-	{
-		$pendingTransaction = new TransactionPending();
-		$pendingTransaction->setId($transaction->getId());
-		$pendingTransaction->setVersion($transaction->getVersion());
-		$this->assembleTransactionDataFromQuote($pendingTransaction, $quote);
-		return $this->apiClient->getService(TransactionApiService::class)->update(
-			$quote->getWalleeSpaceId(), $pendingTransaction);
-	}
+    /**
+     * @param Quote $quote
+     * @param Transaction $transaction
+     * @return mixed
+     */
+    private function createTransactionPending(Quote $quote, $transaction)
+    {
+        $pendingTransaction = new TransactionPending();
+        $pendingTransaction->setId($transaction->getId());
+        $pendingTransaction->setVersion($transaction->getVersion());
+        $this->assembleTransactionDataFromQuote($pendingTransaction, $quote);
+        return $this->apiClient->getService(TransactionApiService::class)->update(
+            $quote->getWalleeSpaceId(), $pendingTransaction);
+        }
 
     /**
      * Assembles the transaction data from the given quote.
      *
      * @param AbstractTransactionPending $transaction
      * @param Quote $quote
+     * @return void
      */
     private function assembleTransactionDataFromQuote(AbstractTransactionPending $transaction, Quote $quote)
     {
@@ -524,6 +499,9 @@ class TransactionService extends AbstractTransactionService
         return $address;
     }
 
+    /**
+     * @return void
+     */
     public function setSubmittingOrder()
     {
         $this->submittingOrder = true;

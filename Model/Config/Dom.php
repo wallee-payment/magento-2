@@ -24,6 +24,7 @@ class Dom extends \Magento\Framework\Config\Dom
      * Sets the DOM document.
      *
      * @param \DOMDocument $dom
+     * @return void
      */
     public function setDom(\DOMDocument $dom)
     {

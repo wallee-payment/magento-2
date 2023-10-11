@@ -32,7 +32,7 @@ class RefundJob extends AbstractDb
     /**
      * Serializable fields
      *
-     * @var array
+     * @var array<string, mixed>
      */
     protected $_serializableFields = [
         'refund' => [
@@ -107,7 +107,7 @@ class RefundJob extends AbstractDb
                 $object->setData($field, $defaultValue);
             }
         } else {
-            return parent::_unserializeField($object, $field, $defaultValue);
+            parent::_unserializeField($object, $field, $defaultValue);
         }
     }
 }

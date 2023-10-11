@@ -43,6 +43,7 @@ class LineItemReduction extends AbstractHelper
      * @param \Wallee\Sdk\Model\LineItem[] $lineItems
      * @param \Wallee\Sdk\Model\LineItemReduction[] $reductions
      * @param string $currency
+     * @return float
      */
     public function getReducedAmount(array $lineItems, array $reductions, $currency)
     {

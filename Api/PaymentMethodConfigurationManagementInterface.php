@@ -20,6 +20,7 @@ interface PaymentMethodConfigurationManagementInterface
 
     /**
      * Synchronizes the payment method configurations from wallee.
+     * @return void
      */
     public function synchronize();
 
@@ -27,6 +28,7 @@ interface PaymentMethodConfigurationManagementInterface
      * Updates the payment method configuration information.
      *
      * @param \Wallee\Sdk\Model\PaymentMethodConfiguration $configuration
+     * @return void
      */
     public function update(\Wallee\Sdk\Model\PaymentMethodConfiguration $configuration);
 }

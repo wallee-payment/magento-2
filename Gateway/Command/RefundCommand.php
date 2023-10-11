@@ -17,8 +17,6 @@ use Psr\Log\LoggerInterface;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Helper\Locale as LocaleHelper;
 use Wallee\Payment\Model\ApiClient;
-use Wallee\Payment\Model\RefundJobFactory;
-use Wallee\Payment\Model\Service\LineItemReductionService;
 use Wallee\Payment\Model\Service\RefundService;
 use Wallee\Sdk\Model\RefundState;
 use Wallee\Sdk\Service\RefundService as ApiRefundService;
@@ -43,18 +41,6 @@ class RefundCommand implements CommandInterface
 
     /**
      *
-     * @var LineItemReductionService
-     */
-    private $lineItemReductionService;
-
-    /**
-     *
-     * @var RefundJobFactory
-     */
-    private $refundJobFactory;
-
-    /**
-     *
      * @var RefundJobRepositoryInterface
      */
     private $refundJobRepository;
@@ -75,20 +61,15 @@ class RefundCommand implements CommandInterface
      *
      * @param LoggerInterface $logger
      * @param LocaleHelper $localeHelper
-     * @param LineItemReductionService $lineItemReductionService
-     * @param RefundJobFactory $refundJobFactory
      * @param RefundJobRepositoryInterface $refundJobRepository
      * @param RefundService $refundService
      * @param ApiClient $apiClient
      */
     public function __construct(LoggerInterface $logger, LocaleHelper $localeHelper,
-        LineItemReductionService $lineItemReductionService, RefundJobFactory $refundJobFactory,
         RefundJobRepositoryInterface $refundJobRepository, RefundService $refundService, ApiClient $apiClient)
     {
         $this->logger = $logger;
         $this->localeHelper = $localeHelper;
-        $this->lineItemReductionService = $lineItemReductionService;
-        $this->refundJobFactory = $refundJobFactory;
         $this->refundJobRepository = $refundJobRepository;
         $this->refundService = $refundService;
         $this->apiClient = $apiClient;

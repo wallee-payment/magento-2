@@ -21,7 +21,7 @@ class ListenerPool implements ListenerPoolInterface
 
     /**
      *
-     * @var ListenerInterface[]
+     * @var \Magento\Framework\ObjectManager\TMap|ListenerInterface[]
      */
     private $listeners;
 

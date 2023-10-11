@@ -40,7 +40,7 @@ class LabelDescriptorGroupProvider extends AbstractProvider
     /**
      * Gets the label descriptor group by the given id.
      *
-     * @param int $id
+     * @param string $id
      * @return \Wallee\Sdk\Model\LabelDescriptorGroup
      */
     public function find($id)
@@ -58,6 +58,9 @@ class LabelDescriptorGroupProvider extends AbstractProvider
         return parent::getAll();
     }
 
+    /**
+     * @return mixed
+     */
     protected function fetchData()
     {
         return $this->apiClient->getService(LabelDescriptionGroupService::class)->all();

@@ -46,6 +46,7 @@ class CompletedCommand extends AbstractCommand
      *
      * @param \Wallee\Sdk\Model\Transaction $entity
      * @param Order $order
+     * @return void
      */
     public function execute($entity, Order $order)
     {

@@ -114,6 +114,7 @@ class LineItem extends AbstractHelper
      * @param float $expectedAmount
      * @param string $currencyCode
      * @param array $taxInfo
+     * @return void
      */
     protected function adjustLineItems(array &$items, $expectedAmount, $currencyCode, array $taxInfo)
     {

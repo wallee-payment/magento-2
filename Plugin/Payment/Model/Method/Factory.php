@@ -37,6 +37,12 @@ class Factory
         $this->objectManager = $objectManager;
     }
 
+    /**
+     * @param \Magento\Payment\Model\Method\Factory $subject
+     * @param string $classname
+     * @param array<mixed> $data
+     * @return array|null
+     */
     public function beforeCreate(\Magento\Payment\Model\Method\Factory $subject, $classname, $data = [])
     {
         if (strpos($classname, 'wallee_payment::') === 0) {
@@ -55,6 +61,10 @@ class Factory
         }
     }
 
+    /**
+     * @param int $configurationId
+     * @return mixed
+     */
     private function getValueHandlerPool($configurationId)
     {
         $configInterface = $this->objectManager->create(Config::class,

@@ -16,7 +16,6 @@ use Magento\Framework\DataObject;
 use Magento\Framework\App\Action\Context;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
-use Wallee\Payment\Model\Service\Order\TransactionService;
 use Wallee\Sdk\Model\TransactionState;
 
 /**
@@ -38,25 +37,17 @@ class Success extends \Wallee\Payment\Controller\Transaction
 
     /**
      *
-     * @var TransactionService
-     */
-    private $transactionService;
-
-    /**
-     *
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
      * @param CheckoutSession $checkoutSession
      * @param SuccessValidator $successValidator
-     * @param TransactionService $transactionService
      */
     public function __construct(Context $context, OrderRepositoryInterface $orderRepository,
-        CheckoutSession $checkoutSession, SuccessValidator $successValidator, TransactionService $transactionService)
+        CheckoutSession $checkoutSession, SuccessValidator $successValidator)
     {
         parent::__construct($context, $orderRepository);
         $this->checkoutSession = $checkoutSession;
         $this->successValidator = $successValidator;
-        $this->transactionService = $transactionService;
     }
 
     public function execute()

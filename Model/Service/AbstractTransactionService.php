@@ -12,13 +12,9 @@ namespace Wallee\Payment\Model\Service;
 
 use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Stdlib\CookieManagerInterface;
-use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
-use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
 use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
-use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Sdk\Model\Gender;
 use Wallee\Sdk\Model\Transaction;
@@ -38,33 +34,9 @@ abstract class AbstractTransactionService
 
     /**
      *
-     * @var Helper
-     */
-    private $helper;
-
-    /**
-     *
-     * @var ScopeConfigInterface
-     */
-    private $scopeConfig;
-
-    /**
-     *
      * @var CustomerRegistry
      */
     private $customerRegistry;
-
-    /**
-     *
-     * @var CartRepositoryInterface
-     */
-    private $quoteRepository;
-
-    /**
-     *
-     * @var TimezoneInterface
-     */
-    private $timezone;
 
     /**
      *
@@ -87,26 +59,17 @@ abstract class AbstractTransactionService
     /**
      *
      * @param ResourceConnection $resource
-     * @param Helper $helper
-     * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
-     * @param CartRepositoryInterface $quoteRepository
-     * @param TimezoneInterface $timezone
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
      */
-    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
-        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
+    public function __construct(ResourceConnection $resource, CustomerRegistry $customerRegistry,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
         CookieManagerInterface $cookieManager)
     {
         $this->resource = $resource;
-        $this->helper = $helper;
-        $this->scopeConfig = $scopeConfig;
         $this->customerRegistry = $customerRegistry;
-        $this->quoteRepository = $quoteRepository;
-        $this->timezone = $timezone;
         $this->paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
         $this->apiClient = $apiClient;
         $this->cookieManager = $cookieManager;
@@ -116,6 +79,7 @@ abstract class AbstractTransactionService
      * Updates the payment method configurations with the given data.
      *
      * @param \Wallee\Sdk\Model\PaymentMethodConfiguration[] $paymentMethods
+     * @return void
      */
     protected function updatePaymentMethodConfigurations($paymentMethods)
     {
@@ -141,6 +105,7 @@ abstract class AbstractTransactionService
      *
      * @param Quote $quote
      * @param Transaction $transaction
+     * @return void
      */
     protected function updateQuote(Quote $quote, Transaction $transaction)
     {

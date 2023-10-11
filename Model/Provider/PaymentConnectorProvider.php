@@ -41,7 +41,7 @@ class PaymentConnectorProvider extends AbstractProvider
     /**
      * Gets the payment connector by the given id.
      *
-     * @param int $id
+     * @param string $id
      * @return \Wallee\Sdk\Model\PaymentConnector
      */
     public function find($id)
@@ -59,6 +59,9 @@ class PaymentConnectorProvider extends AbstractProvider
         return parent::getAll();
     }
 
+    /**
+     * @return mixed
+     */
     protected function fetchData()
     {
         return $this->apiClient->getService(PaymentConnectorService::class)->all();

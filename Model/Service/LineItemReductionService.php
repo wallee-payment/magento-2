@@ -210,6 +210,7 @@ class LineItemReductionService
      * @param LineItemReductionCreate[] $reductions
      * @param Creditmemo $creditmemo
      * @param \Wallee\Sdk\Model\LineItem[] $baseLineItems
+     * @return void
      * @throws LineItemReductionException
      */
     private function validateReductions(array $reductions, Creditmemo $creditmemo, $baseLineItems)

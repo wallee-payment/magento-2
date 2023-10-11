@@ -1,10 +1,11 @@
 <?php
 namespace Wallee\Payment\Setup\Patch\Data;
+
 use \Magento\Framework\Setup\Patch\DataPatchInterface;
 use \Magento\Framework\Setup\Patch\PatchVersionInterface;
 use \Magento\Framework\Module\Setup\Migration;
 use \Magento\Framework\Setup\ModuleDataSetupInterface;
-
+use \Magento\Sales\Model\Order\Status;
 
 /**
  * Class AddSetupData
@@ -13,24 +14,24 @@ use \Magento\Framework\Setup\ModuleDataSetupInterface;
 
 class AddSetupDataState implements DataPatchInterface
 {
+    /**
+     *
+     * @var Status
+     */
     private $status;
 
     /**
      *
-     * @param \Wallee\Payment\Model\Author $status
+     * @param Status $status
      */
-
-    public function __construct(
-        \Magento\Sales\Model\Order\Status $status
-    ) {
+    public function __construct(Status $status) {
         $this->status = $status;
     }
 
     /**
      * @details: It will create each status/state
-     * @return:none
+     * @inheritDoc
      */
-
     public function apply(){
 
         $statuses = array(array ('status'=>'processing_wallee','label'=>'Hold Delivery'),
@@ -38,23 +39,25 @@ class AddSetupDataState implements DataPatchInterface
 
         foreach ($statuses as $statusData) {
             $this->status->addData($statusData);
+            /** @todo change this get resource model */
             $this->status->getResource()->save($this->status);
+            /** @todo this function expected a boolean as a third parameter */
             $this->status->assignState('processing', 'processing', true);
         }
+
+        return $this;
     }
 
     /**
-     * @return array:
+     * @inheritDoc
      */
-
     public static function getDependencies(){
         return [];
     }
 
     /**
-     * @return array:
+     * @inheritDoc
      */
-
     public function getAliases(){
         return [];
     }

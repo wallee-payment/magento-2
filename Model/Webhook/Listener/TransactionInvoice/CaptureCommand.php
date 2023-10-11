@@ -104,20 +104,11 @@ class CaptureCommand extends AbstractCommand
         }
     }
 
-    private function createInvoice(Transaction $transaction, Order $order)
-    {
-        $invoice = $order->prepareInvoice();
-        $invoice->register();
-        $invoice->setTransactionId(
-            $order->getWalleeSpaceId() . '_' . $order->getWalleeTransactionId());
-        $order->addRelatedObject($invoice);
-        return $invoice;
-    }
-
     /**
      * Sends the order email if not already sent.
      *
      * @param Order $order
+     * @return void
      */
     private function sendOrderEmail(Order $order)
     {

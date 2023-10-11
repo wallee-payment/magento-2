@@ -71,7 +71,7 @@ class LineItemService extends AbstractLineItemService
         CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
         ProductRepositoryInterface $productRepository)
     {
-        parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
+        parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxCalculation,
             $groupRegistry, $eventManager, $productRepository);
         $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;

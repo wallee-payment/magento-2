@@ -15,7 +15,6 @@ use Magento\Sales\Model\Order\Creditmemo;
 use Magento\Sales\Model\Order\Invoice;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Api\Data\RefundJobInterface;
-use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\RefundJobFactory;
 use Wallee\Sdk\Model\RefundCreate;
 use Wallee\Sdk\Model\RefundType;
@@ -49,7 +48,6 @@ class RefundService
      * @param LineItemReductionService $lineItemReductionService
      * @param RefundJobFactory $refundJobFactory
      * @param RefundJobRepositoryInterface $refundJobRepository
-     * @param ApiClient $apiClient
      */
     public function __construct(LineItemReductionService $lineItemReductionService,
         RefundJobFactory $refundJobFactory, RefundJobRepositoryInterface $refundJobRepository)

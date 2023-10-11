@@ -12,16 +12,12 @@ namespace Wallee\Payment\Model\Service\Invoice;
 
 use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\CookieManagerInterface;
-use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
-use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Payment;
 use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
-use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\Locale as LocaleHelper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\AbstractTransactionService;
@@ -74,10 +70,7 @@ class TransactionService extends AbstractTransactionService
     /**
      *
      * @param ResourceConnection $resource
-     * @param Helper $helper
-     * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
-     * @param CartRepositoryInterface $quoteRepository
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
@@ -86,14 +79,13 @@ class TransactionService extends AbstractTransactionService
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param OrderTransactionService $orderTransactionService
      */
-    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
-        CustomerRegistry $customerRegistry, CartRepositoryInterface $quoteRepository, TimezoneInterface $timezone,
+    public function __construct(ResourceConnection $resource, CustomerRegistry $customerRegistry,
         PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
         CookieManagerInterface $cookieManager, LocaleHelper $localeHelper, LineItemService $lineItemService,
         TransactionInfoRepositoryInterface $transactionInfoRepository, OrderTransactionService $orderTransactionService)
     {
-        parent::__construct($resource, $helper, $scopeConfig, $customerRegistry, $quoteRepository, $timezone,
-            $paymentMethodConfigurationManagement, $apiClient, $cookieManager);
+        parent::__construct($resource, $customerRegistry, $paymentMethodConfigurationManagement, $apiClient,
+        $cookieManager);
         $this->apiClient = $apiClient;
         $this->localeHelper = $localeHelper;
         $this->lineItemService = $lineItemService;
@@ -106,6 +98,7 @@ class TransactionService extends AbstractTransactionService
      *
      * @param Invoice $invoice
      * @param float $expectedAmount
+     * @return void
      */
     public function updateLineItems(Invoice $invoice, $expectedAmount)
     {
@@ -132,6 +125,7 @@ class TransactionService extends AbstractTransactionService
      * @param Payment $payment
      * @param Invoice $invoice
      * @param float $amount
+     * @return void
      * @throws \Exception
      */
     public function complete(Payment $payment, Invoice $invoice, $amount)

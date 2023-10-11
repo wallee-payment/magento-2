@@ -34,6 +34,11 @@ class ManualCheckRequiredCommand extends AbstractCommand
         $this->orderRepository = $orderRepository;
     }
 
+    /**
+     *
+     * @param mixed $entity
+     * @param Order $order
+     */
     public function execute($entity, Order $order)
     {
         if ($order->getState() != Order::STATE_PAYMENT_REVIEW) {

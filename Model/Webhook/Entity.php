@@ -16,20 +16,32 @@ namespace Wallee\Payment\Model\Webhook;
 class Entity
 {
 
+    /**
+     * @var int
+     */
     private $id;
 
+    /**
+     * @var string
+     */
     private $name;
 
+    /**
+     * @var array<mixed>
+     */
     private $states;
 
+    /**
+     * @var bool
+     */
     private $notifyEveryChange;
 
     /**
      *
      * @param int $id
      * @param string $name
-     * @param array $states
-     * @param boolean $notifyEveryChange
+     * @param array<mixed> $states
+     * @param bool $notifyEveryChange
      */
     public function __construct($id, $name, array $states, $notifyEveryChange = false)
     {
@@ -72,7 +84,7 @@ class Entity
     /**
      * Gets whether every change should be notified.
      *
-     * @return boolean
+     * @return bool
      */
     public function isNotifyEveryChange()
     {

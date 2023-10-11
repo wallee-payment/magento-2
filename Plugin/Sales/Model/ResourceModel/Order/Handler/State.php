@@ -18,6 +18,12 @@ use Wallee\Payment\Model\Payment\Method\Adapter;
 class State
 {
 
+    /**
+     * @param StateHandler $stateHandler
+     * @param callable $proceed
+     * @param Order $order
+     * @return Order
+     */
     public function aroundCheck(StateHandler $stateHandler, callable $proceed, Order $order)
     {
         if ($order->getState() == Order::STATE_PROCESSING

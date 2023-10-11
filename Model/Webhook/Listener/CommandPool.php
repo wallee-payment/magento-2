@@ -21,7 +21,7 @@ class CommandPool implements CommandPoolInterface
 
     /**
      *
-     * @var CommandInterface[]
+     * @var \Magento\Framework\ObjectManager\TMap|CommandInterface[]
      */
     private $commands;
 

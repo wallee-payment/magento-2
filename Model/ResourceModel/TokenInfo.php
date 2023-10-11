@@ -29,7 +29,7 @@ class TokenInfo extends AbstractDb
     /**
      * Serializable fields
      *
-     * @var array
+     * @var array<string, mixed>
      */
     protected $_serializableFields = [
         'failure_reason' => [

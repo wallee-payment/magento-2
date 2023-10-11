@@ -16,9 +16,11 @@ use Magento\Framework\DataObject;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Quote\Model\Quote;
+use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Invoice;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
-use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
@@ -60,12 +62,6 @@ abstract class AbstractLineItemService
 
     /**
      *
-     * @var TaxHelper
-     */
-    private $taxHelper;
-
-    /**
-     *
      * @var TaxCalculation
      */
     private $taxCalculation;
@@ -104,7 +100,6 @@ abstract class AbstractLineItemService
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
      * @param TaxClassRepositoryInterface $taxClassRepository
-     * @param TaxHelper $taxHelper
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
@@ -112,7 +107,7 @@ abstract class AbstractLineItemService
      * @param GiftCardAccountWrapper $giftCardAccountManagement
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
-        TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
+        TaxClassRepositoryInterface $taxClassRepository, TaxCalculation $taxCalculation,
         CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
         ProductRepositoryInterface $productRepository, GiftCardAccountWrapper $giftCardAccountManagement = null)
     {
@@ -120,7 +115,6 @@ abstract class AbstractLineItemService
         $this->lineItemHelper = $lineItemHelper;
         $this->scopeConfig = $scopeConfig;
         $this->taxClassRepository = $taxClassRepository;
-        $this->taxHelper = $taxHelper;
         $this->taxCalculation = $taxCalculation;
         $this->groupRegistry = $groupRegistry;
         $this->eventManager = $eventManager;
@@ -128,9 +122,9 @@ abstract class AbstractLineItemService
         $this->giftCardAccountManagement = $giftCardAccountManagement;
     }
 
-    /*
-    * @return bool
-    */
+    /**
+     * @return bool
+     */
     protected function checkIsAdmin() {
         $om = \Magento\Framework\App\ObjectManager::getInstance();
         $state =  $om->get('Magento\Framework\App\State');
@@ -160,9 +154,6 @@ abstract class AbstractLineItemService
 
         if (!$this->checkIsAdmin()) {
             if ($this->giftCardAccountManagement instanceof \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement) {
-                /**
-                * @var Magento\GiftCardAccount\Model\Giftcardaccount
-                */
                 $giftCardaccount = $this->giftCardAccountManagement->getListByQuoteId($entity->get()['entity_id']);
 
                 if ($giftCardaccount instanceof \Magento\GiftCardAccount\Model\Giftcardaccount && count($giftCardaccount->getGiftCards()) > 0) {
@@ -365,15 +356,16 @@ abstract class AbstractLineItemService
             $entity->getShippingDescription());
     }
 
-    /**
-     * Converts the entity's shipping information to a line item.
-     *
-     * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
-     * @param float $shippingAmount
-     * @param string $shippingDescription
-     * @param float $shippingDiscountAmount
-     * @return LineItemCreate
-     */
+	/**
+	 * Converts the entity's shipping information to a line item.
+	 *
+	 * @param Quote|Order|Invoice $entity
+	 * @param float $shippingAmount
+	 * @param float $shippingTaxAmount
+	 * @param float $shippingDiscountAmount
+	 * @param string $shippingDescription
+	 * @return LineItemCreate
+	 */
     protected function convertShippingLineItemInner($entity, $shippingAmount, $shippingTaxAmount,
         $shippingDiscountAmount, $shippingDescription)
     {

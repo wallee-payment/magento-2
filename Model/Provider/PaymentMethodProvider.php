@@ -41,7 +41,7 @@ class PaymentMethodProvider extends AbstractProvider
     /**
      * Gets the payment method by the given id.
      *
-     * @param int $id
+     * @param string $id
      * @return \Wallee\Sdk\Model\PaymentMethod
      */
     public function find($id)
@@ -59,11 +59,18 @@ class PaymentMethodProvider extends AbstractProvider
         return parent::getAll();
     }
 
+    /**
+     * @return mixed
+     */
     protected function fetchData()
     {
         return $this->apiClient->getService(PaymentMethodService::class)->all();
     }
 
+    /**
+     * @param mixed $entry
+     * @return int
+     */
     protected function getId($entry)
     {
         /** @var \Wallee\Sdk\Model\PaymentMethod $entry */

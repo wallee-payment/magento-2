@@ -68,7 +68,7 @@ class TransactionListener extends AbstractOrderRelatedListener
         TransactionInfoManagementInterface $transactionInfoManagement, ApiClient $apiClient)
     {
         parent::__construct($resource, $logger, $orderFactory, $orderResourceModel, $commandPool,
-            $transactionInfoRepository, $transactionInfoManagement);
+            $transactionInfoRepository);
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->transactionInfoManagement = $transactionInfoManagement;
         $this->apiClient = $apiClient;
@@ -80,12 +80,13 @@ class TransactionListener extends AbstractOrderRelatedListener
      *
      * @param \Wallee\Sdk\Model\Transaction $entity
      * @param Order $order
+     * @return void
      */
     protected function process($entity, Order $order)
     {
         $this->logger->debug("TRANSACTION-LISTENER::process");
         $transactionInfo = $this->transactionInfoRepository->getByOrderId($order->getId());
-        if ($transactionInfo->getState() != $entity->getState()) {
+        if ((string)$transactionInfo->getState() != $entity->getState()) {
             parent::process($entity, $order);
         }
         $this->transactionInfoManagement->update($entity, $order);

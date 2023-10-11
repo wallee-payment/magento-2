@@ -16,7 +16,6 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
-use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
@@ -54,18 +53,17 @@ class LineItemService extends AbstractLineItemService
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
      * @param TaxClassRepositoryInterface $taxClassRepository
-     * @param TaxHelper $taxHelper
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
      * @param ProductRepositoryInterface $productRepository
      */
     public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
-        TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
+        TaxClassRepositoryInterface $taxClassRepository, TaxCalculation $taxCalculation,
         CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
         ProductRepositoryInterface $productRepository)
     {
-        parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxHelper, $taxCalculation,
+        parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxCalculation,
             $groupRegistry, $eventManager, $productRepository);
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;

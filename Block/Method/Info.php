@@ -16,6 +16,7 @@ use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\View\Element\Template\Context;
 use Magento\Sales\Model\Order\Payment;
 use Magento\Backend\Helper\Data as urlBackendHelper;
+use Wallee\Payment\Api\Data\TransactionInfoInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\Document as DocumentHelper;
@@ -93,7 +94,7 @@ class Info extends \Magento\Payment\Block\Info
 
     /**
      *
-     * @var \Wallee\Payment\Model\TransactionInfo
+     * @var TransactionInfoInterface|bool
      */
     private $transaction;
 
@@ -266,7 +267,7 @@ class Info extends \Magento\Payment\Block\Info
     /**
      * Gets the transaction info or false if not available.
      *
-     * @return \Wallee\Payment\Model\TransactionInfo|false
+     * @return TransactionInfoInterface|bool
      */
     #[\ReturnTypeWillChange]
     public function getTransaction()

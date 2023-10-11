@@ -20,7 +20,6 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
-use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Sdk\Model\LineItemCreate;
@@ -53,12 +52,6 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
 
     /**
      *
-     * @var TaxHelper
-     */
-    private $taxHelper;
-
-    /**
-     *
      * @var TaxCalculation
      */
     private $taxCalculation;
@@ -80,19 +73,17 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      * @param ObjectManagerInterface $objectManager
      * @param ModuleManager $moduleManager
      * @param TaxClassRepositoryInterface $taxClassRepository
-     * @param TaxHelper $taxHelper
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
      * @param Helper $helper
      */
     public function __construct(ObjectManagerInterface $objectManager, ModuleManager $moduleManager,
-        TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
+        TaxClassRepositoryInterface $taxClassRepository, TaxCalculation $taxCalculation,
         CustomerGroupRegistry $groupRegistry, Helper $helper)
     {
         $this->objectManager = $objectManager;
         $this->moduleManager = $moduleManager;
         $this->taxClassRepository = $taxClassRepository;
-        $this->taxHelper = $taxHelper;
         $this->taxCalculation = $taxCalculation;
         $this->groupRegistry = $groupRegistry;
         $this->helper = $helper;

@@ -62,6 +62,12 @@ class Refund
         $this->apiClient = $apiClient;
     }
 
+    /**
+     * @return void
+     * @throws \Magento\Framework\Exception\InputException
+     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws \Magento\Framework\Exception\StateException
+     */
     public function execute()
     {
         $searchCriteria = $this->searchCriteriaBuilder->setPageSize(100)->create();

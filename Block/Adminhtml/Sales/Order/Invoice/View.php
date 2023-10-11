@@ -14,7 +14,6 @@ use Magento\Backend\Block\Template;
 use Magento\Backend\Block\Template\Context;
 use Magento\Framework\Registry;
 use Magento\Sales\Model\Order\Invoice;
-use Wallee\Payment\Api\RefundJobRepositoryInterface;
 
 /**
  * Block to inform about a pending capture on the backend invoice view.
@@ -30,23 +29,14 @@ class View extends Template
 
     /**
      *
-     * @var RefundJobRepositoryInterface
-     */
-    private $refundJobRepository;
-
-    /**
-     *
      * @param Context $context
      * @param Registry $coreRegistry
-     * @param RefundJobRepositoryInterface $refundJobRepository
      * @param array $data
      */
-    public function __construct(Context $context, Registry $coreRegistry,
-        RefundJobRepositoryInterface $refundJobRepository, array $data = [])
+    public function __construct(Context $context, Registry $coreRegistry, array $data = [])
     {
         parent::__construct($context, $data);
         $this->coreRegistry = $coreRegistry;
-        $this->refundJobRepository = $refundJobRepository;
     }
 
     /**

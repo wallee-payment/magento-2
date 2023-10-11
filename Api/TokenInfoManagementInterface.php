@@ -10,7 +10,7 @@
  */
 namespace Wallee\Payment\Api;
 
-use Wallee\Payment\Model\TokenInfo;
+use Wallee\Payment\Api\Data\TokenInfoInterface;
 
 /**
  * Token info management interface.
@@ -25,6 +25,7 @@ interface TokenInfoManagementInterface
      *
      * @param int $spaceId
      * @param int $tokenVersionId
+     * @return void
      */
     public function updateTokenVersion($spaceId, $tokenVersionId);
 
@@ -33,13 +34,15 @@ interface TokenInfoManagementInterface
      *
      * @param int $spaceId
      * @param int $tokenId
+     * @return void
      */
     public function updateToken($spaceId, $tokenId);
 
     /**
      * Deletes the token on wallee.
      *
-     * @param Data\TokenInfoInterface $token
+     * @param TokenInfoInterface $token
+     * @return void
      */
-    public function deleteToken(TokenInfo $token);
+    public function deleteToken(TokenInfoInterface $token);
 }

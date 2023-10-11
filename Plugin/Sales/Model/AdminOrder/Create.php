@@ -15,6 +15,10 @@ use Wallee\Payment\Model\Payment\Method\Adapter;
 class Create
 {
 
+    /**
+     * @param \Magento\Sales\Model\AdminOrder\Create $subject
+     * @return void
+     */
     public function beforeCreateOrder(\Magento\Sales\Model\AdminOrder\Create $subject)
     {
         if ($subject->getQuote()

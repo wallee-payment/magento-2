@@ -14,7 +14,6 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Psr\Log\LoggerInterface;
 use Magento\Checkout\Model\Session as CheckoutSession;
-use RectorPrefix202302\SebastianBergmann\Diff\Exception;
 
 /**
  * Observer to listen all the changes made to the cart.
@@ -56,6 +55,6 @@ class CartEventListener implements ObserverInterface
         try{
             $this->checkoutSession->unsTransaction();
             $this->checkoutSession->unsPaymentMethods();
-        } catch (Exception $ignored){}
+        } catch (\Exception $ignored){}
     }
 }

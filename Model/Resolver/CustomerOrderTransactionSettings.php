@@ -99,7 +99,7 @@ class CustomerOrderTransactionSettings implements ResolverInterface
 			}
 
 			$customer = $this->getCustomer->execute($context);
-			if (!empty($this->customerSession) && $customer->getId() !== $this->customerSession->getCustomer()->getId()) {
+			if ($this->customerSession !== null && $customer->getId() !== $this->customerSession->getCustomer()->getId()) {
 				throw new GraphQlAuthorizationException(__('The current customer isn\'t authorized.'));
 			}
 		}

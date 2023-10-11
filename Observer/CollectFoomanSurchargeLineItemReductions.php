@@ -10,7 +10,6 @@
  */
 namespace Wallee\Payment\Observer;
 
-use Magento\Framework\ObjectManagerInterface;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Module\Manager as ModuleManager;
@@ -26,12 +25,6 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
 
     /**
      *
-     * @var ObjectManagerInterface
-     */
-    private $objectManager;
-
-    /**
-     *
      * @var ModuleManager
      */
     private $moduleManager;
@@ -44,13 +37,11 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
 
     /**
      *
-     * @param ObjectManagerInterface $objectManager
      * @param ModuleManager $moduleManager
      * @param Helper $helper
      */
-    public function __construct(ObjectManagerInterface $objectManager, ModuleManager $moduleManager, Helper $helper)
+    public function __construct(ModuleManager $moduleManager, Helper $helper)
     {
-        $this->objectManager = $objectManager;
         $this->moduleManager = $moduleManager;
         $this->helper = $helper;
     }
@@ -108,8 +99,10 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
 
     /**
      *
+     * @param Creditmemo $creditmemo
      * @param string $code
      * @param float $amount
+     * @param mixed $baseLineItem
      * @return LineItemReductionCreate[]
      */
     private function createSurchargeReduction(Creditmemo $creditmemo, $code, $amount, $baseLineItem)

@@ -114,14 +114,20 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         $this->cacheTypeList = $cacheTypeList;
     }
 
+    /**
+     * @param OutputInterface|null $output
+     * @return void
+     * @throws \Magento\Framework\Exception\CouldNotSaveException
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
     public function synchronize(OutputInterface $output = null)
     {
         $existingConfigurations = $this->paymentMethodConfigurationRepository->getList(
             $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
                 [
-		    PaymentMethodConfiguration::STATE_ACTIVE,
-		    PaymentMethodConfiguration::STATE_INACTIVE,
-		    PaymentMethodConfiguration::STATE_HIDDEN
+            PaymentMethodConfiguration::STATE_ACTIVE,
+            PaymentMethodConfiguration::STATE_INACTIVE,
+            PaymentMethodConfiguration::STATE_HIDDEN
                 ], 'in')->create())
             ->getItems();
         foreach ($existingConfigurations as $existingConfiguration) {
@@ -202,11 +208,18 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         }
     }
 
+    /**
+     * @return void
+     */
     private function clearCache()
     {
         $this->cacheTypeList->cleanType(\Magento\Framework\App\Cache\Type\Config::TYPE_IDENTIFIER);
     }
 
+    /**
+     * @param PaymentMethodConfigurationInterface $configuration
+     * @return void
+     */
     private function storeConfigValues(PaymentMethodConfigurationInterface $configuration)
     {
         $defaultLocale = $this->scopeConfig->getValue('general/locale/code');
@@ -245,6 +258,14 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         }
     }
 
+    /**
+     * @param PaymentMethodConfigurationInterface $configuration
+     * @param string $key
+     * @param string $value
+     * @param string $scope
+     * @param int $scopeId
+     * @return void
+     */
     private function storeConfigValue(PaymentMethodConfigurationInterface $configuration, $key, $value,
         $scope = ScopeConfigInterface::SCOPE_TYPE_DEFAULT, $scopeId = 0)
     {
@@ -271,6 +292,12 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         }
     }
 
+    /**
+     * @param \Wallee\Sdk\Model\PaymentMethodConfiguration $configuration
+     * @return void
+     * @throws \Magento\Framework\Exception\CouldNotSaveException
+     * @throws \Magento\Framework\Exception\InputException
+     */
     public function update(\Wallee\Sdk\Model\PaymentMethodConfiguration $configuration)
     {
         try {
@@ -289,6 +316,11 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         } catch (NoSuchEntityException $e) {}
     }
 
+    /**
+     * @param \Wallee\Sdk\Model\PaymentMethodConfiguration $configuration
+     * @param PaymentMethodConfigurationInterface $entity
+     * @return bool
+     */
     private function hasConfigurationChanged(\Wallee\Sdk\Model\PaymentMethodConfiguration $configuration,
         PaymentMethodConfigurationInterface $entity)
     {

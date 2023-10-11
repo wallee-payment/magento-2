@@ -16,5 +16,9 @@ namespace Wallee\Payment\Model\Webhook;
 interface ListenerInterface
 {
 
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function execute(Request $request);
 }

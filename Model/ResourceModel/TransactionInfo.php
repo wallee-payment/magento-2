@@ -29,7 +29,7 @@ class TransactionInfo extends AbstractDb
     /**
      * Serializable fields
      *
-     * @var array
+     * @var array<string, mixed>
      */
     protected $_serializableFields = [
         'failure_reason' => [
@@ -57,7 +57,7 @@ class TransactionInfo extends AbstractDb
      *
      * @param AbstractModel $object
      * @param int $spaceId
-     * @param int $configurationId
+     * @param int $transactionId
      * @return $this
      */
     public function loadByTransaction(AbstractModel $object, $spaceId, $transactionId)

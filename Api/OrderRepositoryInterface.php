@@ -31,7 +31,7 @@ interface OrderRepositoryInterface
 	/**
 	 * Get order by Id
 	 *
-	 * @param $id
+	 * @param string $id
 	 * @return OrderInterface|null
 	 */
     public function getOrderById($id);

@@ -35,7 +35,7 @@ class CustomerAttribute implements \Magento\Framework\Option\ArrayInterface
     {
         $options = [];
         $attributes = $this->customerForm->setFormCode('adminhtml_customer')->getAttributes();
-        /** @var $attribute \Magento\Eav\Model\Attribute */
+        /** @var \Magento\Eav\Model\Attribute $attribute */
         foreach ($attributes as $attribute) {
             $options[] = [
                 'value' => $attribute->getAttributeCode(),
