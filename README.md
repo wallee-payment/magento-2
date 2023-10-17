@@ -7,7 +7,7 @@ This repository contains the Magento 2 extension that enables to process payment
 
 ## Requirements
 
-* [Magento 2](https://magento.com/) 2.3.x or later
+* [Magento 2](https://magento.com/) 2.3.x up to 2.4.3, included.
 * [PHP](http://php.net/) 7.3 or later
 
 ## Documentation
