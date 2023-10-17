@@ -83,16 +83,6 @@ class CreditmemoService
         $this->apiClient = $apiClient;
     }
 
-    /**
-     * @param \Magento\Sales\Model\Service\CreditmemoService $subject
-     * @param callable $proceed
-     * @param \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo
-     * @param bool $offlineRequested
-     * @return mixed
-     * @throws NoSuchEntityException
-     * @throws \Magento\Framework\Exception\InputException
-     * @throws \Magento\Framework\Exception\StateException
-     */
     public function aroundRefund(\Magento\Sales\Model\Service\CreditmemoService $subject, callable $proceed,
         \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo, $offlineRequested = false)
     {
@@ -109,13 +99,6 @@ class CreditmemoService
         }
     }
 
-    /**
-     * @param \Magento\Sales\Model\Service\CreditmemoService $subject
-     * @param \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo
-     * @param bool $offlineRequested
-     * @return void|null
-     * @throws \Magento\Framework\Exception\LocalizedException
-     */
     public function beforeRefund(\Magento\Sales\Model\Service\CreditmemoService $subject,
         \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo, $offlineRequested = false)
     {
@@ -142,7 +125,6 @@ class CreditmemoService
      * Checks if there is an existing refund job for the given order and trys to send to refund to the gateway again.
      *
      * @param Order $order
-     * @return void
      * @throws \Exception
      */
     private function handleExistingRefundJob(Order $order)

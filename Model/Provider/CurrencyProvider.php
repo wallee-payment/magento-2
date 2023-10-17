@@ -58,9 +58,6 @@ class CurrencyProvider extends AbstractProvider
         return parent::getAll();
     }
 
-    /**
-     * @return mixed
-     */
     protected function fetchData()
     {
         return $this->apiClient->getService(CurrencyService::class)->all();

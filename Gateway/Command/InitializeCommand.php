@@ -18,6 +18,7 @@ use Magento\Quote\Model\Quote;
 use Magento\Sales\Model\Order;
 use Wallee\Payment\Api\TokenInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
+use Wallee\Payment\Model\Service\Order\TransactionService;
 use Wallee\Sdk\Model\Token;
 
 /**
@@ -46,6 +47,12 @@ class InitializeCommand implements CommandInterface
 
     /**
      *
+     * @var TransactionService
+     */
+    private $transactionService;
+
+    /**
+     *
      * @var TokenInfoRepositoryInterface
      */
     private $tokenInfoRepository;
@@ -55,14 +62,16 @@ class InitializeCommand implements CommandInterface
      * @param CartRepositoryInterface $quoteRepository
      * @param Random $random
      * @param Helper $helper
+     * @param TransactionService $transactionService
      * @param TokenInfoRepositoryInterface $tokenInfoRepository
      */
     public function __construct(CartRepositoryInterface $quoteRepository, Random $random, Helper $helper,
-        TokenInfoRepositoryInterface $tokenInfoRepository)
+        TransactionService $transactionService, TokenInfoRepositoryInterface $tokenInfoRepository)
     {
         $this->quoteRepository = $quoteRepository;
         $this->random = $random;
         $this->helper = $helper;
+        $this->transactionService = $transactionService;
         $this->tokenInfoRepository = $tokenInfoRepository;
     }
 
@@ -114,11 +123,6 @@ class InitializeCommand implements CommandInterface
         }
     }
 
-    /**
-     * @param Quote $quote
-     * @return void|Token
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
-     */
     private function getToken(Quote $quote)
     {
         if ($this->helper->isAdminArea()) {

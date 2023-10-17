@@ -12,6 +12,7 @@ namespace Wallee\Payment\Plugin\Payment\Model\Config;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\ResourceConnection;
+use Magento\Store\Model\StoreManagerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
 use Wallee\Payment\Model\PaymentMethodConfiguration;
@@ -36,6 +37,12 @@ class Reader
 
     /**
      *
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
+    /**
+     *
      * @var ResourceConnection
      */
     private $resourceConnection;
@@ -44,22 +51,19 @@ class Reader
      *
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param StoreManagerInterface $storeManager
      * @param ResourceConnection $resourceConnection
      */
     public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, ResourceConnection $resourceConnection)
+        SearchCriteriaBuilder $searchCriteriaBuilder, StoreManagerInterface $storeManager,
+        ResourceConnection $resourceConnection)
     {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->storeManager = $storeManager;
         $this->resourceConnection = $resourceConnection;
     }
 
-    /**
-     * @param \Magento\Payment\Model\Config\Reader $subject
-     * @param array<mixed> $result
-     * @return array<mixed>|mixed
-     * @throws \Magento\Framework\Exception\LocalizedException
-     */
     public function afterRead(\Magento\Payment\Model\Config\Reader $subject, $result)
     {
         if (! $this->isTableExists()) {
@@ -81,17 +85,11 @@ class Reader
         return $result;
     }
 
-    /**
-     * @return string
-     */
     private function getPaymentMethodId(PaymentMethodConfigurationInterface $configuration)
     {
         return 'wallee_payment_' . $configuration->getEntityId();
     }
 
-    /**
-     * @return array<mixed>
-     */
     private function generateConfig()
     {
         return [

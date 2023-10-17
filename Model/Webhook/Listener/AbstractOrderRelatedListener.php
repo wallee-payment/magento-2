@@ -16,6 +16,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\OrderFactory;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Psr\Log\LoggerInterface;
+use Wallee\Payment\Api\TransactionInfoManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Model\Webhook\ListenerInterface;
 use Wallee\Payment\Model\Webhook\Request;
@@ -64,16 +65,24 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
 
     /**
      *
+     * @var TransactionInfoManagementInterface
+     */
+    private $transactionInfoManagement;
+
+    /**
+     *
      * @param ResourceConnection $resource
      * @param LoggerInterface $logger
      * @param OrderFactory $orderFactory
      * @param OrderResourceModel $orderResourceModel
      * @param CommandPoolInterface $commandPool
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
+     * @param TransactionInfoManagementInterface $transactionInfoManagement
      */
     public function __construct(ResourceConnection $resource, LoggerInterface $logger, OrderFactory $orderFactory,
         OrderResourceModel $orderResourceModel, CommandPoolInterface $commandPool,
-        TransactionInfoRepositoryInterface $transactionInfoRepository)
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        TransactionInfoManagementInterface $transactionInfoManagement)
     {
         $this->resource = $resource;
         $this->logger = $logger;
@@ -81,6 +90,7 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
         $this->orderResourceModel = $orderResourceModel;
         $this->commandPool = $commandPool;
         $this->transactionInfoRepository = $transactionInfoRepository;
+        $this->transactionInfoManagement = $transactionInfoManagement;
     }
 
     public function execute(Request $request)
@@ -171,7 +181,6 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      * Creates a lock to prevent concurrency.
      *
      * @param Order $order
-     * @return void
      */
     private function lock(Order $order)
     {
@@ -188,7 +197,6 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
      *
      * @param mixed $entity
      * @param Order $order
-     * @return void
      */
     protected function process($entity, Order $order)
     {

@@ -12,9 +12,11 @@ namespace Wallee\Payment\Plugin\Framework\App\Config\Initial;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Config\Initial\SchemaLocator;
 use Magento\Framework\Filesystem\DriverPool;
 use Magento\Framework\Module\Dir\Reader as ModuleDirReader;
+use Magento\Store\Model\StoreManagerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
 use Wallee\Payment\Helper\Locale as LocaleHelper;
@@ -42,6 +44,18 @@ class Converter
 
     /**
      *
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
+    /**
+     *
+     * @var ScopeConfigInterface
+     */
+    private $scopeConfig;
+
+    /**
+     *
      * @var ResourceConnection
      */
     private $resourceConnection;
@@ -54,7 +68,7 @@ class Converter
 
     /**
      *
-     * @var null|string
+     * @var SchemaLocator
      */
     private $schemaFile;
 
@@ -80,6 +94,8 @@ class Converter
      *
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param StoreManagerInterface $storeManager
+     * @param ScopeConfigInterface $scopeConfig
      * @param ResourceConnection $resourceConnection
      * @param DomFactory $domFactory
      * @param SchemaLocator $schemaLocator
@@ -87,11 +103,14 @@ class Converter
      * @param DriverPool $driverPool
      */
     public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, ResourceConnection $resourceConnection, DomFactory $domFactory,
+        SearchCriteriaBuilder $searchCriteriaBuilder, StoreManagerInterface $storeManager,
+        ScopeConfigInterface $scopeConfig, ResourceConnection $resourceConnection, DomFactory $domFactory,
         SchemaLocator $schemaLocator, ModuleDirReader $moduleReader, DriverPool $driverPool)
     {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->storeManager = $storeManager;
+        $this->scopeConfig = $scopeConfig;
         $this->resourceConnection = $resourceConnection;
         $this->domFactory = $domFactory;
         $this->schemaFile = $schemaLocator->getSchema();
@@ -99,12 +118,6 @@ class Converter
         $this->driverPool = $driverPool;
     }
 
-    /**
-     * @param \Magento\Framework\App\Config\Initial\Converter $subject
-     * @param mixed $source
-     * @return array<mixed>
-     * @throws \Magento\Framework\Exception\LocalizedException
-     */
     public function beforeConvert(\Magento\Framework\App\Config\Initial\Converter $subject, $source)
     {
         if (! $this->isTableExists()) {
@@ -136,10 +149,6 @@ class Converter
         ];
     }
 
-    /**
-     * @param PaymentMethodConfigurationInterface $configuration
-     * @return array|string|string[]
-     */
     private function generateXml(PaymentMethodConfigurationInterface $configuration)
     {
         return \str_replace([
@@ -196,11 +205,6 @@ class Converter
         }
     }
 
-    /**
-     * @param array<mixed> $translatedString
-     * @param string $language
-     * @return mixed|null
-     */
     private function translate($translatedString, $language)
     {
         $language = \str_replace('_', '-', $language);
@@ -215,10 +219,6 @@ class Converter
         return null;
     }
 
-    /**
-     * @return string
-     * @throws \Magento\Framework\Exception\FileSystemException
-     */
     private function getTemplate()
     {
         if ($this->template == null) {

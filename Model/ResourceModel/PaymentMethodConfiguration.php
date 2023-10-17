@@ -29,7 +29,7 @@ class PaymentMethodConfiguration extends AbstractDb
     /**
      * Serializable fields
      *
-     * @var array<string, mixed>
+     * @var array
      */
     protected $_serializableFields = [
         'title' => [

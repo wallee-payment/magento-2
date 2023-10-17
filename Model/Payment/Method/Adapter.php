@@ -20,7 +20,6 @@ use Magento\Payment\Gateway\Validator\ValidatorPoolInterface;
 use Magento\Quote\Api\Data\CartInterface;
 use Magento\Store\Model\ScopeInterface;
 use Psr\Log\LoggerInterface;
-use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Block\Method\Form;
 use Wallee\Payment\Block\Method\Info;
@@ -80,7 +79,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
 
     /**
      *
-     * @var PaymentMethodConfigurationInterface
+     * @var \Wallee\Payment\Model\PaymentMethodConfiguration
      */
     private $paymentMethodConfiguration;
 

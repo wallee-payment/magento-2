@@ -42,7 +42,7 @@ abstract class AbstractProvider
     /**
      * Data.
      *
-     * @var array<mixed>
+     * @var array
      */
     private $data;
 
@@ -93,7 +93,6 @@ abstract class AbstractProvider
 
     /**
      * Fetches the data from the remote server.
-     * @return mixed
      */
     abstract protected function fetchData();
 
@@ -105,9 +104,6 @@ abstract class AbstractProvider
      */
     abstract protected function getId($entry);
 
-    /**
-     * @return void
-     */
     private function loadData()
     {
         $cachedData = $this->cache->load($this->cacheKey);
@@ -126,20 +122,12 @@ abstract class AbstractProvider
         $this->cache->save($this->serialize($this->data), $this->cacheKey);
     }
 
-    /**
-     * @param mixed $data
-     * @return false|string
-     */
     private function serialize($data)
     {
         $serializer = new ObjectSerializer();
         return \json_encode($serializer->sanitizeForSerialization($data));
     }
 
-    /**
-     * @param mixed $data
-     * @return object|array|null
-     */
     private function deserialize($data)
     {
         $serializer = new ObjectSerializer();

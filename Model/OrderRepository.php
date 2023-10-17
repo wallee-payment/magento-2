@@ -71,7 +71,7 @@ class OrderRepository implements OrderRepositoryInterface
 	/**
 	 * Get Order data by Order Increment Id
 	 *
-	 * @param string $incrementId
+	 * @param $incrementId
 	 * @return OrderInterface|null
 	 */
 	public function getOrderByIncrementId($incrementId)

@@ -14,6 +14,7 @@ use Magento\Framework\App\ResourceConnection;
 use Magento\Sales\Model\OrderFactory;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Psr\Log\LoggerInterface;
+use Wallee\Payment\Api\TransactionInfoManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Webhook\Request;
@@ -39,14 +40,16 @@ class TransactionCompletionListener extends AbstractOrderRelatedListener
      * @param OrderResourceModel $orderResourceModel
      * @param CommandPoolInterface $commandPool
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
+     * @param TransactionInfoManagementInterface $transactionInfoManagement
      * @param ApiClient $apiClient
      */
     public function __construct(ResourceConnection $resource, LoggerInterface $logger, OrderFactory $orderFactory,
         OrderResourceModel $orderResourceModel, CommandPoolInterface $commandPool,
-        TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient)
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        TransactionInfoManagementInterface $transactionInfoManagement, ApiClient $apiClient)
     {
         parent::__construct($resource, $logger, $orderFactory, $orderResourceModel, $commandPool,
-            $transactionInfoRepository);
+            $transactionInfoRepository, $transactionInfoManagement);
         $this->apiClient = $apiClient;
     }
 

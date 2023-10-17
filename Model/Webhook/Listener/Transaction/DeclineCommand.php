@@ -59,11 +59,6 @@ class DeclineCommand extends AbstractCommand
         $this->orderRepository->save($order);
     }
 
-    /**
-     * @param mixed $transaction
-     * @param string $message
-     * @return mixed|string
-     */
     private function appendTransactionToMessage($transaction, $message)
     {
         if ($transaction) {

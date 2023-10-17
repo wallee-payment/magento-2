@@ -11,6 +11,8 @@
 namespace Wallee\Payment\Block;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Stdlib\CookieManagerInterface;
+use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
 use Magento\Framework\View\Element\Template\Context;
 use Magento\Store\Model\ScopeInterface;
 
@@ -25,14 +27,32 @@ class DeviceSession extends \Magento\Framework\View\Element\Template
 
     /**
      *
+     * @var CookieManagerInterface
+     */
+    private $cookieManager;
+
+    /**
+     *
+     * @var CookieMetadataFactory
+     */
+    private $cookieMetadataFactory;
+
+    /**
+     *
      * @param Context $context
      * @param ScopeConfigInterface $scopeConfig
+     * @param CookieManagerInterface $cookieManager
+     * @param CookieMetadataFactory $cookieMetadataFactory
      * @param array $data
      */
-    public function __construct(Context $context, ScopeConfigInterface $scopeConfig, array $data = [])
+    public function __construct(Context $context, ScopeConfigInterface $scopeConfig,
+        CookieManagerInterface $cookieManager, CookieMetadataFactory $cookieMetadataFactory,
+        array $data = [])
     {
         parent::__construct($context, $data);
         $this->scopeConfig = $scopeConfig;
+        $this->cookieManager = $cookieManager;
+        $this->cookieMetadataFactory = $cookieMetadataFactory;
     }
 
     /**

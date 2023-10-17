@@ -16,44 +16,23 @@ namespace Wallee\Payment\Model\Webhook;
 class Request
 {
 
-    /**
-     * @var int
-     */
     private $eventId;
 
-    /**
-     * @var int
-     */
     private $entityId;
 
-    /**
-     * @var int
-     */
     private $listenerEntityId;
 
-    /**
-     * @var string
-     */
     private $listenerEntityTechnicalName;
 
-    /**
-     * @var int
-     */
     private $spaceId;
 
-    /**
-     * @var int
-     */
     private $webhookListenerId;
 
-    /**
-     * @var string
-     */
     private $timestamp;
 
     /**
      *
-     * @param array<mixed> $model
+     * @param \stdClass $model
      */
     public function __construct($model)
     {
@@ -66,11 +45,6 @@ class Request
         $this->timestamp = self::checkArgument($model, 'timestamp');
     }
 
-    /**
-     * @param array<mixed> $array
-     * @param string $key
-     * @return mixed
-     */
     private static function checkArgument($array, $key)
     {
         if (array_key_exists($key, $array)) {

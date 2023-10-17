@@ -28,17 +28,16 @@ class UpdateStatusState implements DataPatchInterface
 
     /**
      * @details: This updates the status to the correct status
-     * @inheritDoc
+     * @return:none
      */
     public function apply(){
         $tableName  = $this->moduleDataSetup->getTable('sales_order_status_state');
         $updateSql = "UPDATE " . $tableName . " SET is_default = 1 WHERE status = 'processing_wallee'";
         $this->moduleDataSetup->getConnection()->query($updateSql);
-		return $this;
-	}
+    }
 
     /**
-     * @inheritDoc
+     * @return array:
      */
 
     public static function getDependencies(){
@@ -46,7 +45,7 @@ class UpdateStatusState implements DataPatchInterface
     }
 
     /**
-     * @inheritDoc
+     * @return array:
      */
 
     public function getAliases(){

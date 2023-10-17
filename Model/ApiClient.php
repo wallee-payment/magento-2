@@ -41,7 +41,7 @@ class ApiClient
     /**
      * List of shared service instances
      *
-     * @var array<mixed>
+     * @var array
      */
     private $sharedInstances = [];
 
@@ -68,8 +68,6 @@ class ApiClient
      * Retrieve cached service instance.
      *
      * @param string $type
-     * @return mixed
-     * @throws ApiClientException
      */
     public function getService($type)
     {

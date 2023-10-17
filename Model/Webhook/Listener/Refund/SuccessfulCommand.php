@@ -162,12 +162,6 @@ class SuccessfulCommand extends AbstractCommand
         $this->deleteRefundJob($entity);
     }
 
-    /**
-     * @param Refund $refund
-     * @param Order $order
-     * @return bool
-     * @throws \Exception
-     */
     private function isDerecognizedInvoice(Refund $refund, Order $order)
     {
         $transactionInvoice = $this->transactionService->getTransactionInvoice($order);
@@ -178,11 +172,6 @@ class SuccessfulCommand extends AbstractCommand
         }
     }
 
-    /**
-     * @param Refund $refund
-     * @param Order $order
-     * @return void
-     */
     private function registerRefund(Refund $refund, Order $order)
     {
         $creditmemoData = $this->collectCreditmemoData($refund, $order);
@@ -191,7 +180,6 @@ class SuccessfulCommand extends AbstractCommand
             $invoice = $this->invoiceRepository->get($refundJob->getInvoiceId());
             $creditmemo = $this->creditmemoFactory->createByInvoice($invoice, $creditmemoData);
         } catch (NoSuchEntityException $e) {
-            /** @todo this function expects array|string|null as a second parameter */
             $paidInvoices = $order->getInvoiceCollection()->addFieldToFilter('state', Invoice::STATE_PAID);
             if ($paidInvoices->count() == 1) {
                 $creditmemo = $this->creditmemoFactory->createByInvoice($paidInvoices->getFirstItem(), $creditmemoData);
@@ -211,11 +199,6 @@ class SuccessfulCommand extends AbstractCommand
         $this->creditmemoManagement->refund($creditmemo);
     }
 
-    /**
-     * @param Refund $refund
-     * @param Order $order
-     * @return array<mixed>
-     */
     private function collectCreditmemoData(Refund $refund, Order $order)
     {
         $orderItemMap = [];

@@ -102,7 +102,6 @@ class WebhookService
      * Execute the webhook request.
      *
      * @param Request $request
-     * @return void
      */
     public function execute(Request $request)
     {
@@ -112,7 +111,6 @@ class WebhookService
 
     /**
      * Installs the necessary webhooks in wallee.
-     * @return void
      */
     public function install()
     {

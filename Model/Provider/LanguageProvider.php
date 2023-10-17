@@ -77,9 +77,6 @@ class LanguageProvider extends AbstractProvider
         return parent::getAll();
     }
 
-    /**
-     * @return mixed
-     */
     protected function fetchData()
     {
         return $this->apiClient->getService(LanguageService::class)->all();

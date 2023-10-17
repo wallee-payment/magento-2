@@ -216,7 +216,7 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
         $query->setNumberOfEntities(1);
         $result = $this->apiClient->getService(ChargeAttemptService::class)->search($transaction->getLinkedSpaceId(),
             $query);
-        if ($result != null) {
+        if ($result != null && ! empty($result)) {
             return \current($result);
         } else {
             return null;

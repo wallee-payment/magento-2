@@ -80,24 +80,12 @@ class TokenInfoManagement implements TokenInfoManagementInterface
         $this->apiClient = $apiClient;
     }
 
-    /**
-     * @param int $spaceId
-     * @param int $tokenVersionId
-     * @return void
-     */
     public function updateTokenVersion($spaceId, $tokenVersionId)
     {
         $tokenVersion = $this->apiClient->getService(TokenVersionService::class)->read($spaceId, $tokenVersionId);
         $this->updateTokenVersionInfo($tokenVersion);
     }
 
-    /**
-     * @param int $spaceId
-     * @param int $tokenId
-     * @return void
-     * @throws \Magento\Framework\Exception\InputException
-     * @throws \Magento\Framework\Exception\StateException
-     */
     public function updateToken($spaceId, $tokenId)
     {
         $query = new EntityQuery();
@@ -121,14 +109,6 @@ class TokenInfoManagement implements TokenInfoManagementInterface
         }
     }
 
-    /**
-     * @param TokenVersion $tokenVersion
-     * @return void
-     * @throws NoSuchEntityException
-     * @throws \Magento\Framework\Exception\CouldNotSaveException
-     * @throws \Magento\Framework\Exception\InputException
-     * @throws \Magento\Framework\Exception\StateException
-     */
     protected function updateTokenVersionInfo(TokenVersion $tokenVersion)
     {
         try {
@@ -174,13 +154,7 @@ class TokenInfoManagement implements TokenInfoManagementInterface
         }
     }
 
-    /**
-     * @param TokenInfoInterface $token
-     * @return void
-     * @throws \Magento\Framework\Exception\InputException
-     * @throws \Magento\Framework\Exception\StateException
-     */
-    public function deleteToken(TokenInfoInterface $token)
+    public function deleteToken(TokenInfo $token)
     {
         $this->apiClient->getService(TokenService::class)->delete($token->getSpaceId(), $token->getTokenId());
         $this->tokenInfoRepository->delete($token);

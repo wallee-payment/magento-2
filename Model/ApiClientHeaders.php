@@ -10,6 +10,8 @@
  */
 namespace Wallee\Payment\Model;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Encryption\EncryptorInterface;
 use Wallee\Sdk\ApiClient;
 
 /**
@@ -19,17 +21,17 @@ class ApiClientHeaders
 {
 
     /**
-     * @var string
+     * @var SHOP_SYSTEM
      */
     public const SHOP_SYSTEM = 'x-meta-shop-system';
-
+	
     /**
-     * @var string
+     * @var SHOP_SYSTEM_VERSION
      */
     public const SHOP_SYSTEM_VERSION = 'x-meta-shop-system-version';
-
+	
     /**
-     * @var string
+     * @var SHOP_SYSTEM_AND_VERSION
      */
     public const SHOP_SYSTEM_AND_VERSION = 'x-meta-shop-system-and-version';
 
@@ -37,21 +39,20 @@ class ApiClientHeaders
      * Sets the headers.
      *
      * @param \Wallee\Sdk\ApiClient $apiClient
-     * @return void
      */
     public function addHeaders(ApiClient &$apiClient)
     {
         $data = self::getDefaultData();
-        foreach ($data as $key => $value) {
-            $apiClient->addDefaultHeader($key, $value);
-        }
+		foreach ($data as $key => $value) {
+			$apiClient->addDefaultHeader($key, $value);
+		}
     }
 
     /**
-     * @return array<mixed>
-     */
-    protected static function getDefaultData()
-    {
+	 * @return array
+	 */
+	protected static function getDefaultData()
+	{
 
         // todo refactor using DI: https://www.rohanhapani.com/how-to-find-out-version-of-magento-2-programmatically/;
         $om = \Magento\Framework\App\ObjectManager::getInstance();
@@ -59,11 +60,11 @@ class ApiClientHeaders
         $productMetadata = $objectManager->get('\Magento\Framework\App\ProductMetadataInterface'); 
         $shop_version = $productMetadata->getVersion();
 
-        [$major_version, $minor_version, $rest] = explode('.', $shop_version, 3);
-        return [
-            self::SHOP_SYSTEM             => 'magento',
-            self::SHOP_SYSTEM_VERSION     => $shop_version,
-            self::SHOP_SYSTEM_AND_VERSION => 'magento-' . $major_version . '.' . $minor_version,
-        ];
-    }
+		[$major_version, $minor_version, $rest] = explode('.', $shop_version, 3);
+		return [
+			self::SHOP_SYSTEM             => 'magento',
+			self::SHOP_SYSTEM_VERSION     => $shop_version,
+			self::SHOP_SYSTEM_AND_VERSION => 'magento-' . $major_version . '.' . $minor_version,
+		];
+	}
 }

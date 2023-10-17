@@ -12,6 +12,7 @@ namespace Wallee\Payment\Plugin\Checkout\Block\Checkout;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\ResourceConnection;
+use Magento\Store\Model\StoreManagerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
 use Wallee\Payment\Model\PaymentMethodConfiguration;
@@ -36,6 +37,12 @@ class LayoutProcessor
 
     /**
      *
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
+    /**
+     *
      * @var ResourceConnection
      */
     private $resourceConnection;
@@ -44,22 +51,19 @@ class LayoutProcessor
      *
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param StoreManagerInterface $storeManager
      * @param ResourceConnection $resourceConnection
      */
     public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, ResourceConnection $resourceConnection)
+        SearchCriteriaBuilder $searchCriteriaBuilder, StoreManagerInterface $storeManager,
+        ResourceConnection $resourceConnection)
     {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->storeManager = $storeManager;
         $this->resourceConnection = $resourceConnection;
     }
 
-    /**
-     * @param \Magento\Checkout\Block\Checkout\LayoutProcessor $subject
-     * @param array<mixed> $jsLayout
-     * @return array|array[]
-     * @throws \Magento\Framework\Exception\LocalizedException
-     */
     public function beforeProcess(\Magento\Checkout\Block\Checkout\LayoutProcessor $subject, $jsLayout)
     {
         if (! $this->isTableExists()) {
@@ -88,9 +92,6 @@ class LayoutProcessor
         ];
     }
 
-    /**
-     * @return array<mixed>
-     */
     private function getMethodData()
     {
         return [

@@ -18,10 +18,5 @@ use Magento\Sales\Model\Order;
 interface CommandInterface
 {
 
-    /**
-     * @param mixed $entity
-     * @param Order $order
-     * @return mixed
-     */
     public function execute($entity, Order $order);
 }

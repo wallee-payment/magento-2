@@ -30,12 +30,6 @@ class AccountManagement
         $this->checkoutSession = $checkoutSession;
     }
 
-    /**
-     * @param \Magento\Customer\Model\AccountManagement $subject
-     * @param string $customerEmail
-     * @param int $websiteId
-     * @return void
-     */
     public function beforeIsEmailAvailable(\Magento\Customer\Model\AccountManagement $subject, $customerEmail,
         $websiteId = null)
     {
