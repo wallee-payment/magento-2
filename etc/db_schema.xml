@@ -38,7 +38,7 @@
     <column xsi:type="text" name="language" nullable="false" comment="Language"/>
     <column xsi:type="text" name="currency" nullable="false" comment="Currency"/>
     <column xsi:type="timestamp" name="created_at" on_update="false" nullable="true" default="CURRENT_TIMESTAMP" comment="Created At"/>
-    <column xsi:type="int" name="authorization_amount" unsigned="false" nullable="false" comment="Authorization Amount"/>
+    <column xsi:type="decimal" name="authorization_amount" scale="4" precision="20" unsigned="false" nullable="false" comment="Authorization Amount"/>
     <column xsi:type="text" name="image" nullable="true" comment="Image"/>
     <column xsi:type="longtext" name="labels" nullable="true" comment="Labels"/>
     <column xsi:type="longtext" name="failure_reason" nullable="true" comment="Failure Reason"/>

@@ -65,15 +65,21 @@ class CollectOrderAttributeMetaData implements ObserverInterface
      */
     protected function collectOrderAttributeMetaData(Order $order)
     {
-        $metaData = [];
-        /* @var \Amasty\Orderattr\Model\ResourceModel\Attribute\Collection $attributeCollection */
-        $attributeCollection = $this->objectManager->get(
-            'Amasty\Orderattr\Model\ResourceModel\Attribute\CollectionFactory')->create();
-        $attributeCollection->addFieldToSelect('attribute_code');
-        $attributeCollection->addFieldToSelect('frontend_label');
-        foreach ($attributeCollection->getData() as $attribute) {
-            $metaData['order_' . $attribute['attribute_code']] = $order->getData($attribute['attribute_code']);
-        }
-        return $metaData;
+	$metaData = [];
+	/* @var \Amasty\Orderattr\Model\ResourceModel\Attribute\Collection $attributeCollection */
+	$attributeCollection = $this->objectManager->get(
+	    'Amasty\Orderattr\Model\ResourceModel\Attribute\CollectionFactory')->create();
+	$attributeCollection->addFieldToSelect('attribute_code');
+	$attributeCollection->addFieldToSelect('frontend_label');
+	
+	$i = 0;
+	foreach ($attributeCollection->getData() as $attribute) {
+	    if ( is_null($order->getData($attribute['attribute_code'])) || $i >= 25) {
+		continue;
+	    }
+	    $metaData['order_' . $attribute['attribute_code']] = $order->getData($attribute['attribute_code']);
+	    $i++;
+	}
+	return $metaData;
     }
 }

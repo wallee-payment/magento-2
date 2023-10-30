@@ -515,6 +515,7 @@ class TransactionService extends AbstractTransactionService
 
     /**
      * Marks the delivery indication belonging to the given payment as suitable.
+     * Note: there are no delivery indication for Authorized transactions
      *
      * @param Order $order
      * @return \Wallee\Sdk\Model\DeliveryIndication
@@ -528,6 +529,7 @@ class TransactionService extends AbstractTransactionService
 
     /**
      * Marks the delivery indication belonging to the given payment as not suitable.
+     * Note: there are no delivery indication for Authorized transactions
      *
      * @param Order $order
      * @return \Wallee\Sdk\Model\DeliveryIndication

@@ -12,9 +12,9 @@ type Mutation {
 
 type CustomerOrderTransactionOutput {
     order_id: Int @doc(description: "Order id")
-    transaction_id: Int @doc(description: "WhiteLabelMachineName transaction id")
-    transaction_state: String @doc(description: "WhiteLabelMachineName transaction state")
-    payment_url: String @doc(description: "WhiteLabelMachineName payment url to integrate external payment")
+    transaction_id: Int @doc(description: "Wallee transaction id")
+    transaction_state: String @doc(description: "Wallee transaction state")
+    payment_url: String @doc(description: "Wallee payment url to integrate external payment")
     integration_type: String @doc(description: "Integration type")
 }
 
