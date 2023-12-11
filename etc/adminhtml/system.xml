@@ -1,13 +1,14 @@
 <?xml version="1.0"?>
 <!-- 
 /**
- * wallee Magento 2
+ wallee Magento 2
  *
- * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com/).
+ * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
  *
  * @package Wallee_Payment
- * @author wallee AG (http://www.wallee.com/)
+ * @author wallee AG (https://www.wallee.com)
  * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
+
  */
  -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
@@ -18,7 +19,7 @@
 			<resource>Wallee_Payment::config</resource>
 			<group id="information" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 				<label>Information</label>
-				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.7/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
+				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.8/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
 				<field id="version" translate="label" type="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 					<label>Module Version</label>
 				</field>
