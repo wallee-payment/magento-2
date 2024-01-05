@@ -148,10 +148,15 @@ class UpdateTransactionUrls implements ResolverInterface
 
             // Gets the ID reserved for the order from the quotation
             $orderId = $quote->getReservedOrderId();
-            
+
             // Checks if the quote does not have an ID reserved for the order
+            // If the quote id is used as an identifier, this will cause the urls to have to be reset
+            // to the correct order id, otherwise the redirect to the correct transaction will not be possible.
+            // This means that the user still has a quote and has not paid, the quote only becomes a quote once payment
+            // has been made, so there is no order id at this point.
+            // The transaction info id is set, so that there are no other unknown side effects, it's mandatory.
             if (!$orderId && !$quote->hasReservedOrderId()) {
-                $orderId = $quote->getId();
+                $orderId = $transactionInfo->getId();
             }
 
             $this->transactionInfoManagement->setRedirectUrls($transactionInfo, $orderId, $successUrl, $failureUrl);

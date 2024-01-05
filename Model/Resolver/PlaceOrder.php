@@ -93,6 +93,10 @@ class PlaceOrder implements ResolverInterface
             $orderId = $this->placeOrder->execute($cart, $maskedCartId, $userId);
             $order = $this->orderRepository->get($orderId);
 
+            //This is necessary because before this point, the table db.mage_wallee_payment_transaction_info has
+            //the url of success and fail assigned to a record that does not yet have the order id set.
+            //This allows the transaction to have the necessary data to make the redirect.
+            //And it solves the side effect of not having the order id at the first point where the transaction info is saved.
             $transaction = $this->getTransaction($order);
             $this->setTransactionUrls($transaction, $orderId, $successUrl, $failureUrl);
             $transactionOutput = $this->getTransactionSettings($transaction, $order, $integrationType);
@@ -142,7 +146,7 @@ class PlaceOrder implements ResolverInterface
     {
         /** @var Order  $order */
         $url = $this->transactionOrderService->getTransactionPaymentUrl($order, $integrationType);
-        
+
         return [
                 'transaction_id' => $transaction->getId(),
                 'transaction_state' => $transaction->getState(),
