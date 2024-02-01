@@ -46,7 +46,7 @@ class Factory
      */
     public function beforeCreate(\Magento\Payment\Model\Method\Factory $subject, $classname, $data = [])
     {
-        if (strpos($classname, 'wallee_payment::') === 0) {
+        if (strpos($classname ?? '', 'wallee_payment::') === 0) {
             $configurationId = \substr($classname, \strlen('wallee_payment::'));
             $data['code'] = 'wallee_payment_' . $configurationId;
             $data['paymentMethodConfigurationId'] = $configurationId;

@@ -32,7 +32,7 @@ abstract class AbstractOrderRelatedCommand implements CommandInterface
     {
         foreach ($order->getInvoiceCollection() as $invoice) {
             /** @var Invoice $invoice */
-            if (\strpos($invoice->getTransactionId(), $transaction->getLinkedSpaceId() . '_' . $transaction->getId()) ===
+            if (\strpos($invoice->getTransactionId() ?? '', $transaction->getLinkedSpaceId() . '_' . $transaction->getId()) ===
                 0 && $invoice->getState() != Invoice::STATE_CANCELED) {
                 $invoice->load($invoice->getId());
                 return $invoice;

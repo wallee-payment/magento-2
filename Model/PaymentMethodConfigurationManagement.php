@@ -356,7 +356,7 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
      */
     private function extractImagePath($resolvedImageUrl)
     {
-        $index = \strpos($resolvedImageUrl, 'resource/');
+        $index = \strpos($resolvedImageUrl ?? '', 'resource/');
         return \substr($resolvedImageUrl, $index + \strlen('resource/'));
     }
 
