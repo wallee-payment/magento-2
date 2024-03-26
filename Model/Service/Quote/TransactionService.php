@@ -119,6 +119,22 @@ class TransactionService extends AbstractTransactionService
         $this->logger = $logger;
     }
 
+     /**
+     * Gets the payment URL in the session if exists.
+     *
+     * @param Quote $quote
+     * @return string|null
+     */
+    private function getPaymentUrlInSession(Quote $quote)
+    {  
+        $url = $this->checkoutSession->getPaymentUrl();
+        $transactionId = $quote->getWalleeTransactionId();
+        if ($url && preg_match('/transactionId=(\d+)/', $url, $matches)
+            && isset($matches[1]) && $matches[1] == $transactionId) {           
+            return $url;
+        }
+    }
+
     /**
      * Gets the URL to the JavaScript library that is required to display the iframe payment form.
      *
@@ -127,10 +143,17 @@ class TransactionService extends AbstractTransactionService
      */
     public function getJavaScriptUrl(Quote $quote)
     {
+        $url = $this->getPaymentUrlInSession($quote);
+        if ($url !== null) {            
+            $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getJavaScriptUrl URL already exists: ".$url);
+            return $url;
+        }
+        
         $transaction = $this->getTransactionByQuote($quote);
         $url = $this->apiClient->getService(TransactionIframeService::class)->javascriptUrl(
             $transaction->getLinkedSpaceId(), $transaction->getId());
-        $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getJavaScriptUrl URL: ".$url);
+        $this->checkoutSession->setPaymentUrl($url);
+        $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getJavaScriptUrl new URL: ".$url);
         return $url;
     }
 
@@ -142,10 +165,18 @@ class TransactionService extends AbstractTransactionService
      */
     public function getLightboxUrl(Quote $quote)
     {
+        $url = $this->getPaymentUrlInSession($quote);
+        if ($url !== null) {          
+            $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getLightboxUrl API CALL URL already exists: ".$url);
+            return $url;
+        }
+
         $transaction = $this->getTransactionByQuote($quote);
-        $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getLightboxUrl API CALL");
-        return $this->apiClient->getService(TransactionLightboxService::class)->javascriptUrl(
+        $url = $this->apiClient->getService(TransactionLightboxService::class)->javascriptUrl(
             $transaction->getLinkedSpaceId(), $transaction->getId());
+        $this->checkoutSession->setPaymentUrl($url);
+        $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getLightboxUrl new API CALL URL: ".$url);
+        return $url;
     }
 
     /**
@@ -156,10 +187,16 @@ class TransactionService extends AbstractTransactionService
      */
     public function getPaymentPageUrl(Quote $quote)
     {
+        $url = $this->getPaymentUrlInSession($quote);
+        if ($url !== null) {           
+            $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getPaymentPageUrl URL already exists: ".$url);
+            return $url;
+        }
         $transaction = $this->getTransactionByQuote($quote);
         $url = $this->apiClient->getService(TransactionPaymentPageService::class)->paymentPageUrl(
             $transaction->getLinkedSpaceId(), $transaction->getId());
-        $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getPaymentPageUrl URL: ".$url);
+        $this->checkoutSession->setPaymentUrl($url);
+        $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getPaymentPageUrl new URL: ".$url);
         return $url;
     }
 
@@ -310,6 +347,10 @@ class TransactionService extends AbstractTransactionService
         $this->assembleTransactionDataFromQuote($createTransaction, $quote);
         $transaction = $this->apiClient->getApiClient()->getTransactionService()->create($spaceId, $createTransaction);
         $this->updateQuote($quote, $transaction);
+        //here the order must be updated with the space and transaction, this avoids error before landing on the payment page
+        $quote->setWalleeTransactionId($transaction->getId());
+        $quote->setWalleeSpaceId($spaceId);
+        $quote->save();
         return $transaction;
     }
 

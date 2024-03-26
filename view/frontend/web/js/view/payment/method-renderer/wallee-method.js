@@ -44,6 +44,38 @@ define([
 			
 			if (window.checkoutConfig.wallee.integrationMethod == 'iframe') {
 				this.checkoutHandler = checkoutHandler(this.getFormId(), this.isActive.bind(this), this.createIframeHandler.bind(this));
+				var methods = methodList();
+			
+				//When there is only 1 active payment method magento's behaviour is not to display the iframe,
+				//until the user selects the payment method by clicking on the icon.
+				//These lines allow to trigger the iframe to show it by default if there is only one payment method active.
+				if (methods !== null && methods.length === 1) {
+					this.checkoutHandler.updateAddresses(this._super.bind(this));
+				}
+				
+				//Every time the checkout page is initialised/refreshed
+				//here we are checking if there is at least one chekbox selected,
+				//if the condition is met, then we will update the iframe with the user's billing address,
+				//this will trigger the form to be displayed and the transaction to have a payment method selected before clicking on the place order button.
+				//This will only run once, only if the checkbox is selected.
+				if (methods !== null && methods.length >= 1) {
+					let _this = this;
+					let _super = this._super;
+					let checkboxId = this.getCode();
+					let checkoutHandler = this.checkoutHandler;
+					var updateAddressesCallback = function() {
+						checkoutHandler.updateAddresses(_super.bind(_this));	
+					};
+					let intervalId = setInterval(function () {
+						// stop loader when frame will be loaded
+						if ($('#' + checkboxId).length >= 1 && $('#' + checkboxId).is(':checked')) {							
+							clearInterval(intervalId);
+							fullScreenLoader.startLoader();
+							updateAddressesCallback();
+							fullScreenLoader.stopLoader(true);
+						}
+					}, 100);
+				}
 			}
 		},
 		

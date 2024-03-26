@@ -56,6 +56,7 @@ class CartEventListener implements ObserverInterface
         try{
             $this->checkoutSession->unsTransaction();
             $this->checkoutSession->unsPaymentMethods();
+            $this->checkoutSession->unsPaymentUrl();
         } catch (\Exception $ignored){}
     }
 }
