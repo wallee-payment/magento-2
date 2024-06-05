@@ -15,17 +15,20 @@
     <policies>
         <policy id="img-src">
             <values>
-                <value id="wallee" type="host">app-wallee.com</value>
+                <value id="wallee-base" type="host">https://app-wallee.com</value>
+                <value id="wallee" type="host">https://app-wallee.com</value>
             </values>
         </policy>
         <policy id="script-src">
             <values>
-                <value id="wallee" type="host">app-wallee.com</value>
+                <value id="wallee-base" type="host">https://app-wallee.com</value>
+                <value id="wallee" type="host">https://app-wallee.com</value>
             </values>
         </policy>
         <policy id="frame-src">
             <values>
-                <value id="wallee" type="host">app-wallee.com</value>
+                <value id="wallee-base" type="host">https://app-wallee.com</value>
+                <value id="wallee" type="host">https://app-wallee.com</value>
             </values>
         </policy>
     </policies>
