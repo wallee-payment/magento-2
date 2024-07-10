@@ -219,6 +219,17 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
             return false;
         }
 
+        // disable dynamic check if payment method is available
+        $enableAvailablePaymentMethodsCheck = $this->scopeConfig->getValue(
+            'wallee_payment/checkout/enable_available_payment_methods_check',
+            ScopeInterface::SCOPE_STORE,
+            $quote->getStoreId()
+        );
+        if ($enableAvailablePaymentMethodsCheck === "0") {
+            $this->logger->debug("ADAPTER::isAvailable - FINISH");
+            return true;
+        }
+
         try {
             if (!$quote->getData('wallee_payment_payment_options_response')
              || ($quote->getData('wallee_payment_payment_tmp_currency') != $quote->getQuoteCurrencyCode())) {

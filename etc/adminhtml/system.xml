@@ -19,7 +19,7 @@
 			<resource>Wallee_Payment::config</resource>
 			<group id="information" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 				<label>Information</label>
-				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.14/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
+				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.15/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
 				<field id="version" translate="label" type="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 					<label>Module Version</label>
 				</field>
@@ -56,6 +56,13 @@
 				<field id="fingerprint" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
 					<label>Fingerprint Device</label>
 					<comment>If this option is disabled, some processors will have a higher decline rate.</comment>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+				<field id="enable_available_payment_methods_check" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+					<label>Enable Payment Method Availability Check</label>
+					<comment>Activate this feature to dynamically verify the availability of payment methods before displaying them at checkout.
+						This ensures customers only see payment options that are currently operational and relevant to their purchase, enhancing the user experience
+						and reducing potential transaction errors. Note: Enabling this may slightly increase page load time but significantly improves checkout reliability.</comment>
 					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
 				</field>
 			</group>

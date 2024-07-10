@@ -15,8 +15,8 @@
 	<default>
 		<wallee_payment>
 			<information>
-				<version>2.1.14</version>
-				<sdk_version>4.2.0</sdk_version>
+				<version>2.1.15</version>
+				<sdk_version>4.3.0</sdk_version>
 			</information>
 			<general>
 				<base_gateway_url>https://app-wallee.com/</base_gateway_url>
@@ -25,6 +25,7 @@
 			<checkout>
 				<integration_method>iframe</integration_method>
 				<fingerprint>1</fingerprint>
+				<enable_available_payment_methods_check>1</enable_available_payment_methods_check>
 			</checkout>
 			<email>
 				<order>1</order>
