@@ -23,6 +23,7 @@
             <values>
                 <value id="wallee-base" type="host">https://app-wallee.com</value>
                 <value id="wallee" type="host">https://app-wallee.com</value>
+                <value id="wallee-mfgroup" type="host">https://gmtech.mfgroup.ch</value>
             </values>
         </policy>
         <policy id="frame-src">
