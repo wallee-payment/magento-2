@@ -1,6 +1,6 @@
 <?php
 /**
- wallee Magento 2
+ * wallee Magento 2
  *
  * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
  *
@@ -275,6 +275,13 @@ class TransactionService extends AbstractTransactionService
      */
     public function getTransactionByQuote(Quote $quote)
     {
+        //The transaction id can be null if the quote is restored when the payment process fails.
+        //This ensures that the cache has an available transaction. 
+        $transactionId = $quote->getWalleeTransactionId();
+        if (empty($transactionId)) {
+            $transactionArray[$quote->getId()] = $this->createTransactionByQuote($quote);
+        }
+
         $transactionArray = $this->getTransactionArrayFromSession();
         if (! \array_key_exists($quote->getId(), $transactionArray) ||
             $transactionArray[$quote->getId()] == null)
@@ -298,11 +305,11 @@ class TransactionService extends AbstractTransactionService
      * @param Quote $quote
      * @return bool
      */
-    private function checkTransactionIsStillAvailable(Quote $quote)
+    public function checkTransactionIsStillAvailable(Quote $quote)
     {
         $transactionArray = $this->getTransactionArrayFromSession();
         $transaction = null;
-        if ($transactionArray[$quote->getId()] !== null) {
+        if (isset($transactionArray[$quote->getId()]) && $transactionArray[$quote->getId()] !== null) {
             $transactionInSession = $transactionArray[$quote->getId()];
 
             //If the status of the transaction in cache is PENDING,

@@ -1,6 +1,6 @@
 <?php
 /**
- wallee Magento 2
+ * wallee Magento 2
  *
  * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
  *

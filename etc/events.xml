@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!-- 
 /**
- wallee Magento 2
+ * wallee Magento 2
  *
  * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
  *
@@ -58,5 +58,9 @@
 
 	<event name="checkout_cart_save_after">
 		<observer name="wallee_checkout_cart_save_after" instance="Wallee\Payment\Observer\CartEventListener" />
+	</event>
+
+	<event name="restore_quote">
+		<observer name="wallee_restore_quote" instance="Wallee\Payment\Observer\UpdateDeclinedOrderTransaction" />
 	</event>
 </config>

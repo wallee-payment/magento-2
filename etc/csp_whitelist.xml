@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
 /**
- wallee Magento 2
+ * wallee Magento 2
  *
  * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
  *
@@ -24,6 +24,14 @@
                 <value id="wallee-base" type="host">https://app-wallee.com</value>
                 <value id="wallee" type="host">https://app-wallee.com</value>
                 <value id="wallee-mfgroup" type="host">https://gmtech.mfgroup.ch</value>
+                <value id="wallee-visa" type="host">https://assets.secure.checkout.visa.com</value>
+            </values>
+        </policy>
+        <policy id="connect-src">
+            <values>
+                <value id="wallee-base" type="host">https://app-wallee.com</value>
+                <value id="wallee" type="host">https://app-wallee.com</value>
+                <value id="wallee-visa" type="host">https://assets.secure.checkout.visa.com</value>
             </values>
         </policy>
         <policy id="frame-src">
