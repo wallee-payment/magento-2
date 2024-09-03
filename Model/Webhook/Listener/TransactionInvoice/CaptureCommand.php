@@ -16,6 +16,8 @@ use Magento\Sales\Api\Data\InvoiceInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
+use Magento\Sales\Model\Order\Payment\Transaction as MagentoTransaction;
+use Wallee\Payment\Model\Webhook\Listener\Transaction\AuthorizedCommand;
 use Wallee\Sdk\Model\Transaction;
 use Wallee\Sdk\Model\TransactionState;
 
@@ -39,13 +41,24 @@ class CaptureCommand extends AbstractCommand
 
     /**
      *
+     * @var AuthorizedCommand
+     */
+    private $authorizedCommand;
+
+    /**
+     *
      * @param OrderRepositoryInterface $orderRepository
      * @param OrderEmailSender $orderEmailSender
+     * @param AuthorizedCommand $authorizedCommand
      */
-    public function __construct(OrderRepositoryInterface $orderRepository, OrderEmailSender $orderEmailSender)
+    public function __construct(
+        OrderRepositoryInterface $orderRepository,
+        OrderEmailSender $orderEmailSender,
+        AuthorizedCommand $authorizedCommand)
     {
         $this->orderRepository = $orderRepository;
         $this->orderEmailSender = $orderEmailSender;
+        $this->authorizedCommand = $authorizedCommand;
     }
 
     /**
@@ -55,9 +68,20 @@ class CaptureCommand extends AbstractCommand
      */
     public function execute($entity, Order $order)
     {
+
+        $this->authorizedCommand->execute($entity, $order);
+
         $transaction = $entity->getCompletion()
             ->getLineItemVersion()
             ->getTransaction();
+
+        $isOrderInReview = ($order->getState() == Order::STATE_PAYMENT_REVIEW);
+        if (!$isOrderInReview) {
+            $order->setState(Order::STATE_PAYMENT_REVIEW);
+            $order->addStatusToHistory('pending',
+                \__('The order should not be fulfilled yet, as the payment is not guaranteed.'));
+        }
+        
         $invoice = $this->getInvoiceForTransaction($transaction, $order);
         if (! ($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
             $isOrderInReview = ($order->getState() == Order::STATE_PAYMENT_REVIEW);
@@ -69,6 +93,9 @@ class CaptureCommand extends AbstractCommand
             if (! ($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
                 /** @var \Magento\Sales\Model\Order\Payment $payment */
                 $payment = $order->getPayment();
+                $payment->setTransactionId(null);
+                $payment->setParentTransactionId($payment->getTransactionId());
+                $payment->setIsTransactionClosed(true);
                 $payment->registerCaptureNotification($entity->getAmount());
                 if (! ($invoice instanceof InvoiceInterface) && !empty($payment->getCreatedInvoice())) {
                     $invoice = $payment->getCreatedInvoice();
@@ -100,6 +127,10 @@ class CaptureCommand extends AbstractCommand
                 $order->addStatusToHistory(true);
             }
 
+            $order->setWalleeAuthorized(true);
+            $order->setStatus('processing');
+            $order->setState(Order::STATE_PROCESSING);
+
             $this->orderRepository->save($order);
             $this->sendOrderEmail($order);
         }
@@ -117,4 +148,5 @@ class CaptureCommand extends AbstractCommand
             $this->orderEmailSender->send($order);
         }
     }
+
 }
