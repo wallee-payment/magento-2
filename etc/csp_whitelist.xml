@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 /**
  * wallee Magento 2
  *
@@ -35,6 +35,12 @@
             </values>
         </policy>
         <policy id="frame-src">
+            <values>
+                <value id="wallee-base" type="host">https://app-wallee.com</value>
+                <value id="wallee" type="host">https://app-wallee.com</value>
+            </values>
+        </policy>
+        <policy id="style-src">
             <values>
                 <value id="wallee-base" type="host">https://app-wallee.com</value>
                 <value id="wallee" type="host">https://app-wallee.com</value>

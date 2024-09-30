@@ -55,6 +55,10 @@ class AuthorizedCommand extends AbstractCommand
     public function execute($entity, Order $order)
     {
         if ($order->getWalleeAuthorized()) {
+            /** @var \Magento\Sales\Model\Order\Payment $payment */
+            $payment = $order->getPayment();
+            $payment->setTransactionId($entity->getLinkedSpaceId() . '_' . $entity->getId());
+            $this->orderRepository->save($order);
             // In case the order is already authorized.
             return;
         }
