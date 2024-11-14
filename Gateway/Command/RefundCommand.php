@@ -11,6 +11,7 @@
  */
 namespace Wallee\Payment\Gateway\Command;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Payment\Gateway\CommandInterface;
 use Magento\Payment\Gateway\Helper\SubjectReader;
@@ -60,20 +61,33 @@ class RefundCommand implements CommandInterface
 
     /**
      *
+     * @var ScopeConfigInterface
+     */
+    private $scopeConfig;
+
+    /**
+     *
      * @param LoggerInterface $logger
      * @param LocaleHelper $localeHelper
      * @param RefundJobRepositoryInterface $refundJobRepository
      * @param RefundService $refundService
      * @param ApiClient $apiClient
+     * @param ScopeConfigInterface $scopeConfig
      */
-    public function __construct(LoggerInterface $logger, LocaleHelper $localeHelper,
-        RefundJobRepositoryInterface $refundJobRepository, RefundService $refundService, ApiClient $apiClient)
-    {
+    public function __construct(
+        LoggerInterface $logger,
+        LocaleHelper $localeHelper,
+        RefundJobRepositoryInterface $refundJobRepository,
+        RefundService $refundService,
+        ApiClient $apiClient,
+        ScopeConfigInterface $scopeConfig
+    ) {
         $this->logger = $logger;
         $this->localeHelper = $localeHelper;
         $this->refundJobRepository = $refundJobRepository;
         $this->refundService = $refundService;
         $this->apiClient = $apiClient;
+        $this->scopeConfig = $scopeConfig;
     }
 
     public function execute(array $commandSubject)
@@ -81,6 +95,7 @@ class RefundCommand implements CommandInterface
         /** @var \Magento\Sales\Model\Order\Payment $payment */
         $payment = SubjectReader::readPayment($commandSubject)->getPayment();
         $creditmemo = $payment->getCreditmemo();
+        $isIgnorePendingRefundStatusEnabled = $this->scopeConfig->getValue('wallee_payment/pending_refund_status/pending_refund_status_enabled');
 
         if ($creditmemo->getWalleeExternalId() == null) {
             try {
@@ -117,7 +132,9 @@ class RefundCommand implements CommandInterface
                 throw new \Magento\Framework\Exception\LocalizedException(
                     \__($this->localeHelper->translate($refund->getFailureReason()
                         ->getDescription())));
-            } elseif ($refund->getState() == RefundState::PENDING || $refund->getState() == RefundState::MANUAL_CHECK) {
+            } elseif ( ! $isIgnorePendingRefundStatusEnabled &&
+                ( $refund->getState() == RefundState::PENDING ||
+                $refund->getState() == RefundState::MANUAL_CHECK ) ) {
                 $creditmemo->setWalleeKeepRefundJob(true);
                 throw new \Magento\Framework\Exception\LocalizedException(
                     \__('The refund was requested successfully, but is still pending on the gateway.'));

@@ -76,8 +76,8 @@ class AuthorizedCommand extends AbstractCommand
         } else {
             $payment->registerAuthorizationNotification($payment->getAmountAuthorized());
             if ($entity->getState() != TransactionState::FULFILL) {
-
-                $order->setState(Order::STATE_PAYMENT_REVIEW);
+                // Order's state cannot be Payment Review, but pending or processing.
+                $order->setState(Order::STATE_PROCESSING);
                 $order->addStatusToHistory('pending',
                     \__('The order should not be fulfilled yet, as the payment is not guaranteed.')
                 );
