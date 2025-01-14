@@ -13,6 +13,7 @@ namespace Wallee\Payment\Model\Webhook\Listener;
 
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\NotFoundException;
+use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\OrderFactory;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
@@ -65,23 +66,36 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
 
     /**
      *
+     * @var lockManager
+     */
+    protected $lockManager;
+
+    /**
+     *
      * @param ResourceConnection $resource
      * @param LoggerInterface $logger
      * @param OrderFactory $orderFactory
      * @param OrderResourceModel $orderResourceModel
      * @param CommandPoolInterface $commandPool
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
+     * @param LockManagerInterface $lockManager
      */
-    public function __construct(ResourceConnection $resource, LoggerInterface $logger, OrderFactory $orderFactory,
-        OrderResourceModel $orderResourceModel, CommandPoolInterface $commandPool,
-        TransactionInfoRepositoryInterface $transactionInfoRepository)
-    {
+    public function __construct(
+        ResourceConnection $resource,
+        LoggerInterface $logger,
+        OrderFactory $orderFactory,
+        OrderResourceModel $orderResourceModel,
+        CommandPoolInterface $commandPool,
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        LockManagerInterface $lockManager
+    ) {
         $this->resource = $resource;
         $this->logger = $logger;
         $this->orderFactory = $orderFactory;
         $this->orderResourceModel = $orderResourceModel;
         $this->commandPool = $commandPool;
         $this->transactionInfoRepository = $transactionInfoRepository;
+        $this->lockManager = $lockManager;
     }
 
     public function execute(Request $request)
@@ -90,6 +104,7 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
         $connection = $this->beginTransaction();
         try {
             $order = $this->loadOrder($this->getOrderId($entity));
+            $transactionId = $order->getWalleeTransactionId();
             if ($order instanceof Order) {
                 if ($order->getWalleeTransactionId() != $this->getTransactionId($entity)) {
                     $this->logger->warning(
@@ -98,13 +113,15 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
                     $connection->commit();
                     return;
                 }
-                $this->lock($order);
+                $this->lock($transactionId);
                 $this->process($this->loadEntity($request), $this->loadOrder($order->getId()));
             }
+            $this->unlock($transactionId);
             $connection->commit();
         } catch (\Exception $e) {
+            $this->unlock($transactionId);
+            $connection->rollback();
             $this->logger->critical($e);
-            $connection->rollBack();
             throw $e;
         }
     }
@@ -171,17 +188,21 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
     /**
      * Creates a lock to prevent concurrency.
      *
-     * @param Order $order
-     * @return void
+     * @return bool
      */
-    private function lock(Order $order)
+    protected function lock(string $lockId): bool
     {
-        $this->resource->getConnection()->update($this->resource->getTableName('sales_order'),
-            [
-                'wallee_lock' => \date('Y-m-d H:i:s')
-            ], [
-                'entity_id = ?' => $order->getId()
-            ]);
+        return $this->lockManager->lock($lockId, 1);
+    }
+
+    /**
+     * Releases our lock.
+     *
+     * @return bool
+     */
+    protected function unlock(string $lockId): bool
+    {
+        return $this->lockManager->unlock($lockId);
     }
 
     /**

@@ -11,7 +11,6 @@
  */
 namespace Wallee\Payment\Controller\Checkout;
 
-use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Action\Context;
 
@@ -21,27 +20,18 @@ use Magento\Framework\App\Action\Context;
 class RestoreCart extends \Wallee\Payment\Controller\Checkout
 {
 
-    /**
-     *
-     * @var CheckoutSession
-     */
-    private $checkoutSession;
-
-    /**
-     *
-     * @param Context $context
-     * @param CheckoutSession $checkoutSession
-     */
-    public function __construct(Context $context, CheckoutSession $checkoutSession)
-    {
-        parent::__construct($context);
-        $this->checkoutSession = $checkoutSession;
-    }
-
     public function execute()
     {
-        $this->checkoutSession->restoreQuote();
+        try {
+            // Triggers event to validate and restore quote.
+            $this->_eventManager->dispatch('wallee_validate_and_restore_quote');
+        } catch (\Exception $e) {
+            // If an error occurs, we display a generic message and redirect to the cart.
+            $this->messageManager->addErrorMessage(__('An error occurred while restoring your cart.'));
+            return $this->_redirect('checkout/cart');
+        }
 
+        // Redirects to the cart or to the path determined by the redirection.
         return $this->_redirect($this->getFailureRedirectionPath());
     }
 

@@ -61,6 +61,14 @@ class Success extends \Wallee\Payment\Controller\Transaction
                     'However, the payment was successful. Please contact us.'));
             return $this->_redirect('checkout/cart');
         }
+        
+        // Deactivate quote after successful payment.
+        $quote = $this->checkoutSession->getQuote();
+        if ($quote && $quote->getId()) {
+            $quote->setIsActive(false);
+			$quote->removeAllItems();
+			$quote->save();
+        }
 
         $this->checkoutSession->setLastOrderId($order->getId())
             ->setLastRealOrderId($order->getIncrementId())

@@ -87,6 +87,16 @@
     </type>
     
     <!-- Webhook Listeners -->
+	<type name="Magento\Framework\Lock\Backend\Database">
+		<arguments>
+			<argument name="path" xsi:type="string">var/lock</argument>
+		</arguments>
+	</type>
+	<type name="Wallee\Payment\Model\Webhook\Listener\AbstractOrderRelatedListener">
+		<arguments>
+			<argument name="lockManager" xsi:type="object">Magento\Framework\Lock\Backend\Database</argument>
+		</arguments>
+	</type>
     <type name="Wallee\Payment\Model\Webhook\Listener\TransactionListener">
     	<arguments>
     		<argument name="commandPool" xsi:type="object">WalleeTransactionWebhookCommandPool</argument>

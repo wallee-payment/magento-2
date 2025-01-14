@@ -12,6 +12,7 @@
 namespace Wallee\Payment\Model\Webhook\Listener;
 
 use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Sales\Model\OrderFactory;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Psr\Log\LoggerInterface;
@@ -41,13 +42,15 @@ class DeliveryIndicationListener extends AbstractOrderRelatedListener
      * @param CommandPoolInterface $commandPool
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param ApiClient $apiClient
+     * @param LockManagerInterface $lockManager
      */
     public function __construct(ResourceConnection $resource, LoggerInterface $logger, OrderFactory $orderFactory,
         OrderResourceModel $orderResourceModel, CommandPoolInterface $commandPool,
-        TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient)
+        TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient,
+        LockManagerInterface $lockManager)
     {
         parent::__construct($resource, $logger, $orderFactory, $orderResourceModel, $commandPool,
-            $transactionInfoRepository);
+            $transactionInfoRepository, $lockManager);
         $this->apiClient = $apiClient;
     }
 

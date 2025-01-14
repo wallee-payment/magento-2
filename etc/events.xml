@@ -63,4 +63,8 @@
 	<event name="restore_quote">
 		<observer name="wallee_restore_quote" instance="Wallee\Payment\Observer\UpdateDeclinedOrderTransaction" />
 	</event>
+
+	<event name="wallee_validate_and_restore_quote">
+		<observer name="wallee_validate_and_restore_quote_observer" instance="Wallee\Payment\Observer\ValidateAndRestoreQuote" />
+	</event>
 </config>
