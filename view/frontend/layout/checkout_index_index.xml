@@ -1,49 +1,11 @@
 <?xml version="1.0"?>
-<!-- 
-/**
- * wallee Magento 2
- *
- * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
- *
- * @package Wallee_Payment
- * @author wallee AG (https://www.wallee.com)
- * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
-
- */
- -->
-<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
-        <referenceBlock name="checkout.root">
-            <arguments>
-                <argument name="jsLayout" xsi:type="array">
-                    <item name="components" xsi:type="array">
-                        <item name="checkout" xsi:type="array">
-                            <item name="children" xsi:type="array">
-                                <item name="steps" xsi:type="array">
-                                    <item name="children" xsi:type="array">
-                                        <item name="billing-step" xsi:type="array">
-                                            <item name="children" xsi:type="array">
-                                                <item name="payment" xsi:type="array">
-                                                    <item name="children" xsi:type="array">
-                                                        <item name="renders" xsi:type="array">
-                                                            <item name="children" xsi:type="array">
-                                                                <item name="wallee_payment" xsi:type="array">
-                                                                    <item name="component" xsi:type="string">Wallee_Payment/js/view/payment/wallee-methods</item>
-                                                                    <item name="methods" xsi:type="array"></item>
-                                                                </item>
-                                                            </item>
-                                                        </item>
-                                                    </item>
-                                                </item>
-                                            </item>
-                                        </item>
-                                    </item>
-                                </item>
-                            </item>
-                        </item>
-                    </item>
-                </argument>
-            </arguments>
-        </referenceBlock>
+        <referenceContainer name="after.body.start">
+            <block class="Wallee\Payment\Block\DeviceSession"
+                   name="Wallee_Payment_Block_DeviceSession"
+                   template="Wallee_Payment::wallee-device.phtml"/>
+        </referenceContainer>
     </body>
 </page>

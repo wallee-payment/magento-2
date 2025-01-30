@@ -1,51 +1,13 @@
 <?xml version="1.0"?>
-<!-- 
-/**
- * wallee Magento 2
- *
- * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
- *
- * @package Wallee_Payment
- * @author wallee AG (https://www.wallee.com)
- * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
-
- */
- -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
-	<default>
-		<wallee_payment>
-			<information>
-				<version>2.1.22</version>
-				<sdk_version>4.6.0</sdk_version>
-			</information>
-			<general>
-				<base_gateway_url>https://app-wallee.com/</base_gateway_url>
-				<manual_tasks>0</manual_tasks>
-			</general>
-			<checkout>
-				<integration_method>iframe</integration_method>
-				<fingerprint>1</fingerprint>
-				<enable_available_payment_methods_check>1</enable_available_payment_methods_check>
-			</checkout>
-			<email>
-				<order>1</order>
-			</email>
-			<pending_refund_status>
-				<pending_refund_status_enabled>0</pending_refund_status_enabled>
-			</pending_refund_status>
-			<gdpr>
-				<gdpr_enabled>disabled</gdpr_enabled>
-			</gdpr>
-			<document>
-				<customer_download_invoice>1</customer_download_invoice>
-				<customer_download_packing_slip>1</customer_download_packing_slip>
-				<customer_download_refund>1</customer_download_refund>
-			</document>
-			<line_items>
-				<overwrite_shipping_description>0</overwrite_shipping_description>
-				<custom_shipping_description>Shipping</custom_shipping_description>
-				<enforce_consistency>1</enforce_consistency>
-			</line_items>
-		</wallee_payment>
-	</default>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <wallee_payment>
+            <checkout>
+                <integration_method>iframe</integration_method>
+                <fingerprint>0</fingerprint><!-- disable MF-Group device fingerprint due of a slow response -->
+                <enable_available_payment_methods_check>0</enable_available_payment_methods_check>
+            </checkout>
+        </wallee_payment>
+    </default>
 </config>

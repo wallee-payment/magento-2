@@ -1,13 +1,6 @@
 <?php
-/**
- * wallee Magento 2
- *
- * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
- *
- * @package Wallee_Payment
- * @author wallee AG (https://www.wallee.com)
- * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
+declare(strict_types=1);
 
- */
-\Magento\Framework\Component\ComponentRegistrar::register(\Magento\Framework\Component\ComponentRegistrar::MODULE,
-    'Wallee_Payment', __DIR__);
+use Magento\Framework\Component\ComponentRegistrar;
+
+ComponentRegistrar::register(ComponentRegistrar::MODULE, 'Puravita_WalleePayment', __DIR__);
