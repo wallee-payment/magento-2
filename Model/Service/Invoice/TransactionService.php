@@ -108,9 +108,9 @@ class TransactionService extends AbstractTransactionService
             $lineItems = $this->lineItemService->convertInvoiceLineItems($invoice, $expectedAmount);
 
             $data = [
-              'external_id' => uniqid(),
-              'line_items' => $lineItems,
-              'transaction' => (int)$transactionInfo->getTransactionId()
+                'external_id' => uniqid(),
+                'line_items' => $lineItems,
+                'transaction' => (int)$transactionInfo->getTransactionId()
             ];
 
             $lineItemsCreate = new TransactionLineItemVersionCreate($data);
