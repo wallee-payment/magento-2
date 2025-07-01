@@ -51,7 +51,7 @@
 "Hold Delivery","Lieferung halten"
 "ID required","ID erforderlich"
 "When a refund request is in a pending state, update its status to successful", "Wenn die Rückerstattung aussteht, markieren Sie sie als erfolgreich"
-"If you need help setting up the wallee extension, check out the <a href=""https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.23/docs/en/documentation.html"" target=""_blank"">documentation</a>.","Falls Sie Hilfe benötigen beim Einrichten der wallee-Erweiterung, sehen Sie sich die <a href=""https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.23/docs/en/documentation.html"" target=""_blank"">Dokumentation</a> an."
+"If you need help setting up the wallee extension, check out the <a href=""https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.24/docs/en/documentation.html"" target=""_blank"">documentation</a>.","Falls Sie Hilfe benötigen beim Einrichten der wallee-Erweiterung, sehen Sie sich die <a href=""https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.24/docs/en/documentation.html"" target=""_blank"">Dokumentation</a> an."
 "Inactive","Inaktiv"
 "Information","Informationen"
 "Invoice","Rechnung"
