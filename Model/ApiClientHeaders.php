@@ -35,6 +35,11 @@ class ApiClientHeaders
     public const SHOP_SYSTEM_AND_VERSION = 'x-meta-shop-system-and-version';
 
     /**
+     * @var string
+     */
+    public const PLUGIN_SYSTEM_VERSION = 'x-meta-plugin-version';
+
+    /**
      * Sets the headers.
      *
      * @param \Wallee\Sdk\ApiClient $apiClient
@@ -65,6 +70,7 @@ class ApiClientHeaders
             self::SHOP_SYSTEM             => 'magento',
             self::SHOP_SYSTEM_VERSION     => $shop_version,
             self::SHOP_SYSTEM_AND_VERSION => 'magento-' . $major_version . '.' . $minor_version,
+            self::PLUGIN_SYSTEM_VERSION   => '2.1.25',
         ];
     }
 }

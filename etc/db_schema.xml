@@ -13,7 +13,6 @@
     <column xsi:type="bigint" name="wallee_transaction_id" padding="20" unsigned="true" nullable="true" identity="false" comment="wallee Payment Transaction Id"/>
     <column xsi:type="boolean" name="wallee_authorized" nullable="true" comment="wallee Payment Authorized"/>
     <column xsi:type="varchar" name="wallee_security_token" nullable="true" length="32" comment="wallee Payment Security Token"/>
-    <column xsi:type="timestamp" name="wallee_lock" on_update="false" nullable="true" comment="wallee Payment Lock"/>
     <index referenceId="SALES_ORDER_WALLEE_SPACE_ID_WALLEE_TRANSACTION_ID" indexType="btree">
       <column name="wallee_space_id"/>
       <column name="wallee_transaction_id"/>
