@@ -27,6 +27,12 @@ use Wallee\Payment\Model\Webhook\Request;
  */
 abstract class AbstractOrderRelatedListener implements ListenerInterface
 {
+    /**
+     * Maximum number of attempts executeTransaction() function is allowed to loop through recursively to avoid infinite loops
+     *
+     * @var int
+     */
+    const MAX_EXECUTE_ATTEMPTS = 20;
 
     /**
      *
@@ -107,6 +113,41 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
             return;
         }
         $transactionId = $order->getWalleeTransactionId();
+        $this->executeTransaction($request, $transactionId, 0);
+    }
+
+    /**
+     * Recursive function to process transactions.
+     * 
+     * It was implemented as a fix for possible deadlocks related to lock manager, 
+     * possibly caused when two processes with same transactionId are executed. 
+     * In that case we wait until one process unlocks the lock, while putting 
+     * other processes on hold by making them recursively call this function.
+     * This function is allowed to loop through only a set number of times. 
+     * That amount can be changed by modifying the MAX_EXECUTE_ATTEMPTS constant.
+     *
+     * @param mixed $request
+     * @param int $transactionId
+     * @param int $attempt
+     * @return void
+     */
+    private function executeTransaction($request, $transactionId, $attempt)
+    {
+        // check if current recursion loop attempt axceeds the allowed amount
+        if ($attempt >= self::MAX_EXECUTE_ATTEMPTS) {
+            $this->logger->warning("AbstractOrderRelatedListener::executeTransaction - Max attempt number reached for transaction ID: " . $transactionId);
+            return;
+        }
+        // if some other process has lock active for current transactionId, start another recursion loop
+        if ($this->lockManager->isLocked($transactionId)) {
+            $this->logger->info("AbstractOrderRelatedListener::executeTransaction - Locked on transaction ID: " . $transactionId . " with attempt number: " . $attempt);
+            // sleep for 500000 microseconds, or 0.5 seconds
+            usleep(500000);
+            $this->executeTransaction($request, $transactionId, $attempt + 1);
+            return;
+        }
+        $entity = $this->loadEntity($request);
+        $order = $this->loadOrder($this->getOrderId($entity));
         try {
             $connection = $this->beginTransaction();
             if ($transactionId != $this->getTransactionId($entity)) {

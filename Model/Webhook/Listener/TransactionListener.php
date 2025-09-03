@@ -90,15 +90,34 @@ class TransactionListener extends AbstractOrderRelatedListener
      * @param Order $order
      * @return void
      */
-    protected function process($entity, Order $order)
-    {
-        $this->logger->debug("TRANSACTION-LISTENER::process");
-        $transactionInfo = $this->transactionInfoRepository->getByOrderId($order->getId());
-        if ((string)$transactionInfo->getState() != $entity->getState()) {
-            parent::process($entity, $order);
-        }
-        $this->transactionInfoManagement->update($entity, $order);
-    }
+	protected function process($entity, Order $order): void
+	{
+		$lockName = 'transaction_listener_order_' . $order->getId();
+		if (!$this->lockManager->lock($lockName, 10)) { // 10s timeout
+			$this->logger->warning("Could not acquire lock for order #{$order->getIncrementId()}");
+			return;
+		}
+
+		try {
+			try {
+				$transactionInfo = $this->transactionInfoRepository->getByOrderId($order->getId());
+			} catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+				$this->logger->error("Transaction info not found for order #{$order->getIncrementId()}");
+				return;
+			}
+
+			if ((string)$transactionInfo->getState() !== $entity->getState()) {
+				parent::process($entity, $order);
+			}
+
+			$this->transactionInfoManagement->update($entity, $order);
+		} catch (\Exception $e) {
+			$this->logger->error("Error while processing transaction for order #{$order->getIncrementId()}: " . $e->getMessage());
+			throw $e;
+		} finally {
+			$this->lockManager->unlock($lockName);
+		}
+	}
 
     /**
      * Loads the transaction for the webhook request.

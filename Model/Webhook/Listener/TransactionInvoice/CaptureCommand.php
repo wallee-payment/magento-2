@@ -66,75 +66,77 @@ class CaptureCommand extends AbstractCommand
      * @param \Wallee\Sdk\Model\TransactionInvoice $entity
      * @param Order $order
      */
-    public function execute($entity, Order $order)
-    {
+	public function execute($entity, Order $order)
+	{
+		$this->authorizedCommand->execute($entity, $order);
 
-        $this->authorizedCommand->execute($entity, $order);
-
-        $transaction = $entity->getCompletion()
-            ->getLineItemVersion()
-            ->getTransaction();
-
-        $isOrderInReview = ($order->getState() == Order::STATE_PAYMENT_REVIEW);
-        if (!$isOrderInReview) {
-            $order->setState(Order::STATE_PAYMENT_REVIEW);
-            $order->addStatusToHistory('pending',
-                \__('The order should not be fulfilled yet, as the payment is not guaranteed.'));
-        }
+		$transaction = $entity->getCompletion()
+		  ->getLineItemVersion()
+		  ->getTransaction();
         
-        $invoice = $this->getInvoiceForTransaction($transaction, $order);
-        if (! ($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
-            $isOrderInReview = ($order->getState() == Order::STATE_PAYMENT_REVIEW);
-
-            if (! ($invoice instanceof InvoiceInterface)) {
-                $order->setWalleeInvoiceAllowManipulation(true);
-            }
-
-            if (! ($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
-                /** @var \Magento\Sales\Model\Order\Payment $payment */
-                $payment = $order->getPayment();
-                $payment->setTransactionId(null);
-                $payment->setParentTransactionId($payment->getTransactionId());
-                $payment->setIsTransactionClosed(true);
-                $payment->registerCaptureNotification($entity->getAmount());
-                if (! ($invoice instanceof InvoiceInterface) && !empty($payment->getCreatedInvoice())) {
-                    $invoice = $payment->getCreatedInvoice();
-                    $order->addRelatedObject($invoice);
-                } else {
-                    // Fix an issue that invoice doesn't have the correct status after call to registerCaptureNotification
-                    // see \Magento\Sales\Model\Order\Payment\Operations\RegisterCaptureNotificationOperation::registerCaptureNotification
-                    foreach ($order->getRelatedObjects() as $object) {
-                        if ($object instanceof InvoiceInterface) {
-                            $invoice = $object;
-                            break;
-                        }
-                    }
-                }
-
-                if ($invoice instanceof InvoiceInterface) {
-                    $invoice->setWalleeCapturePending(false);
-                } else {
-                    return false;
-                }
-            }
-
-            if ($transaction->getState() == TransactionState::COMPLETED) {
-                $order->setStatus('processing');
-            }
-
-            if ($isOrderInReview) {
+        $txState = $transaction->getState();
+        
+        // If the transaction is already FULFILL or COMPLETED - do not set payment_review
+        if (!in_array($txState, [TransactionState::FULFILL, TransactionState::COMPLETED], true)) {
+            // Put order into review if not already
+            if ($order->getState() !== Order::STATE_PAYMENT_REVIEW) {
                 $order->setState(Order::STATE_PAYMENT_REVIEW);
-                $order->addStatusToHistory(true);
+                $order->addStatusToHistory('pending', __('Payment is under review.'));
             }
-
-            $order->setWalleeAuthorized(true);
-            $order->setStatus('processing');
-            $order->setState(Order::STATE_PROCESSING);
-
-            $this->orderRepository->save($order);
-            $this->sendOrderEmail($order);
         }
-    }
+
+		$invoice = $this->getInvoiceForTransaction($transaction, $order);
+
+		$needsCapture = !($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN;
+		if ($needsCapture) {
+			$invoice = $this->captureInvoice($order, $entity->getAmount(), $invoice);
+		}
+
+		if (!$invoice) {
+			return false;
+		}
+
+		// Mark transaction complete
+		if ($transaction->getState() == TransactionState::FULFILL) {
+			$order->setState(Order::STATE_PROCESSING);
+			$order->setStatus('processing');
+		}
+
+		$order->setWalleeAuthorized(true);
+
+		$this->orderRepository->save($order);
+		$this->sendOrderEmail($order);
+	}
+
+	/**
+	 * @return InvoiceInterface|null
+	 */
+	private function captureInvoice(Order $order, float $amount, ?InvoiceInterface $invoice)
+	{
+		/** @var \Magento\Sales\Model\Order\Payment $payment */
+		$payment = $order->getPayment();
+		$payment->setTransactionId(null);
+		$payment->setParentTransactionId($payment->getTransactionId());
+		$payment->setIsTransactionClosed(true);
+		$payment->registerCaptureNotification($amount, true);
+
+		$invoice = $payment->getCreatedInvoice() ?: $invoice;
+
+		if ($invoice instanceof InvoiceInterface) {
+			$invoice->pay();
+			$invoice->setWalleeCapturePending(false);
+			$order->addRelatedObject($invoice);
+			return $invoice;
+		}
+
+		foreach ($order->getRelatedObjects() as $object) {
+			if ($object instanceof InvoiceInterface) {
+				return $object;
+			}
+		}
+
+		return null;
+	}
 
     /**
      * Sends the order email if not already sent.

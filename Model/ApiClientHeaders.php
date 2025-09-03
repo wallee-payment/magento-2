@@ -70,7 +70,7 @@ class ApiClientHeaders
             self::SHOP_SYSTEM             => 'magento',
             self::SHOP_SYSTEM_VERSION     => $shop_version,
             self::SHOP_SYSTEM_AND_VERSION => 'magento-' . $major_version . '.' . $minor_version,
-            self::PLUGIN_SYSTEM_VERSION   => '2.1.25',
+            self::PLUGIN_SYSTEM_VERSION   => '2.1.26',
         ];
     }
 }
