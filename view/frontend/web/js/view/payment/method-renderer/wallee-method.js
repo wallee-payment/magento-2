@@ -233,7 +233,7 @@ define([
 		fallbackToPaymentPage: function(){
 			fullScreenLoader.startLoader();
 			if (window.checkoutConfig.wallee.paymentPageUrl) {
-				window.location.replace(window.checkoutConfig.wallee.paymentPageUrl + "&paymentMethodConfigurationId=" + this.getConfigurationId());
+				window.location.replace(window.checkoutConfig.wallee.paymentPageUrl);
 			} else {
 				window.location.replace(urlBuilder.build("wallee_payment/checkout/failure"));
 			}

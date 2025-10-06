@@ -7,12 +7,12 @@ This repository contains the Magento 2 extension that enables to process payment
 
 ## Requirements
 
-* [Magento 2](https://magento.com/) 2.4.4 to 2.4.7. For previous version, see table below
+* [Magento 2](https://magento.com/) 2.4.4 to 2.4.8. For previous version, see table below
 * [PHP](http://php.net/) version supported by the Magento version.
 
 ## Documentation
 
-* [Documentation](https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.27/docs/en/documentation.html)
+* [Documentation](https://plugin-documentation.wallee.com/wallee-payment/magento-2/2.1.28/docs/en/documentation.html)
 
 
 ## Support
@@ -39,4 +39,4 @@ We do provide special integrations for the following one step checkouts:
 
 ## License
 
-Please see the [license file](https://github.com/wallee-payment/magento-2/blob/2.1.27/LICENSE) for more information.
+Please see the [license file](https://github.com/wallee-payment/magento-2/blob/2.1.28/LICENSE) for more information.
