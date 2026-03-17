@@ -78,7 +78,6 @@ class Converter
     private $template;
 
     /**
-     *
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param ResourceConnection $resourceConnection
@@ -87,10 +86,15 @@ class Converter
      * @param ModuleDirReader $moduleReader
      * @param DriverPool $driverPool
      */
-    public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, ResourceConnection $resourceConnection, DomFactory $domFactory,
-        SchemaLocator $schemaLocator, ModuleDirReader $moduleReader, DriverPool $driverPool)
-    {
+    public function __construct(
+        PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        ResourceConnection $resourceConnection,
+        DomFactory $domFactory,
+        SchemaLocator $schemaLocator,
+        ModuleDirReader $moduleReader,
+        DriverPool $driverPool
+    ) {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->resourceConnection = $resourceConnection;
@@ -101,6 +105,8 @@ class Converter
     }
 
     /**
+     * Add payment method configuration from the database to the initial config XML.
+     *
      * @param \Magento\Framework\App\Config\Initial\Converter $subject
      * @param mixed $source
      * @return array<mixed>
@@ -118,14 +124,18 @@ class Converter
             [
                 'xml' => Dom::CONFIG_INITIAL_CONTENT,
                 'schemaFile' => $this->schemaFile
-            ]);
+            ]
+        );
         $configMerger->setDom($source);
 
-        $searchCriteria = $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
+        $searchCriteria = $this->searchCriteriaBuilder->addFilter(
+            PaymentMethodConfigurationInterface::STATE,
             [
                 PaymentMethodConfiguration::STATE_ACTIVE,
                 PaymentMethodConfiguration::STATE_INACTIVE
-            ], 'in')->create();
+            ],
+            'in'
+        )->create();
 
         $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
         foreach ($configurations as $configuration) {
@@ -138,27 +148,34 @@ class Converter
     }
 
     /**
+     * Build the config XML snippet for a payment method configuration.
+     *
      * @param PaymentMethodConfigurationInterface $configuration
      * @return array|string|string[]
      */
     private function generateXml(PaymentMethodConfigurationInterface $configuration)
     {
-        return \str_replace([
-            '{id}',
-            '{active}',
-            '{title}',
-            '{description}',
-            '{sortOrder}',
-            '{spaceId}'
-        ],
+        return \str_replace(
             [
+                'wallee_payment_ID',
+                '{id}',
+                '{active}',
+                '{title}',
+                '{description}',
+                '{sortOrder}',
+                '{spaceId}'
+            ],
+            [
+                'wallee_payment_' . $configuration->getEntityId(),
                 $configuration->getEntityId(),
                 $configuration->getState() == PaymentMethodConfiguration::STATE_ACTIVE ? 1 : 0,
                 $this->getTranslatedTitle($configuration, LocaleHelper::DEFAULT_LANGUAGE),
                 $this->translate($configuration->getDescription(), LocaleHelper::DEFAULT_LANGUAGE),
                 $configuration->getSortOrder(),
                 $configuration->getSpaceId()
-            ], $this->getTemplate());
+            ],
+            $this->getTemplate()
+        );
     }
 
     /**
@@ -175,7 +192,8 @@ class Converter
         }
 
         return $this->resourceConnection->getConnection()->isTableExists(
-            $this->resourceConnection->getTableName('wallee_payment_method_configuration'));
+            $this->resourceConnection->getTableName('wallee_payment_method_configuration')
+        );
     }
 
     /**
@@ -198,6 +216,8 @@ class Converter
     }
 
     /**
+     * Returns translated value for the given language.
+     *
      * @param array<mixed> $translatedString
      * @param string $language
      * @return mixed|null
@@ -217,14 +237,18 @@ class Converter
     }
 
     /**
+     * Load and return the payment method XML template.
+     *
      * @return string
      * @throws \Magento\Framework\Exception\FileSystemException
      */
     private function getTemplate()
     {
         if ($this->template == null) {
-            $templatePath = $this->moduleReader->getModuleDir(\Magento\Framework\Module\Dir::MODULE_ETC_DIR,
-                'Wallee_Payment') . '/config-method-template.xml';
+            $templatePath = $this->moduleReader->getModuleDir(
+                \Magento\Framework\Module\Dir::MODULE_ETC_DIR,
+                'Wallee_Payment'
+            ) . '/config-method-template.xml';
             $this->template = $this->driverPool->getDriver(DriverPool::FILE)->fileGetContents($templatePath);
         }
         return $this->template;

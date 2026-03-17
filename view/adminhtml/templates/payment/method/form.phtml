@@ -18,30 +18,50 @@ $code = $block->getMethodCode();
 $tokens = $block->getTokens();
 ?>
 
-<fieldset class="admin__fieldset payment-method" id="payment_form_<?=$block->escapeHtml($code)?>" style="display:none">
-	<div class="admin__field">
-		<div class="admin__field-control">
-    		<?=$block->escapeHtml(\__('A charge flow will be used to process the payment.'))?>
-		</div>
+<fieldset
+    class="admin__fieldset payment-method"
+    id="payment_form_<?=$escaper->escapeHtml($code)?>"
+    style="display:none"
+>
+    <div class="admin__field">
+        <div class="admin__field-control">
+            <?=$escaper->escapeHtml(\__('A charge flow will be used to process the payment.'))?>
+        </div>
     </div>
-    <?php if (! empty($tokens)) : ?>
-		<div class="admin__field">
-            <label class="admin__field-label" for="<?=$block->escapeHtml($code)?>_token">
-                <span><?=$block->escapeHtml(\__('Token:'))?></span>
+    <?php if (! empty($tokens)): ?>
+        <div class="admin__field">
+            <label class="admin__field-label" for="<?=$escaper->escapeHtml($code)?>_token">
+                <span><?=$escaper->escapeHtml(\__('Token:'))?></span>
             </label>
             <div class="admin__field-control">
-                <select id="<?=$block->escapeHtml($code)?>_token" name="payment[<?=$block->escapeHtml($block->getTransportName())?>]" class="admin__control-select">
+                <select
+                    id="<?=$escaper->escapeHtml($code)?>_token"
+                    name="payment[<?=$escaper->escapeHtml($block->getTransportName())?>]"
+                    class="admin__control-select"
+                >
                     <option value="">No token</option>
-                    <?php foreach ($tokens as $token) : ?>
-                        <option value="<?=$block->escapeHtml($token->getId())?>"
-                        <?=($token->getId() == $block->getInfoData($block->getTransportName())) ? ' selected="selected"' : '';?>>
-                            <?=$block->escapeHtml($token->getName())?>
+                    <?php foreach ($tokens as $token): ?>
+                        <option
+                            value="<?=$escaper->escapeHtml($token->getId())?>"
+                            <?=
+                                ($token->getId() == $block->getInfoData($block->getTransportName()))
+                                ? ' selected="selected"' : '';
+                            ?>
+                        >
+                            <?=$escaper->escapeHtml($token->getName())?>
                         </option>
                     <?php endforeach; ?>
                 </select>
                 <div>
-                	<small><?=$block->escapeHtml(\__('The customer can be charged by using an existing token. If left empty, no token is used.'))?></small>
-            	</div>
+                    <small>
+                        <?=$escaper->escapeHtml(
+                            \__(
+                                'The customer can be charged by using an existing token. ' .
+                                'If left empty, no token is used.'
+                            )
+                        )?>
+                    </small>
+                </div>
             </div>
         </div>
     <?php endif; ?>

@@ -23,7 +23,7 @@
 		</a>
 	</li>
 	<li>
-		<a href="https://github.com/wallee-payment/magento-2/releases/tag/2.1.29/">
+		<a href="https://github.com/wallee-payment/magento-2/releases/tag/3.0.0-beta/">
 			Source
 		</a>
 	</li>
@@ -94,16 +94,33 @@
 <p>If you do the installation via FTP upload with our GitHub repositories, ensure that you are using:
 - the <a href="https://github.com/wallee-payment/magento-2" target="_blank">magento-2</a> repository, if your magento version is higher than or equal than 2.4</p>
 </div>					</div>
+</div>	<div class="chapter" id="_updating_to_3_x">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">3</span>Updating to 3.x					</h1>
+	</div>
+	<div class="chapter-body">
+					<div class="paragraph">
+<p>For updating to version 3.x of this plugin, please make sure you run the following command:</p>
+</div><div class="paragraph">
+<p>+</p>
+</div><div class="listingblock">
+<div class="content">
+<pre>composer require wallee/plugin-core</pre>
+</div>
+</div><div class="paragraph">
+<p>This is a new dependency included in the composer.json file already, but depending on how you update the plugin, it might not be installed.</p>
+</div>					</div>
 </div>	<div class="chapter" id="_configuration">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">3</span>Configuration					</h1>
+			<span class="title-number">4</span>Configuration					</h1>
 	</div>
 	<div class="chapter-body">
 							<div class="section" id="_main_configuration">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">3.1</span>Main Configuration					</h2>
+			<span class="title-number">4.1</span>Main Configuration					</h2>
 	</div>
 	<div class="section-body">
 					<div class="olist arabic">
@@ -140,7 +157,7 @@ Stores &#8594; Configuration &#8594; Payment Methods. Make sure you are in the <
 </div>							<div class="section" id="_line_items">
 	<div class="section-title">
 		<h3>
-			<span class="title-number">3.1.1</span>Line Items					</h3>
+			<span class="title-number">4.1.1</span>Line Items					</h3>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -172,13 +189,13 @@ This setting implies that the plugin is collecting wrong data (e.g. VAT) which m
 </div>	<div class="chapter" id="_payment_method_configuration">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">4</span>Payment Method Configuration					</h1>
+			<span class="title-number">5</span>Payment Method Configuration					</h1>
 	</div>
 	<div class="chapter-body">
 							<div class="section" id="_setup">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">4.1</span>Setup					</h2>
+			<span class="title-number">5.1</span>Setup					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -191,7 +208,7 @@ This setting implies that the plugin is collecting wrong data (e.g. VAT) which m
 </div>					<div class="section" id="_customization">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">4.2</span>Customization					</h2>
+			<span class="title-number">5.2</span>Customization					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -200,7 +217,7 @@ This setting implies that the plugin is collecting wrong data (e.g. VAT) which m
 </div>					<div class="section" id="_state_mapping_of_magento_orders">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">4.3</span>State mapping of Magento orders					</h2>
+			<span class="title-number">5.3</span>State mapping of Magento orders					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -230,7 +247,7 @@ This setting implies that the plugin is collecting wrong data (e.g. VAT) which m
 </div>							<div class="section" id="_order_status_label_update">
 	<div class="section-title">
 		<h3>
-			<span class="title-number">4.3.1</span>Order Status Label Update					</h3>
+			<span class="title-number">5.3.1</span>Order Status Label Update					</h3>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -240,7 +257,7 @@ This setting implies that the plugin is collecting wrong data (e.g. VAT) which m
 </div>					<div class="section" id="_state_mapping_of_magento_invoices">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">4.4</span>State mapping of Magento invoices					</h2>
+			<span class="title-number">5.4</span>State mapping of Magento invoices					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -269,7 +286,7 @@ This setting implies that the plugin is collecting wrong data (e.g. VAT) which m
 </div>	<div class="chapter" id="_transaction_management">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">5</span>Transaction Management					</h1>
+			<span class="title-number">6</span>Transaction Management					</h1>
 	</div>
 	<div class="chapter-body">
 					<div class="paragraph">
@@ -279,7 +296,7 @@ Magento. However, there are some limitations (see below).</p>
 </div>							<div class="section" id="_complete_capture_an_order">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">5.1</span>Complete (capture) an order					</h2>
+			<span class="title-number">6.1</span>Complete (capture) an order					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -305,7 +322,7 @@ When the completion is pending in wallee the invoice will stay in pending state.
 </div>					<div class="section" id="_void_a_transaction">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">5.2</span>Void a Transaction					</h2>
+			<span class="title-number">6.2</span>Void a Transaction					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -329,7 +346,7 @@ You can only void transactions that are not yet completed.
 </div>					<div class="section" id="_refund_of_a_transaction">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">5.3</span>Refund of a Transaction					</h2>
+			<span class="title-number">6.3</span>Refund of a Transaction					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -362,7 +379,7 @@ It can take some time until you see the refund in Magento. Refunds will only be 
 </div>					<div class="section" id="_on_hold_orders">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">5.4</span>On Hold Orders					</h2>
+			<span class="title-number">6.4</span>On Hold Orders					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -387,7 +404,7 @@ When there is a manual task we will also display it in the Magento Backend.</p>
 </div>					<div class="section" id="_limitations_of_the_synchronization_between_whitelabelname_and_magento">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">5.5</span>Limitations of the Synchronization between wallee and Magento					</h2>
+			<span class="title-number">6.5</span>Limitations of the Synchronization between wallee and Magento					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -403,7 +420,7 @@ your Magento backend.</p>
 </div>					<div class="section" id="_tokenization">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">5.6</span>Tokenization					</h2>
+			<span class="title-number">6.6</span>Tokenization					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -425,7 +442,7 @@ Tokenization is not available for guest checkouts.
 </div>	<div class="chapter" id="_backend_orders">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">6</span>Backend Orders					</h1>
+			<span class="title-number">7</span>Backend Orders					</h1>
 	</div>
 	<div class="chapter-body">
 					<div class="paragraph">
@@ -446,13 +463,13 @@ the <a href="https://app-wallee.com/space/select?target=/payment/flow/list" targ
 </div>	<div class="chapter" id="_faq">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">7</span>FAQ					</h1>
+			<span class="title-number">8</span>FAQ					</h1>
 	</div>
 	<div class="chapter-body">
 							<div class="section" id="_how_can_i_make_the_payment_methods_appear_in_the_checkout">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">7.1</span>How can I make the payment methods appear in the checkout?					</h2>
+			<span class="title-number">8.1</span>How can I make the payment methods appear in the checkout?					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -464,7 +481,7 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 </div>					<div class="section" id="_is_onestepcheckout_supported">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">7.2</span>Is OneStepCheckout supported?					</h2>
+			<span class="title-number">8.2</span>Is OneStepCheckout supported?					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -479,13 +496,13 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 </div>	<div class="chapter" id="_troubleshooting">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">8</span>Troubleshooting					</h1>
+			<span class="title-number">9</span>Troubleshooting					</h1>
 	</div>
 	<div class="chapter-body">
 							<div class="section" id="__unique_constraint_violation_found_during_installation">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">8.1</span>"Unique Constraint Violation Found" during installation					</h2>
+			<span class="title-number">9.1</span>"Unique Constraint Violation Found" during installation					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -499,7 +516,7 @@ simply enter your credentials again as described in this manual.</p>
 </div>	<div class="chapter" id="_support">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">9</span>Support					</h1>
+			<span class="title-number">10</span>Support					</h1>
 	</div>
 	<div class="chapter-body">
 					<div class="paragraph">
@@ -523,132 +540,137 @@ simply enter your credentials again as described in this manual.</p>
 		<span class="item-title">Installation</span>
 			</a>
     </li>					<li class="nav-level-1">
-	<a href="#_configuration">
+	<a href="#_updating_to_3_x">
 		<span class="item-number">3</span>
+		<span class="item-title">Updating to 3.x</span>
+			</a>
+    </li>					<li class="nav-level-1">
+	<a href="#_configuration">
+		<span class="item-number">4</span>
 		<span class="item-title">Configuration</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-2">
 	<a href="#_main_configuration">
-		<span class="item-number">3.1</span>
+		<span class="item-number">4.1</span>
 		<span class="item-title">Main Configuration</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-3">
 	<a href="#_line_items">
-		<span class="item-number">3.1.1</span>
+		<span class="item-number">4.1.1</span>
 		<span class="item-title">Line Items</span>
 			</a>
     </li>    		    	</ul>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_payment_method_configuration">
-		<span class="item-number">4</span>
+		<span class="item-number">5</span>
 		<span class="item-title">Payment Method Configuration</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-2">
 	<a href="#_setup">
-		<span class="item-number">4.1</span>
+		<span class="item-number">5.1</span>
 		<span class="item-title">Setup</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_customization">
-		<span class="item-number">4.2</span>
+		<span class="item-number">5.2</span>
 		<span class="item-title">Customization</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_state_mapping_of_magento_orders">
-		<span class="item-number">4.3</span>
+		<span class="item-number">5.3</span>
 		<span class="item-title">State mapping of Magento orders</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-3">
 	<a href="#_order_status_label_update">
-		<span class="item-number">4.3.1</span>
+		<span class="item-number">5.3.1</span>
 		<span class="item-title">Order Status Label Update</span>
 			</a>
     </li>    		    	</ul>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_state_mapping_of_magento_invoices">
-		<span class="item-number">4.4</span>
+		<span class="item-number">5.4</span>
 		<span class="item-title">State mapping of Magento invoices</span>
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_transaction_management">
-		<span class="item-number">5</span>
+		<span class="item-number">6</span>
 		<span class="item-title">Transaction Management</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-2">
 	<a href="#_complete_capture_an_order">
-		<span class="item-number">5.1</span>
+		<span class="item-number">6.1</span>
 		<span class="item-title">Complete (capture) an order</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_void_a_transaction">
-		<span class="item-number">5.2</span>
+		<span class="item-number">6.2</span>
 		<span class="item-title">Void a Transaction</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_refund_of_a_transaction">
-		<span class="item-number">5.3</span>
+		<span class="item-number">6.3</span>
 		<span class="item-title">Refund of a Transaction</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_on_hold_orders">
-		<span class="item-number">5.4</span>
+		<span class="item-number">6.4</span>
 		<span class="item-title">On Hold Orders</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_limitations_of_the_synchronization_between_whitelabelname_and_magento">
-		<span class="item-number">5.5</span>
+		<span class="item-number">6.5</span>
 		<span class="item-title">Limitations of the Synchronization between wallee and Magento</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_tokenization">
-		<span class="item-number">5.6</span>
+		<span class="item-number">6.6</span>
 		<span class="item-title">Tokenization</span>
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_backend_orders">
-		<span class="item-number">6</span>
+		<span class="item-number">7</span>
 		<span class="item-title">Backend Orders</span>
 			</a>
     </li>					<li class="nav-level-1">
 	<a href="#_faq">
-		<span class="item-number">7</span>
+		<span class="item-number">8</span>
 		<span class="item-title">FAQ</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-2">
 	<a href="#_how_can_i_make_the_payment_methods_appear_in_the_checkout">
-		<span class="item-number">7.1</span>
+		<span class="item-number">8.1</span>
 		<span class="item-title">How can I make the payment methods appear in the checkout?</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_is_onestepcheckout_supported">
-		<span class="item-number">7.2</span>
+		<span class="item-number">8.2</span>
 		<span class="item-title">Is OneStepCheckout supported?</span>
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_troubleshooting">
-		<span class="item-number">8</span>
+		<span class="item-number">9</span>
 		<span class="item-title">Troubleshooting</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-2">
 	<a href="#__unique_constraint_violation_found_during_installation">
-		<span class="item-number">8.1</span>
+		<span class="item-number">9.1</span>
 		<span class="item-title">&quot;Unique Constraint Violation Found&quot; during installation</span>
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_support">
-		<span class="item-number">9</span>
+		<span class="item-number">10</span>
 		<span class="item-title">Support</span>
 			</a>
     </li>			</ul>

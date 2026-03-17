@@ -20,8 +20,10 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
 use Wallee\Payment\Api\Data\PaymentMethodConfigurationSearchResultsInterfaceFactory;
-use Wallee\Payment\Model\ResourceModel\PaymentMethodConfiguration as PaymentMethodConfigurationResource;
-use Wallee\Payment\Model\ResourceModel\PaymentMethodConfiguration\CollectionFactory as PaymentMethodConfigurationCollectionFactory;
+use Wallee\Payment\Model\ResourceModel\PaymentMethodConfiguration
+    as PaymentMethodConfigurationResource;
+use Wallee\Payment\Model\ResourceModel\PaymentMethodConfiguration\CollectionFactory
+    as PaymentMethodConfigurationCollectionFactory;
 
 /**
  * Payment method configuration CRUD service.
@@ -67,11 +69,13 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
      * @param PaymentMethodConfigurationResource $resource
      * @param CollectionProcessorInterface $collectionProcessor
      */
-    public function __construct(PaymentMethodConfigurationFactory $paymentMethodConfigurationFactory,
+    public function __construct(
+        PaymentMethodConfigurationFactory $paymentMethodConfigurationFactory,
         PaymentMethodConfigurationCollectionFactory $paymentMethodConfigurationCollectionFactory,
         PaymentMethodConfigurationSearchResultsInterfaceFactory $searchResultsFactory,
-        PaymentMethodConfigurationResource $resource, CollectionProcessorInterface $collectionProcessor)
-    {
+        PaymentMethodConfigurationResource $resource,
+        CollectionProcessorInterface $collectionProcessor
+    ) {
         $this->paymentMethodConfigurationFactory = $paymentMethodConfigurationFactory;
         $this->paymentMethodConfigurationCollectionFactory = $paymentMethodConfigurationCollectionFactory;
         $this->searchResultsFactory = $searchResultsFactory;
@@ -92,7 +96,9 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
             $this->resource->save($object);
         } catch (\Exception $exception) {
             throw new CouldNotSaveException(
-                \__('Could not save the payment method configuration: %1', $exception->getMessage()), $exception);
+                \__('Could not save the payment method configuration: %1', $exception->getMessage()),
+                $exception
+            );
         }
         return $object;
     }
@@ -103,7 +109,7 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
      * @param int $entityId
      * @return PaymentMethodConfiguration
      * @throws InputException
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function get($entityId)
     {
@@ -127,7 +133,7 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
      * @param int $configurationId
      * @return PaymentMethodConfiguration
      * @throws InputException
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function getByConfigurationId($spaceId, $configurationId)
     {
@@ -147,6 +153,12 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
         return $object;
     }
 
+    /**
+     * Retrieve payment method configurations matching the given search criteria.
+     *
+     * @param SearchCriteriaInterface $searchCriteria
+     * @return PaymentMethodConfigurationSearchResultsInterface
+     */
     public function getList(SearchCriteriaInterface $searchCriteria)
     {
         /** @var \Wallee\Payment\Model\ResourceModel\PaymentMethodConfiguration\Collection $collection */
@@ -162,17 +174,31 @@ class PaymentMethodConfigurationRepository implements PaymentMethodConfiguration
         return $searchResults;
     }
 
+    /**
+     * Deletes the payment method configuration.
+     *
+     * @param PaymentMethodConfigurationInterface $object
+     * @return bool
+     * @throws \Magento\Framework\Exception\CouldNotDeleteException
+     */
     public function delete(PaymentMethodConfigurationInterface $object)
     {
         try {
             $this->resource->delete($object);
         } catch (\Exception $exception) {
             throw new CouldNotDeleteException(
-                \__('Could not delete the payment method configuration: %1', $exception->getMessage()));
+                \__('Could not delete the payment method configuration: %1', $exception->getMessage())
+            );
         }
         return true;
     }
 
+    /**
+     * Deletes the payment method configuration by entity ID.
+     *
+     * @param int $entityId
+     * @return void
+     */
     public function deleteByIdentifier($entityId)
     {
         $this->delete($this->get($entityId));

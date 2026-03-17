@@ -15,6 +15,7 @@ use Magento\Backend\Model\Locale\Manager as LocaleManager;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Wallee\Payment\Model\Provider\LanguageProvider;
+use Psr\Log\LoggerInterface;
 
 /**
  * Helper to provide localization related functionality.
@@ -27,7 +28,7 @@ class Locale extends AbstractHelper
      *
      * @var string
      */
-    const DEFAULT_LANGUAGE = 'en-US';
+    public const DEFAULT_LANGUAGE = 'en-US';
 
     /**
      *
@@ -49,18 +50,30 @@ class Locale extends AbstractHelper
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param Context $context
      * @param LocaleManager $backendLocaleManager
      * @param Data $helper
      * @param LanguageProvider $languageProvider
+     * @param LoggerInterface $logger
      */
-    public function __construct(Context $context, LocaleManager $backendLocaleManager, Data $helper,
-        LanguageProvider $languageProvider)
-    {
+    public function __construct(
+        Context $context,
+        LocaleManager $backendLocaleManager,
+        Data $helper,
+        LanguageProvider $languageProvider,
+        LoggerInterface $logger
+    ) {
         parent::__construct($context);
         $this->backendLocaleManager = $backendLocaleManager;
         $this->helper = $helper;
         $this->languageProvider = $languageProvider;
+        $this->logger = $logger;
     }
 
     /**
@@ -80,8 +93,10 @@ class Locale extends AbstractHelper
             if ($this->helper->isAdminArea()) {
                 $language = $this->backendLocaleManager->getUserInterfaceLocale();
             } else {
-                $language = $this->scopeConfig->getValue('general/locale/code',
-                    \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+                $language = $this->scopeConfig->getValue(
+                    'general/locale/code',
+                    \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+                );
             }
         }
 
@@ -95,7 +110,12 @@ class Locale extends AbstractHelper
             if ($primaryLanguage !== false && isset($translatedString[$primaryLanguage->getIetfCode()])) {
                 return $translatedString[$primaryLanguage->getIetfCode()];
             }
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            $this->logger->debug(
+                'There was an issue retrieving the translation.',
+                ['exception' => $e]
+            );
+        }
 
         if (isset($translatedString[self::DEFAULT_LANGUAGE])) {
             return $translatedString[self::DEFAULT_LANGUAGE];

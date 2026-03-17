@@ -22,6 +22,7 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Wallee\Payment\Model\Service\Order\TransactionService as TransactionOrderService;
 use Wallee\Payment\Api\TransactionInfoManagementInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Resolver for placing order after payment method has already been set
@@ -56,21 +57,33 @@ class PlaceOrder implements ResolverInterface
     private $transactionInfoManagement;
 
     /**
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
      * @param GetCartForUser $getCartForUser
      * @param PlaceOrderModel $placeOrder
      * @param OrderRepositoryInterface $orderRepository
      * @param TransactionOrderService $transactionOrderService
      * @param TransactionInfoManagementInterface $transactionInfoManagement
+     * @param LoggerInterface $logger
      */
-    public function __construct(GetCartForUser $getCartForUser, PlaceOrderModel $placeOrder,
-    OrderRepositoryInterface $orderRepository, TransactionOrderService  $transactionOrderService,
-    TransactionInfoManagementInterface $transactionInfoManagement
+    public function __construct(
+        GetCartForUser $getCartForUser,
+        PlaceOrderModel $placeOrder,
+        OrderRepositoryInterface $orderRepository,
+        TransactionOrderService  $transactionOrderService,
+        TransactionInfoManagementInterface $transactionInfoManagement,
+        LoggerInterface $logger
     ) {
         $this->getCartForUser = $getCartForUser;
         $this->placeOrder = $placeOrder;
         $this->orderRepository = $orderRepository;
         $this->transactionOrderService = $transactionOrderService;
         $this->transactionInfoManagement = $transactionInfoManagement;
+        $this->logger = $logger;
     }
 
     /**
@@ -93,17 +106,22 @@ class PlaceOrder implements ResolverInterface
             $orderId = $this->placeOrder->execute($cart, $maskedCartId, $userId);
             $order = $this->orderRepository->get($orderId);
 
-            //This is necessary because before this point, the table db.mage_wallee_payment_transaction_info has
-            //the url of success and fail assigned to a record that does not yet have the order id set.
+            //This is necessary because before this point,
+            //the table db.mage_wallee_payment_transaction_info has the url of success and fail
+            //assigned to a record that does not yet have the order id set.
             //This allows the transaction to have the necessary data to make the redirect.
-            //And it solves the side effect of not having the order id at the first point where the transaction info is saved.
+            //And it solves the side effect of not having the order id at the first point where the transaction
+            //info is saved.
             $transaction = $this->getTransaction($order);
             $this->setTransactionUrls($transaction, $orderId, $successUrl, $failureUrl);
             $transactionOutput = $this->getTransactionSettings($transaction, $order, $integrationType);
 
         } catch (LocalizedException $e) {
-            throw new LocalizedException(__('Unable to place order: A server error stopped your order from being placed. ' .
-            'Please try to place your order again'), $e);
+            throw new LocalizedException(
+                \__('Unable to place order: A server error stopped your order from being placed. ' .
+                'Please try to place your order again.'),
+                $e
+            );
         }
 
         return [
@@ -124,13 +142,17 @@ class PlaceOrder implements ResolverInterface
      * @param string $successUrl
      * @param string $failureUrl
      * @return void
-     * @throws LocalizedException
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     private function setTransactionUrls($transaction, $orderId, $successUrl, $failureUrl)
     {
         try {
             $this->transactionInfoManagement->setRedirectUrls($transaction, $orderId, $successUrl, $failureUrl);
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+            $this->logger->debug(
+                'An issue occurred updating transaction redirect URLs.',
+                ['exception' => $e]
+            );
         }
     }
 
@@ -156,6 +178,8 @@ class PlaceOrder implements ResolverInterface
     }
 
     /**
+     * Retrieve the transaction data
+     *
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @return \Wallee\Sdk\Model\Transaction
      */

@@ -36,6 +36,11 @@ class PaymentMethodConfigurationListener implements ListenerInterface
         $this->paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
     }
 
+    /**
+     * Execute payment method configuration flow.
+     *
+     * @param Request $request
+     */
     public function execute(Request $request)
     {
         $this->paymentMethodConfigurationManagement->synchronize();

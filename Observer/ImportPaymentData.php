@@ -36,6 +36,12 @@ class ImportPaymentData implements ObserverInterface
         $this->transactionService = $transactionService;
     }
 
+    /**
+     * Import payment data.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         $this->transactionService->setSubmittingOrder();

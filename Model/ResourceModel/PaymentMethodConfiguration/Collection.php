@@ -28,14 +28,12 @@ class Collection extends AbstractCollection
     protected $_idFieldName = 'entity_id';
 
     /**
-     * Event prefix
      *
      * @var string
      */
     protected $_eventPrefix = 'wallee_payment_method_configuration_resource_collection';
 
     /**
-     * Event object
      *
      * @var string
      */
@@ -81,13 +79,15 @@ class Collection extends AbstractCollection
      */
     public function addStateFilter()
     {
-        $this->addFieldToFilter('main_table.state',
+        $this->addFieldToFilter(
+            'main_table.state',
             [
                 'in' => [
                     PaymentMethodConfiguration::STATE_ACTIVE,
                     PaymentMethodConfiguration::STATE_INACTIVE
                 ]
-            ]);
+            ]
+        );
         return $this;
     }
 }

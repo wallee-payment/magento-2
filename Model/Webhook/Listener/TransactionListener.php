@@ -62,21 +62,28 @@ class TransactionListener extends AbstractOrderRelatedListener
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param TransactionInfoManagementInterface $transactionInfoManagement
      * @param ApiClient $apiClient
-     * @param LoggerInterface $logger
      * @param LockManagerInterface $lockManager
      */
     public function __construct(
         ResourceConnection $resource,
-        LoggerInterface $logger, OrderFactory $orderFactory,
+        LoggerInterface $logger,
+        OrderFactory $orderFactory,
         OrderResourceModel $orderResourceModel,
         CommandPoolInterface $commandPool,
         TransactionInfoRepositoryInterface $transactionInfoRepository,
         TransactionInfoManagementInterface $transactionInfoManagement,
         ApiClient $apiClient,
         LockManagerInterface $lockManager
-        ) {
-        parent::__construct($resource, $logger, $orderFactory, $orderResourceModel, $commandPool,
-            $transactionInfoRepository, $lockManager);
+    ) {
+        parent::__construct(
+            $resource,
+            $logger,
+            $orderFactory,
+            $orderResourceModel,
+            $commandPool,
+            $transactionInfoRepository,
+            $lockManager
+        );
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->transactionInfoManagement = $transactionInfoManagement;
         $this->apiClient = $apiClient;
@@ -90,34 +97,37 @@ class TransactionListener extends AbstractOrderRelatedListener
      * @param Order $order
      * @return void
      */
-	protected function process($entity, Order $order): void
-	{
-		$lockName = 'transaction_listener_order_' . $order->getId();
-		if (!$this->lockManager->lock($lockName, 10)) { // 10s timeout
-			$this->logger->warning("Could not acquire lock for order #{$order->getIncrementId()}");
-			return;
-		}
+    protected function process($entity, Order $order): void
+    {
+        $lockName = 'transaction_listener_order_' . $order->getId();
+        if (!$this->lockManager->lock($lockName, 10)) { // 10s timeout
+            $this->logger->warning("Could not acquire lock for order #{$order->getIncrementId()}");
+            return;
+        }
 
-		try {
-			try {
-				$transactionInfo = $this->transactionInfoRepository->getByOrderId($order->getId());
-			} catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
-				$this->logger->error("Transaction info not found for order #{$order->getIncrementId()}");
-				return;
-			}
+        try {
+            try {
+                $transactionInfo = $this->transactionInfoRepository->getByOrderId($order->getId());
+            } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+                $this->logger->error("Transaction info not found for order #{$order->getIncrementId()}");
+                return;
+            }
 
-			if ((string)$transactionInfo->getState() !== $entity->getState()) {
-				parent::process($entity, $order);
-			}
+            if ((string)$transactionInfo->getState() !== $entity->getState()) {
+                parent::process($entity, $order);
+            }
 
-			$this->transactionInfoManagement->update($entity, $order);
-		} catch (\Exception $e) {
-			$this->logger->error("Error while processing transaction for order #{$order->getIncrementId()}: " . $e->getMessage());
-			throw $e;
-		} finally {
-			$this->lockManager->unlock($lockName);
-		}
-	}
+            $this->transactionInfoManagement->update($entity, $order);
+        } catch (\Exception $e) {
+            $this->logger->error(
+                "Error while processing transaction for order #{$order->getIncrementId()}: " .
+                $e->getMessage()
+            );
+            throw $e;
+        } finally {
+            $this->lockManager->unlock($lockName);
+        }
+    }
 
     /**
      * Loads the transaction for the webhook request.
@@ -127,8 +137,10 @@ class TransactionListener extends AbstractOrderRelatedListener
      */
     protected function loadEntity(Request $request)
     {
-        return $this->apiClient->getService(TransactionService::class)->read($request->getSpaceId(),
-            $request->getEntityId());
+        return $this->apiClient->getService(TransactionService::class)->read(
+            $request->getSpaceId(),
+            $request->getEntityId()
+        );
     }
 
     /**

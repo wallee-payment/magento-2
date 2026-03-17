@@ -18,8 +18,9 @@ use Wallee\Payment\Model\Payment\Method\Adapter;
 
 class State
 {
-
     /**
+     * Adjust order status during state check for orders paid with the custom adapter.
+     *
      * @param StateHandler $stateHandler
      * @param callable $proceed
      * @param Order $order
@@ -35,7 +36,7 @@ class State
                     $order->setState(Order::STATE_PROCESSING)->setStatus('shipped_wallee');
                 }
                 return $order;
-            } else if ($order->getIsVirtual()) {
+            } elseif ($order->getIsVirtual()) {
                 return $order;
             } else {
                 return $proceed($order);
@@ -46,6 +47,7 @@ class State
     }
 
     /**
+     * Check if the order has unpaid invoices.
      *
      * @param Order $order
      * @return bool

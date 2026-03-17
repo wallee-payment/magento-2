@@ -20,6 +20,8 @@ interface CommandInterface
 {
 
     /**
+     * Execute webhook listener command.
+     *
      * @param mixed $entity
      * @param Order $order
      * @return mixed

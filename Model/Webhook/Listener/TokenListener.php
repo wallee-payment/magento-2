@@ -36,6 +36,12 @@ class TokenListener implements ListenerInterface
         $this->tokenInfoManagement = $tokenInfoManagement;
     }
 
+    /**
+     * Execute token handling flow.
+     *
+     * @param Request $request
+     * @return void
+     */
     public function execute(Request $request)
     {
         $this->tokenInfoManagement->updateToken($request->getSpaceId(), $request->getEntityId());

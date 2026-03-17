@@ -19,10 +19,9 @@ use Magento\Framework\ObjectManagerInterface;
 class DomFactory
 {
 
-    const CLASS_NAME = Dom::class;
+    public const CLASS_NAME = Dom::class;
 
     /**
-     * Object manager
      *
      * @var ObjectManagerInterface
      */

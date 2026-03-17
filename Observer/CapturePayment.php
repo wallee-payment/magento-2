@@ -37,6 +37,12 @@ class CapturePayment implements ObserverInterface
         $this->registry = $registry;
     }
 
+    /**
+     * Store the current invoice in registry for capture handling.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         $this->registry->unregister(Adapter::CAPTURE_INVOICE_REGISTRY_KEY);

@@ -37,6 +37,7 @@ class DeclineCommand extends AbstractCommand
     }
 
     /**
+     * Execute declined transaction flow.
      *
      * @param \Wallee\Sdk\Model\Transaction $entity
      * @param Order $order
@@ -53,14 +54,18 @@ class DeclineCommand extends AbstractCommand
             }
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $payment = $order->getPayment();
-            $message = $this->appendTransactionToMessage($entity->getLinkedSpaceId() . '_' . $entity->getId(),
-                $payment->prependMessage(\__('Registered update about denied payment.')));
+            $message = $this->appendTransactionToMessage(
+                $entity->getLinkedSpaceId() . '_' . $entity->getId(),
+                $payment->prependMessage(\__('Registered update about denied payment.'))
+            );
             $order->registerCancellation($message, true);
         }
         $this->orderRepository->save($order);
     }
 
     /**
+     * Append transaction id to the given message.
+     *
      * @param mixed $transaction
      * @param string $message
      * @return mixed|string

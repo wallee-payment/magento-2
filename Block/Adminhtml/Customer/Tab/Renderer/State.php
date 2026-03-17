@@ -20,7 +20,12 @@ use Wallee\Sdk\Model\CreationEntityState;
  */
 class State extends AbstractRenderer
 {
-
+    /**
+     * Render human-readable state label for the given row.
+     *
+     * @param \Magento\Framework\DataObject $row
+     * @return \Magento\Framework\Phrase
+     */
     public function render(DataObject $row)
     {
         switch ($row->getData($this->getColumn()

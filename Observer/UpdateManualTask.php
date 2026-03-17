@@ -36,6 +36,12 @@ class UpdateManualTask implements ObserverInterface
         $this->manualTaskService = $manualTaskService;
     }
 
+    /**
+     * Update manual tasks.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         $this->manualTaskService->update();

@@ -14,7 +14,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
 	<default>
 		<payment>
-			<wallee_payment_{id}>
+			<wallee_payment_ID>
 				<space>{spaceId}</space>
 				<active>{active}</active>
 				<model>wallee_payment::{id}</model>
@@ -41,7 +41,7 @@
 				<can_review_payment>1</can_review_payment>
 				<can_accept_payment>1</can_accept_payment>
 				<can_deny_payment>1</can_deny_payment>
-			</wallee_payment_{id}>
+			</wallee_payment_ID>
 		</payment>
 	</default>
 </config>

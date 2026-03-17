@@ -34,8 +34,8 @@ class CompletedCommand extends AbstractCommand
 
     /**
      *
-     * @param LoggerInterface $logger
      * @param AuthorizedCommand $authorizedCommand
+     * @param LoggerInterface $logger
      */
     public function __construct(AuthorizedCommand $authorizedCommand, LoggerInterface $logger)
     {
@@ -44,6 +44,7 @@ class CompletedCommand extends AbstractCommand
     }
 
     /**
+     * Execute completed transaction flow.
      *
      * @param \Wallee\Sdk\Model\Transaction $entity
      * @param Order $order

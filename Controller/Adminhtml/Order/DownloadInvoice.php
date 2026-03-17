@@ -57,9 +57,13 @@ class DownloadInvoice extends \Wallee\Payment\Controller\Adminhtml\Order
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param ApiClient $apiClient
      */
-    public function __construct(Context $context, ForwardFactory $resultForwardFactory, FileFactory $fileFactory,
-        TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient)
-    {
+    public function __construct(
+        Context $context,
+        ForwardFactory $resultForwardFactory,
+        FileFactory $fileFactory,
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        ApiClient $apiClient
+    ) {
         parent::__construct($context);
         $this->resultForwardFactory = $resultForwardFactory;
         $this->fileFactory = $fileFactory;
@@ -72,17 +76,30 @@ class DownloadInvoice extends \Wallee\Payment\Controller\Adminhtml\Order
      *
      * @see _isAllowed()
      */
-    const ADMIN_RESOURCE = 'Magento_Sales::sales_invoice';
+    public const ADMIN_RESOURCE = 'Magento_Sales::sales_invoice';
 
+    /**
+     * Download invoice for the given order.
+     *
+     * @return \Magento\Framework\App\ResponseInterface|\Magento\Framework\Controller\ResultInterface
+     */
     public function execute()
     {
         $orderId = $this->getRequest()->getParam('order_id');
         if ($orderId) {
             $transaction = $this->transactionInfoRepository->getByOrderId($orderId);
             $document = $this->apiClient->getService(TransactionService::class)->getInvoiceDocument(
-                $transaction->getSpaceId(), $transaction->getTransactionId());
-            return $this->fileFactory->create($document->getTitle() . '.pdf', \base64_decode($document->getData()),
-                DirectoryList::VAR_DIR, 'application/pdf');
+                $transaction->getSpaceId(),
+                $transaction->getTransactionId()
+            );
+            // phpcs:ignore Magento2.Functions.DiscouragedFunction
+            $decoded = \base64_decode($document->getData());
+            return $this->fileFactory->create(
+                $document->getTitle() . '.pdf',
+                $decoded,
+                DirectoryList::VAR_DIR,
+                'application/pdf'
+            );
         } else {
             return $this->resultForwardFactory->create()->forward('noroute');
         }

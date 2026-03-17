@@ -44,6 +44,7 @@ class FulfillCommand extends AbstractCommand
     }
 
     /**
+     * Execute fulfill transaction flow.
      *
      * @param \Wallee\Sdk\Model\Transaction $entity
      * @param Order $order

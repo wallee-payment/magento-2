@@ -31,22 +31,42 @@ class Token extends TabWrapper implements TabInterface
         $this->registry = $registry;
     }
 
+    /**
+     * Check whether the tab can be displayed.
+     *
+     * @return bool
+     */
     public function canShowTab()
     {
         return $this->registry->registry(RegistryConstants::CURRENT_CUSTOMER_ID);
     }
 
+    /**
+     * Determine whether the tab content is loaded via AJAX.
+     *
+     * @return bool
+     */
     public function isAjaxLoaded()
     {
         $flag = $this->getData('is_ajax_loaded');
         return $flag !== null ? (bool) $flag : true;
     }
 
+    /**
+     * Get tab label.
+     *
+     * @return \Magento\Framework\Phrase
+     */
     public function getTabLabel()
     {
         return \__('wallee Payment Tokens');
     }
 
+    /**
+     * Get tab URL.
+     *
+     * @return string
+     */
     public function getTabUrl()
     {
         return $this->getUrl('wallee_payment/customer/token', [

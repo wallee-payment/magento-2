@@ -47,22 +47,22 @@ class ApiClientHeaders
      */
     public function addHeaders(ApiClient &$apiClient)
     {
-        $data = self::getDefaultData();
+        $data = $this->getDefaultData();
         foreach ($data as $key => $value) {
             $apiClient->addDefaultHeader($key, $value);
         }
     }
 
     /**
+     * Get default plugin data payload.
+     *
      * @return array<mixed>
      */
-    protected static function getDefaultData()
+    protected function getDefaultData()
     {
-
         // todo refactor using DI: https://www.rohanhapani.com/how-to-find-out-version-of-magento-2-programmatically/;
-        $om = \Magento\Framework\App\ObjectManager::getInstance();
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();  
-        $productMetadata = $objectManager->get('\Magento\Framework\App\ProductMetadataInterface'); 
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $productMetadata = $objectManager->get(\Magento\Framework\App\ProductMetadataInterface::class);
         $shop_version = $productMetadata->getVersion();
 
         [$major_version, $minor_version, $rest] = explode('.', $shop_version, 3);
@@ -70,7 +70,7 @@ class ApiClientHeaders
             self::SHOP_SYSTEM             => 'magento',
             self::SHOP_SYSTEM_VERSION     => $shop_version,
             self::SHOP_SYSTEM_AND_VERSION => 'magento-' . $major_version . '.' . $minor_version,
-            self::PLUGIN_SYSTEM_VERSION   => '2.1.29',
+            self::PLUGIN_SYSTEM_VERSION   => '3.0.0-beta',
         ];
     }
 }

@@ -37,20 +37,27 @@ class Success extends \Wallee\Payment\Controller\Transaction
     private $successValidator;
 
     /**
-     *
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
      * @param CheckoutSession $checkoutSession
      * @param SuccessValidator $successValidator
      */
-    public function __construct(Context $context, OrderRepositoryInterface $orderRepository,
-        CheckoutSession $checkoutSession, SuccessValidator $successValidator)
-    {
+    public function __construct(
+        Context $context,
+        OrderRepositoryInterface $orderRepository,
+        CheckoutSession $checkoutSession,
+        SuccessValidator $successValidator
+    ) {
         parent::__construct($context, $orderRepository);
         $this->checkoutSession = $checkoutSession;
         $this->successValidator = $successValidator;
     }
 
+    /**
+     * Handle the checkout success callback and redirect to the success page.
+     *
+     * @return \Magento\Framework\Controller\Result\Redirect
+     */
     public function execute()
     {
         $order = $this->getOrder();
@@ -58,7 +65,9 @@ class Success extends \Wallee\Payment\Controller\Transaction
             $this->messageManager->addErrorMessage(
                 \__(
                     'There seems to have been a problem with your order. ' .
-                    'However, the payment was successful. Please contact us.'));
+                    'However, the payment was successful. Please contact us.'
+                )
+            );
             return $this->_redirect('checkout/cart');
         }
         
@@ -66,8 +75,8 @@ class Success extends \Wallee\Payment\Controller\Transaction
         $quote = $this->checkoutSession->getQuote();
         if ($quote && $quote->getId()) {
             $quote->setIsActive(false);
-			$quote->removeAllItems();
-			$quote->save();
+            $quote->removeAllItems();
+            $quote->save();
         }
 
         $this->checkoutSession->setLastOrderId($order->getId())
@@ -87,11 +96,13 @@ class Success extends \Wallee\Payment\Controller\Transaction
     {
         $response = new DataObject();
         $response->setPath('checkout/onepage/success');
-        $this->_eventManager->dispatch('wallee_success_redirection_path',
+        $this->_eventManager->dispatch(
+            'wallee_success_redirection_path',
             [
                 'order' => $order,
                 'response' => $response
-            ]);
+            ]
+        );
         return $response->getPath();
     }
 }

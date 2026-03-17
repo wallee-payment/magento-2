@@ -11,7 +11,6 @@
  */
 namespace Wallee\Payment\Model\Service;
 
-
 use Magento\Sales\Model\Order\Creditmemo;
 use Magento\Sales\Model\Order\Invoice;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
@@ -50,9 +49,11 @@ class RefundService
      * @param RefundJobFactory $refundJobFactory
      * @param RefundJobRepositoryInterface $refundJobRepository
      */
-    public function __construct(LineItemReductionService $lineItemReductionService,
-        RefundJobFactory $refundJobFactory, RefundJobRepositoryInterface $refundJobRepository)
-    {
+    public function __construct(
+        LineItemReductionService $lineItemReductionService,
+        RefundJobFactory $refundJobFactory,
+        RefundJobRepositoryInterface $refundJobRepository
+    ) {
         $this->lineItemReductionService = $lineItemReductionService;
         $this->refundJobFactory = $refundJobFactory;
         $this->refundJobRepository = $refundJobRepository;
@@ -100,5 +101,4 @@ class RefundService
         $refund->setType(RefundType::MERCHANT_INITIATED_ONLINE);
         return $refund;
     }
-
 }

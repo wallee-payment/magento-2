@@ -5,45 +5,73 @@ use \Magento\Framework\Setup\Patch\DataPatchInterface;
 use \Magento\Framework\Setup\Patch\PatchVersionInterface;
 use \Magento\Framework\Module\Setup\Migration;
 use \Magento\Framework\Setup\ModuleDataSetupInterface;
-use \Magento\Sales\Model\Order\Status;
+use \Magento\Sales\Model\Order\StatusFactory;
+use \Magento\Sales\Model\ResourceModel\Order\Status as StatusResource;
 
 /**
  * Class AddSetupData
- * @package Wallee\Payment\Setup\Patch\Data
  */
-
 class AddSetupDataState implements DataPatchInterface
 {
     /**
-     *
-     * @var Status
+     * @var \Magento\Framework\Setup\ModuleDataSetupInterface
      */
-    private $status;
+    private $moduleDataSetup;
 
     /**
-     *
-     * @param Status $status
+     * @var \Magento\Sales\Model\Order\StatusFactory
      */
-    public function __construct(Status $status) {
-        $this->status = $status;
+    private $statusFactory;
+
+    /**
+     * @var \Magento\Sales\Model\ResourceModel\Order\Status
+     */
+    private $statusResource;
+
+    /**
+     * @param \Magento\Framework\Setup\ModuleDataSetupInterface $moduleDataSetup
+     * @param \Magento\Sales\Model\Order\StatusFactory $statusFactory
+     * @param \Magento\Sales\Model\ResourceModel\Order\Status $statusResource
+     */
+    public function __construct(
+        ModuleDataSetupInterface $moduleDataSetup,
+        StatusFactory $statusFactory,
+        StatusResource $statusResource,
+    ) {
+        $this->moduleDataSetup = $moduleDataSetup;
+        $this->statusFactory = $statusFactory;
+        $this->statusResource = $statusResource;
     }
 
     /**
-     * @details: It will create each status/state
      * @inheritDoc
+     *
+     * Create custom order statuses and assign them to the processing state.
+     *
+     * @return $this
      */
-    public function apply(){
+    public function apply()
+    {
+        $this->moduleDataSetup->getConnection()->startSetup();
 
-        $statuses = array(array ('status'=>'processing_wallee','label'=>'Hold Delivery'),
-                          array('status'=>'shipped_wallee','label'=>'Shipped'));
+        $statuses = [
+            [
+                'status' => 'processing_wallee',
+                'label' => 'Hold Delivery'
+            ],
+            [
+                'status' => 'shipped_wallee',
+                'label' => 'Shipped'
+            ]
+        ];
 
         foreach ($statuses as $statusData) {
-            $this->status->addData($statusData);
-            /** @todo change this get resource model */
-            $this->status->getResource()->save($this->status);
-            /** @todo this function expected a boolean as a third parameter */
-            $this->status->assignState('processing', 'processing', true);
+            $status = $this->statusFactory->create();
+            $status->setData($statusData);
+            $this->statusResource->save($status);
+            $status->assignState('processing', $statusData['status'], true);
         }
+        $this->moduleDataSetup->getConnection()->endSetup();
 
         return $this;
     }
@@ -51,14 +79,16 @@ class AddSetupDataState implements DataPatchInterface
     /**
      * @inheritDoc
      */
-    public static function getDependencies(){
+    public static function getDependencies()
+    {
         return [];
     }
 
     /**
      * @inheritDoc
      */
-    public function getAliases(){
+    public function getAliases()
+    {
         return [];
     }
 }

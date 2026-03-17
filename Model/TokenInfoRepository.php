@@ -67,11 +67,13 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
      * @param TokenInfoResource $resource
      * @param CollectionProcessorInterface $collectionProcessor
      */
-    public function __construct(TokenInfoFactory $tokenInfoFactory,
+    public function __construct(
+        TokenInfoFactory $tokenInfoFactory,
         TokenInfoCollectionFactory $tokenInfoCollectionFactory,
-        TokenInfoSearchResultsInterfaceFactory $searchResultsFactory, TokenInfoResource $resource,
-        CollectionProcessorInterface $collectionProcessor)
-    {
+        TokenInfoSearchResultsInterfaceFactory $searchResultsFactory,
+        TokenInfoResource $resource,
+        CollectionProcessorInterface $collectionProcessor
+    ) {
         $this->tokenInfoFactory = $tokenInfoFactory;
         $this->tokenInfoCollectionFactory = $tokenInfoCollectionFactory;
         $this->searchResultsFactory = $searchResultsFactory;
@@ -91,8 +93,10 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
         try {
             $this->resource->save($object);
         } catch (\Exception $exception) {
-            throw new CouldNotSaveException(\__('Could not save the token info: %1', $exception->getMessage()),
-                $exception);
+            throw new CouldNotSaveException(
+                \__('Could not save the token info: %1', $exception->getMessage()),
+                $exception
+            );
         }
         return $object;
     }
@@ -103,7 +107,7 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
      * @param int $entityId
      * @return TokenInfo
      * @throws InputException
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function get($entityId)
     {
@@ -126,7 +130,7 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
      * @param int $spaceId
      * @param int $tokenId
      * @return TokenInfo
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function getByTokenId($spaceId, $tokenId)
     {
@@ -146,6 +150,12 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
         return $object;
     }
 
+    /**
+     * Retrieve token info list matching the given search criteria.
+     *
+     * @param SearchCriteriaInterface $searchCriteria
+     * @return TokenInfoSearchResultsInterface
+     */
     public function getList(SearchCriteriaInterface $searchCriteria)
     {
         /** @var \Wallee\Payment\Model\ResourceModel\TokenInfo\Collection $collection */
@@ -161,6 +171,13 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
         return $searchResults;
     }
 
+    /**
+     * Deletes token info.
+     *
+     * @param TokenInfoInterface $object
+     * @return bool
+     * @throws \Magento\Framework\Exception\CouldNotDeleteException
+     */
     public function delete(TokenInfoInterface $object)
     {
         try {
@@ -171,6 +188,12 @@ class TokenInfoRepository implements TokenInfoRepositoryInterface
         return true;
     }
 
+    /**
+     * Deletes token info by entity ID.
+     *
+     * @param int $entityId
+     * @return void
+     */
     public function deleteByIdentifier($entityId)
     {
         $this->delete($this->get($entityId));

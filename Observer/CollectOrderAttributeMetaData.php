@@ -46,6 +46,12 @@ class CollectOrderAttributeMetaData implements ObserverInterface
         $this->moduleManager = $moduleManager;
     }
 
+    /**
+     * Add Amasty order attribute metadata to the transaction payload.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         /* @var \Magento\Sales\Model\Order $order */
@@ -53,8 +59,10 @@ class CollectOrderAttributeMetaData implements ObserverInterface
         $transport = $observer->getTransport();
 
         if ($this->moduleManager->isEnabled('Amasty_Orderattr')) {
-            $transport->setData('metaData',
-                \array_merge($transport->getData('metaData'), $this->collectOrderAttributeMetaData($order)));
+            $transport->setData(
+                'metaData',
+                \array_merge($transport->getData('metaData'), $this->collectOrderAttributeMetaData($order))
+            );
         }
     }
 
@@ -66,21 +74,22 @@ class CollectOrderAttributeMetaData implements ObserverInterface
      */
     protected function collectOrderAttributeMetaData(Order $order)
     {
-	$metaData = [];
-	/* @var \Amasty\Orderattr\Model\ResourceModel\Attribute\Collection $attributeCollection */
-	$attributeCollection = $this->objectManager->get(
-	    'Amasty\Orderattr\Model\ResourceModel\Attribute\CollectionFactory')->create();
-	$attributeCollection->addFieldToSelect('attribute_code');
-	$attributeCollection->addFieldToSelect('frontend_label');
-	
-	$i = 0;
-	foreach ($attributeCollection->getData() as $attribute) {
-	    if ( is_null($order->getData($attribute['attribute_code'])) || $i >= 25) {
-		continue;
-	    }
-	    $metaData['order_' . $attribute['attribute_code']] = $order->getData($attribute['attribute_code']);
-	    $i++;
-	}
-	return $metaData;
+        $metaData = [];
+    /* @var \Amasty\Orderattr\Model\ResourceModel\Attribute\Collection $attributeCollection */
+        $attributeCollection = $this->objectManager->get(
+            \Amasty\Orderattr\Model\ResourceModel\Attribute\CollectionFactory::class
+        )->create();
+        $attributeCollection->addFieldToSelect('attribute_code');
+        $attributeCollection->addFieldToSelect('frontend_label');
+    
+        $i = 0;
+        foreach ($attributeCollection->getData() as $attribute) {
+            if ($order->getData($attribute['attribute_code']) === null || $i >= 25) {
+                continue;
+            }
+            $metaData['order_' . $attribute['attribute_code']] = $order->getData($attribute['attribute_code']);
+            $i++;
+        }
+        return $metaData;
     }
 }

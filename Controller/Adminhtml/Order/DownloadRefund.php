@@ -34,7 +34,7 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
      *
      * @see _isAllowed()
      */
-    const ADMIN_RESOURCE = 'Magento_Sales::sales_creditmemo';
+    public const ADMIN_RESOURCE = 'Magento_Sales::sales_creditmemo';
 
     /**
      *
@@ -82,10 +82,15 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
      * @param ApiClient $apiClient
      * @param CreditmemoRepository $creditmemoRepository
      */
-    public function __construct(Context $context, ForwardFactory $resultForwardFactory, FileFactory $fileFactory,
-        Helper $helper, TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient,
-        CreditmemoRepository $creditmemoRepository)
-    {
+    public function __construct(
+        Context $context,
+        ForwardFactory $resultForwardFactory,
+        FileFactory $fileFactory,
+        Helper $helper,
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        ApiClient $apiClient,
+        CreditmemoRepository $creditmemoRepository
+    ) {
         parent::__construct($context);
         $this->resultForwardFactory = $resultForwardFactory;
         $this->fileFactory = $fileFactory;
@@ -95,6 +100,11 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
         $this->apiClient = $apiClient;
     }
 
+    /**
+     * Download refund document for the given credit memo.
+     *
+     * @return \Magento\Framework\App\ResponseInterface|\Magento\Framework\Controller\ResultInterface
+     */
     public function execute()
     {
         $creditmemoId = $this->getRequest()->getParam('creditmemo_id');
@@ -105,12 +115,22 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
             }
 
             $transaction = $this->transactionInfoRepository->getByOrderId($creditmemo->getOrderId());
-            $refund = $this->getRefundByExternalId($transaction->getSpaceId(),
-                $creditmemo->getWalleeExternalId());
+            $refund = $this->getRefundByExternalId(
+                $transaction->getSpaceId(),
+                $creditmemo->getWalleeExternalId()
+            );
             $document = $this->apiClient->getService(RefundService::class)->getRefundDocument(
-                $transaction->getSpaceId(), $refund->getId());
-            return $this->fileFactory->create($document->getTitle() . '.pdf', \base64_decode($document->getData()),
-                DirectoryList::VAR_DIR, 'application/pdf');
+                $transaction->getSpaceId(),
+                $refund->getId()
+            );
+            // phpcs:ignore Magento2.Functions.DiscouragedFunction
+            $decoded = \base64_decode($document->getData());
+            return $this->fileFactory->create(
+                $document->getTitle() . '.pdf',
+                $decoded,
+                DirectoryList::VAR_DIR,
+                'application/pdf'
+            );
         } else {
             return $this->resultForwardFactory->create()->forward('noroute');
         }

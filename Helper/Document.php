@@ -49,17 +49,23 @@ class Document extends AbstractHelper
      */
     public function isInvoiceDownloadAllowed(TransactionInfo $transaction, $storeId = null)
     {
-        if (! \in_array($transaction->getState(),
+        if (! \in_array(
+            $transaction->getState(),
             [
                 TransactionState::COMPLETED,
                 TransactionState::FULFILL,
                 TransactionState::DECLINE
-            ])) {
+            ]
+        )) {
             return false;
         }
 
         if (! $this->helper->isAdminArea() && ! $this->scopeConfig->getValue(
-            'wallee_payment/document/customer_download_invoice', ScopeInterface::SCOPE_STORE, $storeId)) {
+            'wallee_payment/document/customer_download_invoice',
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        )
+        ) {
             return false;
         }
 
@@ -80,8 +86,10 @@ class Document extends AbstractHelper
         }
 
         if (! $this->helper->isAdminArea() && ! $this->scopeConfig->getValue(
-            'wallee_payment/document/customer_download_packing_slip', ScopeInterface::SCOPE_STORE,
-            $storeId)) {
+            'wallee_payment/document/customer_download_packing_slip',
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        )) {
             return false;
         }
 
@@ -98,7 +106,10 @@ class Document extends AbstractHelper
     public function isRefundDownloadAllowed(TransactionInfo $transaction, $storeId = null)
     {
         if (! $this->helper->isAdminArea() && ! $this->scopeConfig->getValue(
-            'wallee_payment/document/customer_download_refund', ScopeInterface::SCOPE_STORE, $storeId)) {
+            'wallee_payment/document/customer_download_refund',
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        )) {
             return false;
         }
 

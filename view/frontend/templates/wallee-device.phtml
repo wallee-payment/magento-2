@@ -16,8 +16,8 @@
 {
     "*": {
         "Wallee_Payment/js/wallee-device": {
-            "scriptUrl" : "<?=$block->escapeHtml($block->getScriptUrl())?>",
-            "identifierUrl" : "<?=$block->escapeHtml($block->getSessionIdentifierUrl())?>"
+            "scriptUrl" : "<?=$escaper->escapeHtml($block->getScriptUrl())?>",
+            "identifierUrl" : "<?=$escaper->escapeHtml($block->getSessionIdentifierUrl())?>"
         }
     }
 }

@@ -30,6 +30,7 @@ use Wallee\Sdk\Model\LineItemAttributeCreate;
 use Wallee\Sdk\Model\LineItemCreate;
 use Wallee\Sdk\Model\LineItemType;
 use Wallee\Sdk\Model\TaxCreate;
+use Psr\Log\LoggerInterface;
 
 /**
  * Abstract service to handle line items.
@@ -88,12 +89,18 @@ abstract class AbstractLineItemService
     /**
      * Stores the gift card account object.
      * This property is a wrapper, which will return the GiftCardAccountManagement if it exists.
-     * 
+     *
      * @var GiftCardAccountWrapper
-     * 
+     *
      * @see \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement
      */
     private $giftCardAccountManagement;
+
+    /**
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
 
     /**
      *
@@ -106,12 +113,20 @@ abstract class AbstractLineItemService
      * @param EventManagerInterface $eventManager
      * @param ProductRepositoryInterface $productRepository
      * @param GiftCardAccountWrapper $giftCardAccountManagement
+     * @param LoggerInterface $logger
      */
-    public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
-        TaxClassRepositoryInterface $taxClassRepository, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
-        ProductRepositoryInterface $productRepository, GiftCardAccountWrapper $giftCardAccountManagement = null)
-    {
+    public function __construct(
+        Helper $helper,
+        LineItemHelper $lineItemHelper,
+        ScopeConfigInterface $scopeConfig,
+        TaxClassRepositoryInterface $taxClassRepository,
+        TaxCalculation $taxCalculation,
+        CustomerGroupRegistry $groupRegistry,
+        EventManagerInterface $eventManager,
+        ProductRepositoryInterface $productRepository,
+        GiftCardAccountWrapper $giftCardAccountManagement = null,
+        LoggerInterface $logger,
+    ) {
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
         $this->scopeConfig = $scopeConfig;
@@ -121,14 +136,18 @@ abstract class AbstractLineItemService
         $this->eventManager = $eventManager;
         $this->productRepository = $productRepository;
         $this->giftCardAccountManagement = $giftCardAccountManagement;
+        $this->logger = $logger;
     }
 
     /**
+     * Check whether the current area is admin backend.
+     *
      * @return bool
      */
-    protected function checkIsAdmin() {
+    protected function checkIsAdmin()
+    {
         $om = \Magento\Framework\App\ObjectManager::getInstance();
-        $state =  $om->get('Magento\Framework\App\State');
+        $state =  $om->get(\Magento\Framework\App\State::class);
         return 'adminhtml' === $state->getAreaCode();
     }
 
@@ -154,10 +173,14 @@ abstract class AbstractLineItemService
         }
 
         if (!$this->checkIsAdmin()) {
-            if ($this->giftCardAccountManagement instanceof \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement) {
+            if ($this->giftCardAccountManagement
+                instanceof \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement
+            ) {
                 $giftCardaccount = $this->giftCardAccountManagement->getListByQuoteId($entity->get()['entity_id']);
 
-                if ($giftCardaccount instanceof \Magento\GiftCardAccount\Model\Giftcardaccount && count($giftCardaccount->getGiftCards()) > 0) {
+                if ($giftCardaccount instanceof \Magento\GiftCardAccount\Model\Giftcardaccount
+                    && count($giftCardaccount->getGiftCards()) > 0
+                ) {
                     $giftCardCode = current($giftCardaccount->getGiftCards());
                     $ammount = $giftCardaccount->getGiftCardsAmountUsed();
                     $currencyCode = $this->getCurrencyCode($entity);
@@ -171,18 +194,20 @@ abstract class AbstractLineItemService
         $transport = new DataObject([
             'items' => $items
         ]);
-        $this->eventManager->dispatch('wallee_payment_convert_line_items',
+        $this->eventManager->dispatch(
+            'wallee_payment_convert_line_items',
             [
                 'transport' => $transport,
                 'entity' => $entity
-            ]);
+            ]
+        );
         return $transport->getData('items');
     }
 
     /**
      * Gets whether the given entity item is to be included in the line items.
      *
-     * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
+     * @param \Magento\Framework\DataObject $entityItem
      * @return boolean
      */
     private function isIncludeItem($entityItem)
@@ -205,14 +230,16 @@ abstract class AbstractLineItemService
     /**
      * Converts the given entity item to line items.
      *
-     * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
+     * @param \Magento\Framework\DataObject $entityItem
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
      * @return LineItemCreate
      */
     private function convertItem($entityItem, $entity)
     {
-        $amountIncludingTax = $entityItem->getRowTotal() - $entityItem->getDiscountAmount() + $entityItem->getTaxAmount() +
-            $entityItem->getDiscountTaxCompensationAmount();
+        $amountIncludingTax = $entityItem->getRowTotal() -
+        $entityItem->getDiscountAmount() +
+        $entityItem->getTaxAmount() +
+        $entityItem->getDiscountTaxCompensationAmount();
 
         $currency = $this->getCurrencyCode($entity);
 
@@ -240,12 +267,14 @@ abstract class AbstractLineItemService
         $transport = new DataObject([
             'item' => $productItem
         ]);
-        $this->eventManager->dispatch('wallee_payment_convert_product_line_item',
+        $this->eventManager->dispatch(
+            'wallee_payment_convert_product_line_item',
             [
                 'transport' => $transport,
                 'entityItem' => $entityItem,
                 'entity' => $entity
-            ]);
+            ]
+        );
         return $transport->getData('item');
     }
 
@@ -267,7 +296,7 @@ abstract class AbstractLineItemService
     /**
      * Gets the tax for the given item.
      *
-     * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
+     * @param \Magento\Framework\DataObject $entityItem
      * @return TaxCreate
      */
     protected function getTax($entityItem)
@@ -290,7 +319,7 @@ abstract class AbstractLineItemService
     /**
      * Gets the attributes for the given entity item.
      *
-     * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
+     * @param \Magento\Framework\DataObject $entityItem
      * @return \Wallee\Sdk\Model\LineItemAttributeCreate[]
      */
     abstract protected function getAttributes($entityItem);
@@ -306,7 +335,10 @@ abstract class AbstractLineItemService
     {
         $attributes = [];
         $productAttributeCodeConfig = $this->scopeConfig->getValue(
-            'wallee_payment/line_items/product_attributes', ScopeInterface::SCOPE_STORE, $storeId);
+            'wallee_payment/line_items/product_attributes',
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
         if (! empty($productAttributeCodeConfig)) {
             $product = $this->productRepository->getById($productId, false, $storeId);
             $productAttributeCodes = \explode(',', $productAttributeCodeConfig);
@@ -328,7 +360,7 @@ abstract class AbstractLineItemService
     /**
      * Gets the product options.
      *
-     * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
+     * @param \Magento\Framework\DataObject $entityItem
      * @return array
      */
     protected function getProductOptions($entityItem)
@@ -351,39 +383,58 @@ abstract class AbstractLineItemService
      */
     protected function convertShippingLineItem($entity)
     {
-        return $this->convertShippingLineItemInner($entity, $entity->getShippingAmount(),
+        return $this->convertShippingLineItemInner(
+            $entity,
+            $entity->getShippingAmount(),
             $entity->getShippingTaxAmount() + $entity->getShippingDiscountTaxCompensationAmount(),
             $entity->getShippingDiscountAmount(),
-            $entity->getShippingDescription());
+            $entity->getShippingDescription()
+        );
     }
 
-	/**
-	 * Converts the entity's shipping information to a line item.
-	 *
-	 * @param Quote|Order|Invoice $entity
-	 * @param float $shippingAmount
-	 * @param float $shippingTaxAmount
-	 * @param float $shippingDiscountAmount
-	 * @param string $shippingDescription
-	 * @return LineItemCreate
-	 */
-    protected function convertShippingLineItemInner($entity, $shippingAmount, $shippingTaxAmount,
-        $shippingDiscountAmount, $shippingDescription)
-    {
+    /**
+     * Converts the entity's shipping information to a line item.
+     *
+     * @param Quote|Order|Invoice $entity
+     * @param float $shippingAmount
+     * @param float $shippingTaxAmount
+     * @param float $shippingDiscountAmount
+     * @param string $shippingDescription
+     * @return LineItemCreate
+     */
+    protected function convertShippingLineItemInner(
+        $entity,
+        $shippingAmount,
+        $shippingTaxAmount,
+        $shippingDiscountAmount,
+        $shippingDescription
+    ) {
         if ($shippingAmount > 0) {
             $shippingItem = new LineItemCreate();
             $shippingItem->setType(LineItemType::SHIPPING);
             $shippingItem->setUniqueId('shipping');
             $shippingItem->setAmountIncludingTax(
-                $this->helper->roundAmount($shippingAmount + $shippingTaxAmount - $shippingDiscountAmount,
-                    $this->getCurrencyCode($entity)));
-            if ($this->scopeConfig->getValue('wallee_payment/line_items/overwrite_shipping_description',
-                ScopeInterface::SCOPE_STORE, $entity->getStoreId())) {
+                $this->helper->roundAmount(
+                    $shippingAmount + $shippingTaxAmount - $shippingDiscountAmount,
+                    $this->getCurrencyCode($entity)
+                )
+            );
+            if ($this->scopeConfig->getValue(
+                'wallee_payment/line_items/overwrite_shipping_description',
+                ScopeInterface::SCOPE_STORE,
+                $entity->getStoreId()
+            )
+            ) {
                 $shippingItem->setName(
                     $this->helper->fixLength(
                         $this->scopeConfig->getValue(
                             'wallee_payment/line_items/custom_shipping_description',
-                            ScopeInterface::SCOPE_STORE, $entity->getStoreId()), 150));
+                            ScopeInterface::SCOPE_STORE,
+                            $entity->getStoreId()
+                        ),
+                        150
+                    )
+                );
             } else {
                 $shippingItem->setName($this->helper->fixLength($shippingDescription, 150));
             }
@@ -391,7 +442,8 @@ abstract class AbstractLineItemService
             $shippingItem->setSku('shipping');
             if ($shippingDiscountAmount > 0) {
                 $shippingItem->setDiscountIncludingTax(
-                    $this->helper->roundAmount($shippingDiscountAmount, $this->getCurrencyCode($entity)));
+                    $this->helper->roundAmount($shippingDiscountAmount, $this->getCurrencyCode($entity))
+                );
             }
             if ($shippingTaxAmount > 0) {
                 $tax = $this->getShippingTax($entity);
@@ -405,11 +457,13 @@ abstract class AbstractLineItemService
             $transport = new DataObject([
                 'item' => $shippingItem
             ]);
-            $this->eventManager->dispatch('wallee_payment_convert_shipping_line_item',
+            $this->eventManager->dispatch(
+                'wallee_payment_convert_shipping_line_item',
                 [
                     'transport' => $transport,
                     'entity' => $entity
-                ]);
+                ]
+            );
             return $transport->getData('item');
         } else {
             return null;
@@ -422,7 +476,8 @@ abstract class AbstractLineItemService
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
      * @return TaxCreate
      */
-    protected function getShippingTax($entity) {
+    protected function getShippingTax($entity)
+    {
         $taxClassId = null;
         try {
             $groupId = $entity->getCustomerGroupId();
@@ -432,12 +487,22 @@ abstract class AbstractLineItemService
             }
         } catch (NoSuchEntityException $e) {
             // group not found, do nothing
+            $this->logger->debug(
+                'There was an issue retrieving the customer group.',
+                ['exception' => $e]
+            );
         }
-        $taxRateRequest = $this->taxCalculation->getRateRequest($entity->getShippingAddress(),
-            $entity->getBillingAddress(), $taxClassId, $entity->getStore());
+        $taxRateRequest = $this->taxCalculation->getRateRequest(
+            $entity->getShippingAddress(),
+            $entity->getBillingAddress(),
+            $taxClassId,
+            $entity->getStore()
+        );
         $shippingTaxClassId = $this->scopeConfig->getValue(
-            \Magento\Tax\Model\Config::CONFIG_XML_PATH_SHIPPING_TAX_CLASS, ScopeInterface::SCOPE_STORE,
-            $entity->getStoreId());
+            \Magento\Tax\Model\Config::CONFIG_XML_PATH_SHIPPING_TAX_CLASS,
+            ScopeInterface::SCOPE_STORE,
+            $entity->getStoreId()
+        );
         if ($shippingTaxClassId > 0) {
             $shippingTaxClass = $this->taxClassRepository->get($shippingTaxClassId);
             $taxRateRequest->setProductClassId($shippingTaxClassId);
@@ -454,7 +519,7 @@ abstract class AbstractLineItemService
     /**
      * Gets the unique ID for the line item of the given entity.
      *
-     * @param \Magento\Quote\Model\Quote\Item|\Magento\Sales\Model\Order\Item|\Magento\Sales\Model\Order\Invoice\Item $entityItem
+     * @param \Magento\Framework\DataObject $entityItem
      * @return string
      */
     abstract protected function getUniqueId($entityItem);

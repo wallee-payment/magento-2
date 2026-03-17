@@ -47,15 +47,19 @@ class LayoutProcessor
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param ResourceConnection $resourceConnection
      */
-    public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, ResourceConnection $resourceConnection)
-    {
+    public function __construct(
+        PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        ResourceConnection $resourceConnection
+    ) {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->resourceConnection = $resourceConnection;
     }
 
     /**
+     * Inject dynamically configured payment methods into checkout layout.
+     *
      * @param \Magento\Checkout\Block\Checkout\LayoutProcessor $subject
      * @param array<mixed> $jsLayout
      * @return array|array[]
@@ -70,17 +74,23 @@ class LayoutProcessor
         }
 
         if (isset(
-            $jsLayout['components']['checkout']['children']['steps']['children']['billing-step']['children']['payment']['children']['renders']['children']['wallee_payment']['methods'])) {
-            $searchCriteria = $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
+            $jsLayout['components']['checkout']['children']['steps']['children']['billing-step']['children']
+            ['payment']['children']['renders']['children']['wallee_payment']['methods']
+        )) {
+            $searchCriteria = $this->searchCriteriaBuilder->addFilter(
+                PaymentMethodConfigurationInterface::STATE,
                 [
                     PaymentMethodConfiguration::STATE_ACTIVE,
                     PaymentMethodConfiguration::STATE_INACTIVE
-                ], 'in')->create();
+                ],
+                'in'
+            )->create();
 
             $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
             foreach ($configurations as $configuration) {
-                $jsLayout['components']['checkout']['children']['steps']['children']['billing-step']['children']['payment']['children']['renders']['children']['wallee_payment']['methods']['wallee_payment_' .
-                    $configuration->getEntityId()] = $this->getMethodData();
+                $jsLayout['components']['checkout']['children']['steps']['children']['billing-step']['children']
+                ['payment']['children']['renders']['children']['wallee_payment']['methods']
+                ['wallee_payment_' . $configuration->getEntityId()] = $this->getMethodData();
             }
         }
 
@@ -90,6 +100,8 @@ class LayoutProcessor
     }
 
     /**
+     * Return default frontend config for dynamic payment method.
+     *
      * @return array<mixed>
      */
     private function getMethodData()
@@ -107,6 +119,7 @@ class LayoutProcessor
     private function isTableExists()
     {
         return $this->resourceConnection->getConnection()->isTableExists(
-            $this->resourceConnection->getTableName('wallee_payment_method_configuration'));
+            $this->resourceConnection->getTableName('wallee_payment_method_configuration')
+        );
     }
 }

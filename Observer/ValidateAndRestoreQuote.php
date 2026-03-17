@@ -33,6 +33,11 @@ class ValidateAndRestoreQuote implements ObserverInterface
      */
     private $checkoutSession;
 
+    /**
+     *
+     * @param Order $order
+     * @param CheckoutSession $checkoutSession
+     */
     public function __construct(
         Order $order,
         CheckoutSession $checkoutSession
@@ -45,7 +50,7 @@ class ValidateAndRestoreQuote implements ObserverInterface
      * Validate and restore the quote.
      *
      * @param Observer $observer
-     * @throws LocalizedException
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function execute(Observer $observer)
     {

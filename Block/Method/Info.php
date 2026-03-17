@@ -26,6 +26,7 @@ use Magento\Framework\Url as UrlHelper;
 use Wallee\Payment\Model\Provider\LabelDescriptorGroupProvider;
 use Wallee\Payment\Model\Provider\LabelDescriptorProvider;
 use Wallee\Sdk\Model\TransactionState;
+use Psr\Log\LoggerInterface;
 
 /**
  * Block that renders the information about a payment.
@@ -107,23 +108,41 @@ class Info extends \Magento\Payment\Block\Info
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param Context $context
      * @param PriceCurrencyInterface $priceCurrency
      * @param Registry $registry
      * @param Helper $helper
      * @param LocaleHelper $localeHelper
-     * @param urlBackendHelper $urlBackendHelper
      * @param DocumentHelper $documentHelper
+     * @param UrlHelper $urlHelper
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param LabelDescriptorProvider $labelDescriptorProvider
      * @param LabelDescriptorGroupProvider $labelDescriptorGroupProvider
+     * @param urlBackendHelper $urlBackendHelper
+     * @param LoggerInterface $logger
      * @param array $data
      */
-    public function __construct(Context $context, PriceCurrencyInterface $priceCurrency, Registry $registry,
-        Helper $helper, LocaleHelper $localeHelper, DocumentHelper $documentHelper, UrlHelper $urlHelper, urlBackendHelper $urlBackendHelper,
-        TransactionInfoRepositoryInterface $transactionInfoRepository, LabelDescriptorProvider $labelDescriptorProvider,
-        LabelDescriptorGroupProvider $labelDescriptorGroupProvider, array $data = [])
-    {
+    public function __construct(
+        Context $context,
+        PriceCurrencyInterface $priceCurrency,
+        Registry $registry,
+        Helper $helper,
+        LocaleHelper $localeHelper,
+        DocumentHelper $documentHelper,
+        UrlHelper $urlHelper,
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        LabelDescriptorProvider $labelDescriptorProvider,
+        LabelDescriptorGroupProvider $labelDescriptorGroupProvider,
+        urlBackendHelper $urlBackendHelper,
+        LoggerInterface $logger,
+        array $data = [],
+    ) {
         parent::__construct($context, $data);
         $this->priceCurrency = $priceCurrency;
         $this->registry = $registry;
@@ -135,6 +154,7 @@ class Info extends \Magento\Payment\Block\Info
         $this->labelDescriptorProvider = $labelDescriptorProvider;
         $this->labelDescriptorGroupProvider = $labelDescriptorGroupProvider;
         $this->urlBackendHelper = $urlBackendHelper;
+        $this->logger = $logger;
     }
 
     /**
@@ -144,7 +164,8 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function isCreditmemo()
     {
-        return $this->helper->isAdminArea() && \strstr($this->getRequest()->getControllerName(), 'creditmemo') !== false;
+        return $this->helper->isAdminArea()
+        && \strstr($this->getRequest()->getControllerName(), 'creditmemo') !== false;
     }
 
     /**
@@ -154,7 +175,8 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function isInvoice()
     {
-        return $this->helper->isAdminArea() && \strstr($this->getRequest()->getControllerName(), 'invoice') !== false;
+        return $this->helper->isAdminArea()
+        && \strstr($this->getRequest()->getControllerName(), 'invoice') !== false;
     }
 
     /**
@@ -164,7 +186,8 @@ class Info extends \Magento\Payment\Block\Info
      */
     public function isShipment()
     {
-        return $this->helper->isAdminArea() && \strstr($this->getRequest()->getControllerName(), 'shipment') !== false;
+        return $this->helper->isAdminArea()
+        && \strstr($this->getRequest()->getControllerName(), 'shipment') !== false;
     }
 
     /**
@@ -176,8 +199,12 @@ class Info extends \Magento\Payment\Block\Info
     {
         $transaction = $this->getTransaction();
         if ($transaction && $transaction->getImage()) {
-            return $this->helper->getResourceUrl($transaction->getImage(), $transaction->getLanguage(),
-                $transaction->getSpaceId(), $transaction->getSpaceViewId());
+            return $this->helper->getResourceUrl(
+                $transaction->getImage(),
+                $transaction->getLanguage(),
+                $transaction->getSpaceId(),
+                $transaction->getSpaceViewId()
+            );
         }
     }
 
@@ -226,8 +253,13 @@ class Info extends \Magento\Payment\Block\Info
     public function formatAmount($amount)
     {
         //NULL was changed to 0 because PHP8.1 does not allow NULL as parameter
-        return $this->priceCurrency->format($amount, 0, PriceCurrencyInterface::DEFAULT_PRECISION, 0, $this->getTransaction()
-            ->getCurrency());
+        return $this->priceCurrency->format(
+            $amount,
+            0,
+            PriceCurrencyInterface::DEFAULT_PRECISION,
+            0,
+            $this->getTransaction()->getCurrency()
+        );
     }
     /**
      * Gets the proper URL if youre in backend or frontend
@@ -247,9 +279,14 @@ class Info extends \Magento\Payment\Block\Info
     #[\ReturnTypeWillChange]
     public function getTransactionUrl()
     {
-        return \rtrim($this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/') .
-            '/s/' . $this->getTransaction()->getSpaceId() . '/payment/transaction/view/' .
-            $this->getTransaction()->getTransactionId();
+        return \rtrim(
+            $this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'),
+            '/'
+        ) .
+        '/s/' .
+        $this->getTransaction()->getSpaceId() .
+        '/payment/transaction/view/' .
+        $this->getTransaction()->getTransactionId();
     }
 
     /**
@@ -260,8 +297,13 @@ class Info extends \Magento\Payment\Block\Info
     #[\ReturnTypeWillChange]
     public function getCustomerUrl()
     {
-        return \rtrim($this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/') .
-        '/s/' . $this->getTransaction()->getSpaceId() . '/payment/customer/transaction/view/' .
+        return \rtrim(
+            $this->_scopeConfig->getValue('wallee_payment/general/base_gateway_url'),
+            '/'
+        ) .
+        '/s/' .
+        $this->getTransaction()->getSpaceId() .
+        '/payment/customer/transaction/view/' .
         $this->getTransaction()->getTransactionId();
     }
 
@@ -281,7 +323,12 @@ class Info extends \Magento\Payment\Block\Info
                 try {
                     $this->transaction = $this->transactionInfoRepository->getByOrderId($payment->getOrder()
                         ->getId());
-                } catch (NoSuchEntityException $e) {}
+                } catch (NoSuchEntityException $e) {
+                    $this->logger->debug(
+                        'There was an issue retrieving the transaction info.',
+                        ['exception' => $e]
+                    );
+                }
             }
         }
         return $this->transaction;
@@ -296,11 +343,13 @@ class Info extends \Magento\Payment\Block\Info
     public function getInvoiceDownloadUrl()
     {
         $class_backend = $this->isHelperBackend();
-        return $this->$class_backend->getUrl('wallee_payment/order/downloadInvoice',
+        return $this->$class_backend->getUrl(
+            'wallee_payment/order/downloadInvoice',
             [
                 'order_id' => $this->getTransaction()
                     ->getOrderId()
-            ]);
+            ]
+        );
     }
 
     /**
@@ -312,11 +361,13 @@ class Info extends \Magento\Payment\Block\Info
     public function getPackingSlipDownloadUrl()
     {
         $class_backend = $this->isHelperBackend();
-        return  $this->$class_backend->getUrl('wallee_payment/order/downloadPackingSlip',
+        return  $this->$class_backend->getUrl(
+            'wallee_payment/order/downloadPackingSlip',
             [
                 'order_id' => $this->getTransaction()
                     ->getOrderId()
-            ]);
+            ]
+        );
     }
 
     /**
@@ -328,11 +379,13 @@ class Info extends \Magento\Payment\Block\Info
     public function getRefundDownloadUrl()
     {
         $class_backend = $this->isHelperBackend();
-        return $this->$class_backend->getUrl('wallee_payment/order/downloadRefund',
+        return $this->$class_backend->getUrl(
+            'wallee_payment/order/downloadRefund',
             [
                 'creditmemo_id' => $this->registry->registry('current_creditmemo')
                     ->getId()
-            ]);
+            ]
+        );
     }
 
     /**
@@ -386,7 +439,10 @@ class Info extends \Magento\Payment\Block\Info
     public function isRefundDownloadAllowed()
     {
         $creditmemo = $this->registry->registry('current_creditmemo');
-        if ($this->getTransaction() && $creditmemo != null && $creditmemo->getWalleeExternalId() != null) {
+        if ($this->getTransaction()
+            && $creditmemo != null
+            && $creditmemo->getWalleeExternalId() != null
+        ) {
             $storeId = null;
             if ($this->getInfo() instanceof Payment) {
                 /** @var Payment $payment */

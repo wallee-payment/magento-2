@@ -37,28 +37,40 @@ class DeviceSession extends \Magento\Framework\View\Element\Template
     }
 
     /**
+     * Get device session identifier URL.
      *
      * @return string
      */
     public function getSessionIdentifierUrl()
     {
-        return $this->getUrl('wallee_payment/checkout/deviceSession', ['_secure' => $this->getRequest()->isSecure()]);
+        return $this->getUrl(
+            'wallee_payment/checkout/deviceSession',
+            ['_secure' => $this->getRequest()->isSecure()]
+        );
     }
 
     /**
+     * Get payment device fingerprint script URL.
      *
-     * @return string
+     * @return string|bool
      */
     public function getScriptUrl()
     {
-        $device = $this->scopeConfig->getValue('wallee_payment/checkout/fingerprint', ScopeInterface::SCOPE_STORE, $this->_storeManager->getStore());
+        $device = $this->scopeConfig->getValue(
+            'wallee_payment/checkout/fingerprint',
+            ScopeInterface::SCOPE_STORE,
+            $this->_storeManager->getStore()
+        );
         if ($device!=1) {
             return false;
         }
 
         $baseUrl = \rtrim($this->scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
-        $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
-            ScopeInterface::SCOPE_STORE, $this->_storeManager->getStore());
+        $spaceId = $this->scopeConfig->getValue(
+            'wallee_payment/general/space_id',
+            ScopeInterface::SCOPE_STORE,
+            $this->_storeManager->getStore()
+        );
 
         if (! empty($spaceId)) {
             return $baseUrl . '/s/' . $spaceId . '/payment/device.js?sessionIdentifier=';

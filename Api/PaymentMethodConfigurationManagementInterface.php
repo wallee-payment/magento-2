@@ -11,16 +11,14 @@
  */
 namespace Wallee\Payment\Api;
 
-/**
- * Payment method configuration management interface.
- *
- * @api
- */
+use Wallee\Sdk\Model\PaymentMethodConfiguration;
+
 interface PaymentMethodConfigurationManagementInterface
 {
 
     /**
      * Synchronizes the payment method configurations from wallee.
+     *
      * @return void
      */
     public function synchronize();
@@ -31,5 +29,5 @@ interface PaymentMethodConfigurationManagementInterface
      * @param \Wallee\Sdk\Model\PaymentMethodConfiguration $configuration
      * @return void
      */
-    public function update(\Wallee\Sdk\Model\PaymentMethodConfiguration $configuration);
+    public function update(PaymentMethodConfiguration $configuration);
 }

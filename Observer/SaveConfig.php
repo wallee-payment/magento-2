@@ -46,18 +46,30 @@ class SaveConfig implements ObserverInterface
         $this->eventManager = $eventManager;
     }
 
+    /**
+     * Synchronize payment configuration when API credentials are set.
+     *
+     * @param Observer $observer
+     * @return void
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
     public function execute(Observer $observer)
     {
-        $userId = $this->scopeConfig->getValue('wallee_payment/general/api_user_id',
-            ScopeInterface::SCOPE_STORE);
-        $applicationKey = $this->scopeConfig->getValue('wallee_payment/general/api_user_id',
-            ScopeInterface::SCOPE_STORE);
+        $userId = $this->scopeConfig->getValue(
+            'wallee_payment/general/api_user_id',
+            ScopeInterface::SCOPE_STORE
+        );
+        $applicationKey = $this->scopeConfig->getValue(
+            'wallee_payment/general/api_user_secret',
+            ScopeInterface::SCOPE_STORE
+        );
         if ($userId && $applicationKey) {
             try {
                 $this->eventManager->dispatch('wallee_payment_config_synchronize');
             } catch (\Exception $exception) {
                 throw new \Magento\Framework\Exception\LocalizedException(
-                    \__('Synchronizing with wallee failed: %1', $exception->getMessage()));
+                    \__('Synchronizing with wallee failed: %1', $exception->getMessage())
+                );
             }
         }
     }

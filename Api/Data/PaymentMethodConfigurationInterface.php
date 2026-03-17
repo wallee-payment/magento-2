@@ -28,57 +28,57 @@ interface PaymentMethodConfigurationInterface extends ExtensibleDataInterface
     /**
      * Configuration ID.
      */
-    const CONFIGURATION_ID = 'configuration_id';
+    public const CONFIGURATION_ID = 'configuration_id';
 
     /**
      * Configuration name.
      */
-    const CONFIGURATION_NAME = 'configuration_name';
+    public const CONFIGURATION_NAME = 'configuration_name';
 
     /**
      * Create-at timestamp.
      */
-    const CREATED_AT = 'created_at';
+    public const CREATED_AT = 'created_at';
 
     /**
      * Description.
      */
-    const DESCRIPTION = 'description';
+    public const DESCRIPTION = 'description';
 
     /**
      * Entity ID.
      */
-    const ENTITY_ID = 'entity_id';
+    public const ENTITY_ID = 'entity_id';
 
     /**
      * Image.
      */
-    const IMAGE = 'image';
+    public const IMAGE = 'image';
 
     /**
      * Sort order.
      */
-    const SORT_ORDER = 'sort_order';
+    public const SORT_ORDER = 'sort_order';
 
     /**
      * Space ID.
      */
-    const SPACE_ID = 'space_id';
+    public const SPACE_ID = 'space_id';
 
     /**
      * State.
      */
-    const STATE = 'state';
+    public const STATE = 'state';
 
     /**
      * Title.
      */
-    const TITLE = 'title';
+    public const TITLE = 'title';
 
     /**
      * Updated-at timestamp.
      */
-    const UPDATED_AT = 'updated_at';
+    public const UPDATED_AT = 'updated_at';
 
     /**
      * Gets the ID of the payment method configuration.

@@ -91,9 +91,16 @@ class RestoreQuote implements ResolverInterface
      * @param ManagerInterface $eventManager
      * @param LoggerInterface $logger
      */
-    public function __construct(Session $customerSession, CheckoutSession $checkoutSession,GetCustomer $getCustomer,
-    CartRepositoryInterface $cartRepository, OrderRepositoryInterface $orderRepository,
-    MaskedQuoteIdToQuoteIdInterface $maskedQuoteIdToQuoteIdService, ManagerInterface $eventManager, LoggerInterface $logger) {
+    public function __construct(
+        Session $customerSession,
+        CheckoutSession $checkoutSession,
+        GetCustomer $getCustomer,
+        CartRepositoryInterface $cartRepository,
+        OrderRepositoryInterface $orderRepository,
+        MaskedQuoteIdToQuoteIdInterface $maskedQuoteIdToQuoteIdService,
+        ManagerInterface $eventManager,
+        LoggerInterface $logger
+    ) {
         $this->checkoutSession = $checkoutSession;
         $this->customerSession = $customerSession;
         $this->getCustomer = $getCustomer;
@@ -134,7 +141,7 @@ class RestoreQuote implements ResolverInterface
      * @param string $cartIdMasked
      * @param string $customerId
      * @return array
-     * @throws LocalizedException
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     private function restoreCustomerQuote(string $cartIdMasked, string $customerId)
     {
@@ -162,7 +169,7 @@ class RestoreQuote implements ResolverInterface
      *
      * @param string $cartIdMasked
      * @return array
-     * @throws LocalizedException
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     private function restoreGuestQuote(string $cartIdMasked)
     {
@@ -211,7 +218,10 @@ class RestoreQuote implements ResolverInterface
     {
         $orderCustomerId = $order->getCustomerId();
         if ((int)$orderCustomerId !== $customerId) {
-            $this->logger->debug("RESTORE-QUOTE-MUTATION::guardQuoteBelongsToCurrentCustomer - customer id '$customerId' doesn't match with order customer id '$orderCustomerId'");
+            $this->logger->debug(
+                "RESTORE-QUOTE-MUTATION::guardQuoteBelongsToCurrentCustomer - " .
+                "customer id '$customerId' doesn't match with order customer id '$orderCustomerId'"
+            );
             throw new \Exception(__('The current customer isn\'t authorized.'));
         }
     }
@@ -234,13 +244,13 @@ class RestoreQuote implements ResolverInterface
 
     /**
      * Gets the customer id from the user context
+     *
      * @param ContextInterface $context
-     * @param int|null $customerId
      * @return int|null
      * @throws GraphQlAuthorizationException
      * @throws GraphQlNoSuchEntityException
-     * @throws LocalizedException
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      * @throws \Magento\Framework\GraphQl\Exception\GraphQlAuthenticationException
      * @throws \Magento\Framework\GraphQl\Exception\GraphQlInputException
      */
@@ -270,6 +280,8 @@ class RestoreQuote implements ResolverInterface
 
     /**
      * Restore a customer or guest's quote
+     *
+     * @param string $cartIdMasked
      * @param Quote $quote
      * @param OrderInterface|null $order
      * @return array<mixed>

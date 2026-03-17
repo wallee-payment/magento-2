@@ -48,7 +48,7 @@ class TransactionService extends AbstractTransactionService
     /**
      * Number of attempts to call the portal API
      */
-    const NUMBER_OF_ATTEMPTS = 3;
+    public const NUMBER_OF_ATTEMPTS = 3;
 
     /**
      *
@@ -98,19 +98,32 @@ class TransactionService extends AbstractTransactionService
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
-     * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
+     * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param CookieManagerInterface $cookieManager
      * @param LineItemService $lineItemService
      * @param CheckoutSession $checkoutSession
      * @param LoggerInterface $logger
      */
-    public function __construct(ResourceConnection $resource,Helper $helper, ScopeConfigInterface $scopeConfig, CustomerRegistry $customerRegistry,
-    ApiClient $apiClient,PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,CookieManagerInterface $cookieManager,
-    LineItemService $lineItemService, CheckoutSession $checkoutSession, LoggerInterface $logger)
-    {
-        parent::__construct($resource, $customerRegistry, $paymentMethodConfigurationManagement,
-        $apiClient, $cookieManager);
+    public function __construct(
+        ResourceConnection $resource,
+        Helper $helper,
+        ScopeConfigInterface $scopeConfig,
+        CustomerRegistry $customerRegistry,
+        ApiClient $apiClient,
+        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
+        CookieManagerInterface $cookieManager,
+        LineItemService $lineItemService,
+        CheckoutSession $checkoutSession,
+        LoggerInterface $logger
+    ) {
+        parent::__construct(
+            $resource,
+            $customerRegistry,
+            $paymentMethodConfigurationManagement,
+            $apiClient,
+            $cookieManager
+        );
         $this->helper = $helper;
         $this->scopeConfig = $scopeConfig;
         $this->apiClient = $apiClient;
@@ -120,17 +133,17 @@ class TransactionService extends AbstractTransactionService
     }
 
      /**
-     * Gets the payment URL in the session if exists.
-     *
-     * @param Quote $quote
-     * @return string|null
-     */
+      * Gets the payment URL in the session if exists.
+      *
+      * @param Quote $quote
+      * @return string|null
+      */
     private function getPaymentUrlInSession(Quote $quote)
-    {  
+    {
         $url = $this->checkoutSession->getPaymentUrl();
         $transactionId = $quote->getWalleeTransactionId();
         if ($url && preg_match('/transactionId=(\d+)/', $url, $matches)
-            && isset($matches[1]) && $matches[1] == $transactionId) {           
+            && isset($matches[1]) && $matches[1] == $transactionId) {
             return $url;
         }
     }
@@ -144,14 +157,16 @@ class TransactionService extends AbstractTransactionService
     public function getJavaScriptUrl(Quote $quote)
     {
         $url = $this->getPaymentUrlInSession($quote);
-        if ($url !== null) {            
+        if ($url !== null) {
             $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getJavaScriptUrl URL already exists: ".$url);
             return $url;
         }
         
         $transaction = $this->getTransactionByQuote($quote);
         $url = $this->apiClient->getService(TransactionIframeService::class)->javascriptUrl(
-            $transaction->getLinkedSpaceId(), $transaction->getId());
+            $transaction->getLinkedSpaceId(),
+            $transaction->getId()
+        );
         $this->checkoutSession->setPaymentUrl($url);
         $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getJavaScriptUrl new URL: ".$url);
         return $url;
@@ -166,14 +181,16 @@ class TransactionService extends AbstractTransactionService
     public function getLightboxUrl(Quote $quote)
     {
         $url = $this->getPaymentUrlInSession($quote);
-        if ($url !== null) {          
+        if ($url !== null) {
             $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getLightboxUrl API CALL URL already exists: ".$url);
             return $url;
         }
 
         $transaction = $this->getTransactionByQuote($quote);
         $url = $this->apiClient->getService(TransactionLightboxService::class)->javascriptUrl(
-            $transaction->getLinkedSpaceId(), $transaction->getId());
+            $transaction->getLinkedSpaceId(),
+            $transaction->getId()
+        );
         $this->checkoutSession->setPaymentUrl($url);
         $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getLightboxUrl new API CALL URL: ".$url);
         return $url;
@@ -188,13 +205,15 @@ class TransactionService extends AbstractTransactionService
     public function getPaymentPageUrl(Quote $quote)
     {
         $url = $this->getPaymentUrlInSession($quote);
-        if ($url !== null) {           
+        if ($url !== null) {
             $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getPaymentPageUrl URL already exists: ".$url);
             return $url;
         }
         $transaction = $this->getTransactionByQuote($quote);
         $url = $this->apiClient->getService(TransactionPaymentPageService::class)->paymentPageUrl(
-            $transaction->getLinkedSpaceId(), $transaction->getId());
+            $transaction->getLinkedSpaceId(),
+            $transaction->getId()
+        );
         $this->checkoutSession->setPaymentUrl($url);
         $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getPaymentPageUrl new URL: ".$url);
         return $url;
@@ -214,7 +233,8 @@ class TransactionService extends AbstractTransactionService
     {
         $gdprEnabled = $this->scopeConfig->getValue(
             'wallee_payment/gdpr/gdpr_enabled',
-            ScopeInterface::SCOPE_STORE, $quote->getStoreId()
+            ScopeInterface::SCOPE_STORE,
+            $quote->getStoreId()
         );
 
         if ($gdprEnabled != 'enabled') {
@@ -238,6 +258,10 @@ class TransactionService extends AbstractTransactionService
             try {
                 $this->checkoutSession->setPaymentMethods($paymentMethodsArray);
             } catch (LocalizedException $ignored) {
+                $this->logger->debug(
+                    "An issue occurred while setting the payment methods to session.",
+                    ['exception' => $e]
+                );
             }
             throw $e;
         }
@@ -253,8 +277,11 @@ class TransactionService extends AbstractTransactionService
      * @param int $paymentMethodConfigurationSpaceId
      * @return boolean
      */
-    public function isPaymentMethodAvailable(Quote $quote, $paymentMethodConfigurationId, $paymentMethodConfigurationSpaceId)
-    {
+    public function isPaymentMethodAvailable(
+        Quote $quote,
+        $paymentMethodConfigurationId,
+        $paymentMethodConfigurationSpaceId
+    ) {
         $possiblePaymentMethods = $this->getPossiblePaymentMethods($quote);
         foreach ($possiblePaymentMethods as $possiblePaymentMethod) {
             if ($possiblePaymentMethod->getId() == $paymentMethodConfigurationId
@@ -276,7 +303,7 @@ class TransactionService extends AbstractTransactionService
     public function getTransactionByQuote(Quote $quote)
     {
         //The transaction id can be null if the quote is restored when the payment process fails.
-        //This ensures that the cache has an available transaction. 
+        //This ensures that the cache has an available transaction.
         $transactionId = $quote->getWalleeTransactionId();
         if (empty($transactionId)) {
             $transactionArray[$quote->getId()] = $this->createTransactionByQuote($quote);
@@ -284,17 +311,22 @@ class TransactionService extends AbstractTransactionService
 
         $transactionArray = $this->getTransactionArrayFromSession();
         if (! \array_key_exists($quote->getId(), $transactionArray) ||
-            $transactionArray[$quote->getId()] == null)
-        {
+            $transactionArray[$quote->getId()] == null
+        ) {
             $transactionId = $quote->getWalleeTransactionId();
             if (empty($transactionId)) {
                 $transactionArray[$quote->getId()] = $this->createTransactionByQuote($quote);
             } else {
                 $transactionArray[$quote->getId()] = $this->updateTransactionByQuote($quote);
             }
-            try{
+            try {
                 $this->checkoutSession->setTransaction($transactionArray);
-            } catch (LocalizedException $ignored){}
+            } catch (LocalizedException $ignored) {
+                $this->logger->debug(
+                    "An issue occurred while setting the transaction to session.",
+                    ['exception' => $e]
+                );
+            }
         }
         return $transactionArray[$quote->getId()];
     }
@@ -344,17 +376,24 @@ class TransactionService extends AbstractTransactionService
      */
     private function createTransactionByQuote(Quote $quote)
     {
-        $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
-            ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+        $spaceId = $this->scopeConfig->getValue(
+            'wallee_payment/general/space_id',
+            ScopeInterface::SCOPE_STORE,
+            $quote->getStoreId()
+        );
 
         $createTransaction = new TransactionCreate();
         $createTransaction->setCustomersPresence(CustomersPresence::VIRTUAL_PRESENT);
         $createTransaction->setAutoConfirmationEnabled(false);
         $createTransaction->setChargeRetryEnabled(false);
         $this->assembleTransactionDataFromQuote($createTransaction, $quote);
-        $transaction = $this->apiClient->getApiClient()->getTransactionService()->create($spaceId, $createTransaction);
+        $transaction = $this->apiClient->getApiClient()->getTransactionService()->create(
+            $spaceId,
+            $createTransaction
+        );
         $this->updateQuote($quote, $transaction);
-        //here the order must be updated with the space and transaction, this avoids error before landing on the payment page
+        // Here the order must be updated with the space and transaction,
+        // this avoids error before landing on the payment page
         $quote->setWalleeTransactionId($transaction->getId());
         $quote->setWalleeSpaceId($spaceId);
         $quote->save();
@@ -365,27 +404,35 @@ class TransactionService extends AbstractTransactionService
      * Updates the transaction with the given quote's data.
      *
      * @param Quote $quote
-     * @throws VersioningException
      * @return Transaction
+     * @throws VersioningException
+     * @throws CustomerIdManipulationException
      */
     private function updateTransactionByQuote(Quote $quote)
     {
         for ($i = 0; $i < self::NUMBER_OF_ATTEMPTS; $i ++) {
             try {
-                $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
-                    ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+                $spaceId = $this->scopeConfig->getValue(
+                    'wallee_payment/general/space_id',
+                    ScopeInterface::SCOPE_STORE,
+                    $quote->getStoreId()
+                );
                 if ($quote->getWalleeSpaceId() != $spaceId) {
                     return $this->createTransactionByQuote($quote);
                 }
 
                 $transaction = $this->apiClient->getService(TransactionApiService::class)->read(
-                    $quote->getWalleeSpaceId(), $quote->getWalleeTransactionId());
+                    $quote->getWalleeSpaceId(),
+                    $quote->getWalleeTransactionId()
+                );
 
-                if (!($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING) {
+                if (!($transaction instanceof Transaction) || $transaction->getState() != TransactionState::PENDING
+                ) {
                     return $this->createTransactionByQuote($quote);
                 }
 
-                if (! empty($transaction->getCustomerId()) && $transaction->getCustomerId() != $quote->getCustomerId()) {
+                if (!empty($transaction->getCustomerId()) && $transaction->getCustomerId() != $quote->getCustomerId()
+                ) {
                     if ($this->submittingOrder) {
                         throw new CustomerIdManipulationException();
                     } else {
@@ -396,12 +443,22 @@ class TransactionService extends AbstractTransactionService
                 return $this->createTransactionPending($quote, $transaction);
             } catch (VersioningException $e) {
                 // Try to update the transaction again, if a versioning exception occurred.
+                $this->logger->debug(
+                    sprintf(
+                        "There was an issue updating the %s transaction by %s quote.",
+                        $transaction->getId(),
+                        $quote->getId(),
+                    ),
+                    ['exception' => $e]
+                );
             }
         }
         throw new VersioningException(__FUNCTION__);
     }
 
     /**
+     * Creates pending transaction.
+     *
      * @param Quote $quote
      * @param Transaction $transaction
      * @return mixed
@@ -413,8 +470,10 @@ class TransactionService extends AbstractTransactionService
         $pendingTransaction->setVersion($transaction->getVersion());
         $this->assembleTransactionDataFromQuote($pendingTransaction, $quote);
         return $this->apiClient->getService(TransactionApiService::class)->update(
-            $quote->getWalleeSpaceId(), $pendingTransaction);
-        }
+            $quote->getWalleeSpaceId(),
+            $pendingTransaction
+        );
+    }
 
     /**
      * Assembles the transaction data from the given quote.
@@ -431,9 +490,11 @@ class TransactionService extends AbstractTransactionService
         $transaction->setBillingAddress($this->convertQuoteBillingAddress($quote));
         $transaction->setShippingAddress($this->convertQuoteShippingAddress($quote));
         $transaction->setCustomerEmailAddress(
-            $this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId()));
+            $this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId())
+        );
         $transaction->setLanguage(
-            $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $quote->getStoreId()));
+            $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $quote->getStoreId())
+        );
         $transaction->setLineItems($this->lineItemService->convertQuoteLineItems($quote));
         if (! empty($quote->getCustomerId())) {
             $transaction->setCustomerId($quote->getCustomerId());
@@ -442,17 +503,31 @@ class TransactionService extends AbstractTransactionService
             $transaction->setShippingMethod(
                 $this->helper->fixLength(
                     $this->helper->getFirstLine($quote->getShippingAddress()
-                        ->getShippingDescription()), 200));
+                    ->getShippingDescription()),
+                    200
+                )
+            );
         }
 
         if ($transaction instanceof TransactionCreate) {
             $transaction->setSpaceViewId(
-                $this->scopeConfig->getValue('wallee_payment/general/space_view_id',
-                    ScopeInterface::SCOPE_STORE, $quote->getStoreId()));
+                $this->scopeConfig->getValue(
+                    'wallee_payment/general/space_view_id',
+                    ScopeInterface::SCOPE_STORE,
+                    $quote->getStoreId()
+                )
+            );
             $transaction->setDeviceSessionIdentifier($this->getDeviceSessionIdentifier());
         }
     }
 
+    /**
+     * Retrieve customer email address.
+     *
+     * @param string $customerEmailAddress
+     * @param int $customerId
+     * @return string
+     */
     protected function getCustomerEmailAddress($customerEmailAddress, $customerId)
     {
         $emailAddress = parent::getCustomerEmailAddress($customerEmailAddress, $customerId);
@@ -476,8 +551,11 @@ class TransactionService extends AbstractTransactionService
         }
         $address = $this->convertAddress($quote->getBillingAddress());
 
-        $gdprEnabled = $this->scopeConfig->getValue('wallee_payment/gdpr/gdpr_enabled',
-            ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+        $gdprEnabled = $this->scopeConfig->getValue(
+            'wallee_payment/gdpr/gdpr_enabled',
+            ScopeInterface::SCOPE_STORE,
+            $quote->getStoreId()
+        );
 
         if ($gdprEnabled == 'enabled') {
             // removing GDPR sensitive information
@@ -487,7 +565,12 @@ class TransactionService extends AbstractTransactionService
             $address->setStreet('');
         }
         $address->setDateOfBirth($this->getDateOfBirth($quote->getCustomerDob(), $quote->getCustomerId()));
-        $address->setEmailAddress($this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId()));
+        $address->setEmailAddress(
+            $this->getCustomerEmailAddress(
+                $quote->getCustomerEmail(),
+                $quote->getCustomerId()
+            )
+        );
         $address->setGender($this->getGender($quote->getCustomerGender(), $quote->getCustomerId()));
         $address->setSalesTaxNumber($this->getTaxNumber($quote->getCustomerTaxvat(), $quote->getCustomerId()));
         return $address;
@@ -505,8 +588,11 @@ class TransactionService extends AbstractTransactionService
             return null;
         }
         $address = $this->convertAddress($quote->getShippingAddress());
-        $gdprEnabled = $this->scopeConfig->getValue('wallee_payment/gdpr/gdpr_enabled',
-            ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+        $gdprEnabled = $this->scopeConfig->getValue(
+            'wallee_payment/gdpr/gdpr_enabled',
+            ScopeInterface::SCOPE_STORE,
+            $quote->getStoreId()
+        );
 
         if ($gdprEnabled == 'enabled') {
             // removing GDPR sensitive information
@@ -515,7 +601,9 @@ class TransactionService extends AbstractTransactionService
             $address->setGivenName('');
             $address->setStreet('');
         }
-        $address->setEmailAddress($this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId()));
+        $address->setEmailAddress(
+            $this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId())
+        );
         return $address;
     }
 
@@ -529,26 +617,38 @@ class TransactionService extends AbstractTransactionService
     {
         $address = new AddressCreate();
         $address->setSalutation(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPrefix()), 20));
-        $address->setCity($this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCity()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPrefix()), 20)
+        );
+        $address->setCity(
+            $this->helper->fixLength(
+                $this->helper->removeLinebreaks($customerAddress->getCity()),
+                100
+            )
+        );
         $address->setCountry($customerAddress->getCountryId());
         $address->setFamilyName(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getLastname()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getLastname()), 100)
+        );
         $address->setGivenName(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getFirstname()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getFirstname()), 100)
+        );
         $address->setOrganizationName(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCompany()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCompany()), 100)
+        );
         $address->setPhoneNumber($customerAddress->getTelephone());
         if (! empty($customerAddress->getCountryId()) && ! empty($customerAddress->getRegionCode())) {
             $address->setPostalState($customerAddress->getCountryId() . '-' . $customerAddress->getRegionCode());
         }
         $address->setPostCode(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPostcode()), 40));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPostcode()), 40)
+        );
         $address->setStreet($this->helper->fixLength($customerAddress->getStreetFull(), 300));
         return $address;
     }
 
     /**
+     * Set order submission.
+     *
      * @return void
      */
     public function setSubmittingOrder()
@@ -557,8 +657,10 @@ class TransactionService extends AbstractTransactionService
     }
 
     /**
-     * Get the array of payment methods from the session
-     * If it doesn't exist, an empty one will be initialized
+     * Get the array of payment methods from the session.
+     *
+     * If it doesn't exist, an empty one will be initialized.
+     *
      * @return array
      */
     private function getPaymentMethodsArrayFromSession()
@@ -566,21 +668,29 @@ class TransactionService extends AbstractTransactionService
         $paymentMethodsArray = [];
         try {
             if ($this->checkoutSession->getPaymentMethods()) {
-                $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getPaymentMethodsArrayFromSession - Array already set");
+                $this->logger->debug(
+                    "QUOTE-TRANSACTION-SERVICE::getPaymentMethodsArrayFromSession - Array already set"
+                );
                 $paymentMethodsArray = $this->checkoutSession->getPaymentMethods();
                 //TODO CHECK IF CURRENCY AND LANGUAGE IS THE SAME, OTHERWISE REFRESH THE PAYMENT METHODS
             } else {
-                $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getPaymentMethodsArrayFromSession - Array NOT set");
+                $this->logger->debug(
+                    "QUOTE-TRANSACTION-SERVICE::getPaymentMethodsArrayFromSession - Array NOT set"
+                );
             }
         } catch (LocalizedException $ignored) {
-            $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getPaymentMethodsArrayFromSession - Array NOT set (exception)");
+            $this->logger->debug(
+                "QUOTE-TRANSACTION-SERVICE::getPaymentMethodsArrayFromSession - Array NOT set (exception)"
+            );
         }
         return $paymentMethodsArray;
     }
 
     /**
-     * Get the array of transaction from the session
-     * If it doesn't exist, an empty one will be initialized
+     * Get the array of transaction from the session.
+     *
+     * If it doesn't exist, an empty one will be initialized.
+     *
      * @return array
      */
     private function getTransactionArrayFromSession()
@@ -589,13 +699,19 @@ class TransactionService extends AbstractTransactionService
         try {
 
             if ($this->checkoutSession->getTransaction()) {
-                $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getTransactionArrayFromSession - Array already set");
+                $this->logger->debug(
+                    "QUOTE-TRANSACTION-SERVICE::getTransactionArrayFromSession - Array already set"
+                );
                 $transactionArray = $this->checkoutSession->getTransaction();
             } else {
-                $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getTransactionArrayFromSession - Array NOT set");
+                $this->logger->debug(
+                    "QUOTE-TRANSACTION-SERVICE::getTransactionArrayFromSession - Array NOT set"
+                );
             }
         } catch (LocalizedException $ignored) {
-            $this->logger->debug("QUOTE-TRANSACTION-SERVICE::getTransactionArrayFromSession - Array NOT set (exception)");
+            $this->logger->debug(
+                "QUOTE-TRANSACTION-SERVICE::getTransactionArrayFromSession - Array NOT set (exception)"
+            );
         }
         return $transactionArray;
     }

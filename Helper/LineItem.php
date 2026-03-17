@@ -16,6 +16,7 @@ use Magento\Framework\App\Helper\Context;
 use Wallee\Sdk\Model\LineItemCreate;
 use Wallee\Sdk\Model\LineItemType;
 use Wallee\Sdk\Model\TaxCreate;
+use Magento\Framework\Exception\LocalizedException;
 
 /**
  * Helper to provide line item related functionality.
@@ -73,7 +74,9 @@ class LineItem extends AbstractHelper
                 }
             }
             $amountExcludingTax = $this->helper->roundAmount(
-                $lineItem->getAmountIncludingTax() / (1 + $aggregatedTaxRate / 100), $currency);
+                $lineItem->getAmountIncludingTax() / (1 + $aggregatedTaxRate / 100),
+                $currency
+            );
             $sum += $lineItem->getAmountIncludingTax() - $amountExcludingTax;
         }
 
@@ -81,8 +84,7 @@ class LineItem extends AbstractHelper
     }
 
     /**
-     * Checks whether the given line items' total amount matches the expected amount and ensures the uniqueness of the
-     * unique IDs.
+     * Validate line item totals and ensure unique IDs.
      *
      * @param \Wallee\Sdk\Model\LineItemCreate[] $items
      * @param float $expectedAmount
@@ -90,18 +92,26 @@ class LineItem extends AbstractHelper
      * @param boolean $ensureConsistency
      * @param array $taxInfo
      * @return \Wallee\Sdk\Model\LineItemCreate[]
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function correctLineItems(array $items, $expectedAmount, $currencyCode, $ensureConsistency = true,
-        array $taxInfo = [])
-    {
+    public function correctLineItems(
+        array $items,
+        $expectedAmount,
+        $currencyCode,
+        $ensureConsistency = true,
+        array $taxInfo = []
+    ) {
         $expectedAmount = $this->helper->roundAmount($expectedAmount, $currencyCode);
         $effectiveAmount = $this->helper->roundAmount($this->getTotalAmountIncludingTax($items), $currencyCode);
         $difference = $expectedAmount - $effectiveAmount;
         if ($difference != 0) {
             if ($ensureConsistency) {
-                throw new \Exception(
-                    'The line item total amount of ' . $effectiveAmount . ' does not match the expected amount of ' .
-                    $expectedAmount . '.');
+                throw new LocalizedException(
+                    \__(
+                        'The line item total amount of ' . $effectiveAmount .
+                        ' does not match the expected amount of ' . $expectedAmount . '.'
+                    )
+                );
             } else {
                 $this->adjustLineItems($items, $expectedAmount, $currencyCode, $taxInfo);
             }
@@ -110,6 +120,7 @@ class LineItem extends AbstractHelper
     }
 
     /**
+     * Add an adjustment line item to match the expected total amount.
      *
      * @param \Wallee\Sdk\Model\LineItemCreate[] $items
      * @param float $expectedAmount
@@ -136,8 +147,10 @@ class LineItem extends AbstractHelper
             $taxDifference = $this->helper->roundAmount($taxInfo[0]['tax_amount'] - $taxAmount, $currencyCode);
             if ($taxDifference != 0) {
                 $rate = $taxInfo[0]['percent'];
-                $adjustmentTaxAmount = $this->helper->roundAmount($difference - $difference / (1 + $rate / 100),
-                    $currencyCode);
+                $adjustmentTaxAmount = $this->helper->roundAmount(
+                    $difference - $difference / (1 + $rate / 100),
+                    $currencyCode
+                );
                 if ($adjustmentTaxAmount == $taxDifference) {
                     $tax = new TaxCreate();
                     $tax->setRate($rate);
@@ -157,6 +170,7 @@ class LineItem extends AbstractHelper
      *
      * @param \Wallee\Sdk\Model\LineItemCreate[] $items
      * @return \Wallee\Sdk\Model\LineItemCreate[]
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function ensureUniqueIds(array $items)
     {
@@ -168,7 +182,7 @@ class LineItem extends AbstractHelper
             }
 
             if (empty($uniqueId)) {
-                throw new \Exception("There is a line item without a unique ID.");
+                throw new LocalizedException(\__('There is a line item without a unique ID.'));
             }
 
             if (isset($uniqueIds[$uniqueId])) {
@@ -190,13 +204,13 @@ class LineItem extends AbstractHelper
      * @param \Wallee\Sdk\Model\LineItemCreate[] $items
      * @param float $expectedAmount
      * @param string $currencyCode
-     * @throws \Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      * @return \Wallee\Sdk\Model\LineItemCreate[]
      */
     public function reduceAmount(array $items, $expectedAmount, $currencyCode)
     {
         if (empty($items)) {
-            throw new \Exception("No line items provided.");
+            throw new LocalizedException(\__('No line items provided.'));
         }
 
         $effectiveAmount = $this->getTotalAmountIncludingTax($items);
@@ -206,14 +220,16 @@ class LineItem extends AbstractHelper
         foreach ($items as $item) {
             if ($item->getUniqueId() != 'shipping') {
                 $item->setAmountIncludingTax(
-                    $this->helper->roundAmount($item->getAmountIncludingTax() * $factor, $currencyCode));
+                    $this->helper->roundAmount($item->getAmountIncludingTax() * $factor, $currencyCode)
+                );
             }
             $appliedAmount += $item->getAmountIncludingTax();
         }
 
         $roundingDifference = $expectedAmount - $appliedAmount;
         $items[0]->setAmountIncludingTax(
-            $this->helper->roundAmount($items[0]->getAmountIncludingTax() + $roundingDifference, $currencyCode));
+            $this->helper->roundAmount($items[0]->getAmountIncludingTax() + $roundingDifference, $currencyCode)
+        );
 
         return $this->ensureUniqueIds($items);
     }
@@ -226,7 +242,8 @@ class LineItem extends AbstractHelper
      * @param string $currencyCode
      * @return \Wallee\Sdk\Model\LineItemCreate
      */
-    public function createGiftCardLineItem(string $giftCardCode, float $giftCardAmount, string $currencyCode) {
+    public function createGiftCardLineItem(string $giftCardCode, float $giftCardAmount, string $currencyCode)
+    {
         $giftCardLineItem = new LineItemCreate();
         $giftCardLineItem->setAmountIncludingTax(-$this->helper->roundAmount($giftCardAmount, $currencyCode));
         $giftCardLineItem->setName('Gift card: ' . $giftCardCode);

@@ -30,47 +30,47 @@ interface TokenInfoInterface extends ExtensibleDataInterface
     /**
      * Connector ID.
      */
-    const CONNECTOR_ID = 'connector_id';
+    public const CONNECTOR_ID = 'connector_id';
 
     /**
      * Create-at timestamp.
      */
-    const CREATED_AT = 'created_at';
+    public const CREATED_AT = 'created_at';
 
     /**
      * Customer ID.
      */
-    const CUSTOMER_ID = 'customer_id';
+    public const CUSTOMER_ID = 'customer_id';
 
     /**
      * Entity ID.
      */
-    const ENTITY_ID = 'entity_id';
+    public const ENTITY_ID = 'entity_id';
 
     /**
      * Name.
      */
-    const NAME = 'name';
+    public const NAME = 'name';
 
     /**
      * Payment method ID.
      */
-    const PAYMENT_METHOD_ID = 'payment_method_id';
+    public const PAYMENT_METHOD_ID = 'payment_method_id';
 
     /**
      * Space ID.
      */
-    const SPACE_ID = 'space_id';
+    public const SPACE_ID = 'space_id';
 
     /**
      * State.
      */
-    const STATE = 'state';
+    public const STATE = 'state';
 
     /**
      * Token ID.
      */
-    const TOKEN_ID = 'token_id';
+    public const TOKEN_ID = 'token_id';
 
     /**
      * Gets the connector ID of the token info.

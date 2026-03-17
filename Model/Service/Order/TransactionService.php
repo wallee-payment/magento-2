@@ -65,7 +65,7 @@ class TransactionService extends AbstractTransactionService
     /**
      * Number of attempts to call the portal API
      */
-    const NUMBER_OF_ATTEMPTS = 3;
+    public const NUMBER_OF_ATTEMPTS = 3;
 
     /**
      *
@@ -137,14 +137,28 @@ class TransactionService extends AbstractTransactionService
      * @param LineItemHelper $lineItemHelper
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      */
-    public function __construct(ResourceConnection $resource, Helper $helper, ScopeConfigInterface $scopeConfig,
-        ManagerInterface $eventManager, CustomerRegistry $customerRegistry, OrderRepositoryInterface $orderRepository,
-        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
-        CookieManagerInterface $cookieManager, LoggerInterface $logger, LineItemService $lineItemService,
-        LineItemHelper $lineItemHelper, TransactionInfoRepositoryInterface $transactionInfoRepository)
-    {
-        parent::__construct($resource, $customerRegistry, $paymentMethodConfigurationManagement, $apiClient,
-        $cookieManager);
+    public function __construct(
+        ResourceConnection $resource,
+        Helper $helper,
+        ScopeConfigInterface $scopeConfig,
+        ManagerInterface $eventManager,
+        CustomerRegistry $customerRegistry,
+        OrderRepositoryInterface $orderRepository,
+        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
+        ApiClient $apiClient,
+        CookieManagerInterface $cookieManager,
+        LoggerInterface $logger,
+        LineItemService $lineItemService,
+        LineItemHelper $lineItemHelper,
+        TransactionInfoRepositoryInterface $transactionInfoRepository
+    ) {
+        parent::__construct(
+            $resource,
+            $customerRegistry,
+            $paymentMethodConfigurationManagement,
+            $apiClient,
+            $cookieManager
+        );
         $this->helper = $helper;
         $this->scopeConfig = $scopeConfig;
         $this->eventManager = $eventManager;
@@ -164,12 +178,18 @@ class TransactionService extends AbstractTransactionService
      * @param Invoice $invoice
      * @param boolean $chargeFlow
      * @param Token $token
-     * @throws VersioningException
      * @return Transaction
+     * @throws LocalizedException
+     * @throws CustomerIdManipulationException
+     * @throws VersioningException
      */
-    public function confirmTransaction(Transaction $transaction, Order $order, Invoice $invoice, $chargeFlow = false,
-        Token $token = null)
-    {
+    public function confirmTransaction(
+        Transaction $transaction,
+        Order $order,
+        Invoice $invoice,
+        $chargeFlow = false,
+        Token $token = null
+    ) {
         if ($transaction->getState() == TransactionState::CONFIRMED) {
             return $transaction;
         } elseif ($transaction->getState() != TransactionState::PENDING) {
@@ -184,7 +204,9 @@ class TransactionService extends AbstractTransactionService
             try {
                 if ($i > 0) {
                     $transaction = $this->getTransaction($spaceId, $transactionId);
-                    if ($transaction instanceof Transaction && $transaction->getState() == TransactionState::CONFIRMED) {
+                    if ($transaction instanceof Transaction
+                        && $transaction->getState() == TransactionState::CONFIRMED
+                    ) {
                         return $transaction;
                     } elseif (! ($transaction instanceof Transaction) ||
                         $transaction->getState() != TransactionState::PENDING) {
@@ -193,7 +215,9 @@ class TransactionService extends AbstractTransactionService
                     }
                 }
 
-                if (! empty($transaction->getCustomerId()) && $transaction->getCustomerId() != $order->getCustomerId()) {
+                if (!empty($transaction->getCustomerId())
+                    && $transaction->getCustomerId() != $order->getCustomerId()
+                ) {
                     throw new CustomerIdManipulationException();
                 }
 
@@ -201,9 +225,14 @@ class TransactionService extends AbstractTransactionService
                 $pendingTransaction->setId($transaction->getId());
                 $pendingTransaction->setVersion($transaction->getVersion());
                 $this->assembleTransactionDataFromOrder($pendingTransaction, $order, $invoice, $chargeFlow, $token);
-                return $this->apiClient->getService(TransactionApiService::class)->confirm($spaceId, $pendingTransaction);
+                return $this->apiClient->getService(TransactionApiService::class)
+                ->confirm($spaceId, $pendingTransaction);
             } catch (VersioningException $e) {
                 // Try to update the transaction again, if a versioning exception occurred.
+                $this->logger->debug(
+                    'There was an issue confirming the transaction.',
+                    ['exception' => $e]
+                );
             }
         }
         throw new VersioningException(__FUNCTION__);
@@ -237,16 +266,22 @@ class TransactionService extends AbstractTransactionService
      * @param Token $token
      * @return void
      */
-    protected function assembleTransactionDataFromOrder(AbstractTransactionPending $transaction, Order $order,
-        Invoice $invoice, $chargeFlow = false, Token $token = null)
-    {
+    protected function assembleTransactionDataFromOrder(
+        AbstractTransactionPending $transaction,
+        Order $order,
+        Invoice $invoice,
+        $chargeFlow = false,
+        Token $token = null
+    ) {
         $transaction->setCurrency($order->getOrderCurrencyCode());
         $transaction->setBillingAddress($this->convertOrderBillingAddress($order));
         $transaction->setShippingAddress($this->convertOrderShippingAddress($order));
         $transaction->setCustomerEmailAddress(
-            $this->getCustomerEmailAddress($order->getCustomerEmail(), $order->getCustomerId()));
+            $this->getCustomerEmailAddress($order->getCustomerEmail(), $order->getCustomerId())
+        );
         $transaction->setLanguage(
-            $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $order->getStoreId()));
+            $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $order->getStoreId())
+        );
         $transaction->setLineItems($this->lineItemService->convertOrderLineItems($order));
         $this->logAdjustmentLineItemInfo($order, $transaction);
         $transaction->setMerchantReference($order->getIncrementId());
@@ -258,12 +293,19 @@ class TransactionService extends AbstractTransactionService
             $transaction->setShippingMethod(
                 $this->helper->fixLength(
                     $this->helper->getFirstLine($order->getShippingAddress()
-                        ->getShippingDescription()), 200));
+                    ->getShippingDescription()),
+                    200
+                )
+            );
         }
         if ($transaction instanceof TransactionCreate) {
             $transaction->setSpaceViewId(
-                $this->scopeConfig->getValue('wallee_payment/general/space_view_id',
-                    ScopeInterface::SCOPE_STORE, $order->getStoreId()));
+                $this->scopeConfig->getValue(
+                    'wallee_payment/general/space_view_id',
+                    ScopeInterface::SCOPE_STORE,
+                    $order->getStoreId()
+                )
+            );
             $transaction->setDeviceSessionIdentifier($this->getDeviceSessionIdentifier());
         }
         if ($chargeFlow) {
@@ -273,7 +315,8 @@ class TransactionService extends AbstractTransactionService
                         ->getMethodInstance()
                         ->getPaymentMethodConfiguration()
                         ->getConfigurationId()
-                ]);
+                ]
+            );
         } else {
             //default behaviour
             $successUrl = $this->buildUrl('wallee_payment/transaction/success', $order);
@@ -297,14 +340,23 @@ class TransactionService extends AbstractTransactionService
                             ->getMethodInstance()
                             ->getPaymentMethodConfiguration()
                             ->getConfigurationId()
-                    ]);
+                        ]
+                    );
                 }
             } catch (\Exception $e) {
-                $this->logger->debug("ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder error: " . $e->getMessage());
+                $this->logger->debug(
+                    "ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder error: " . $e->getMessage()
+                );
             }
 
-            $this->logger->debug("ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder url: " . $successUrl . '?utm_nooverride=1');
-            $this->logger->debug("ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder url: " . $failureUrl . '?utm_nooverride=1');
+            $this->logger->debug(
+                "ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder url: " .
+                $successUrl . '?utm_nooverride=1'
+            );
+            $this->logger->debug(
+                "ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder url: " .
+                $failureUrl . '?utm_nooverride=1'
+            );
             $transaction->setSuccessUrl(sprintf('%s?utm_nooverride=1', $successUrl));
             $transaction->setFailedUrl(sprintf('%s?utm_nooverride=1', $failureUrl));
         }
@@ -334,13 +386,17 @@ class TransactionService extends AbstractTransactionService
                     'An adjustment line item has been added to the transaction ' . $transaction->getId() .
                     ', because the line item total amount of ' .
                     $this->helper->roundAmount($order->getGrandTotal(), $order->getOrderCurrencyCode()) .
-                    ' did not match the invoice amount of ' . $expectedSum . ' of the order ' . $order->getId() . '.');
+                    ' did not match the invoice amount of ' . $expectedSum .
+                    ' of the order ' . $order->getId() . '.'
+                );
                 return;
             }
         }
     }
 
     /**
+     * Collect additional metadata for the given order.
+     *
      * @param Order $order
      * @return array<mixed>|mixed|null
      */
@@ -349,11 +405,13 @@ class TransactionService extends AbstractTransactionService
         $transport = new DataObject([
             'metaData' => []
         ]);
-        $this->eventManager->dispatch('wallee_payment_collect_meta_data',
+        $this->eventManager->dispatch(
+            'wallee_payment_collect_meta_data',
             [
                 'transport' => $transport,
                 'order' => $order
-            ]);
+            ]
+        );
         return $transport->getData('metaData');
     }
 
@@ -364,27 +422,30 @@ class TransactionService extends AbstractTransactionService
      * @param Order $order
      * @param bool $extarnalUrl
      * @return string
-     * @throws LocalizedException
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     protected function buildUrl($route, Order $order, $extarnalUrl = false)
     {
         $token = $order->getWalleeSecurityToken();
         if (empty($token)) {
             throw new LocalizedException(
-                \__('The wallee security token needs to be set on the order to build the URL.'));
+                \__('The wallee security token needs to be set on the order to build the URL.')
+            );
         }
 
         if ($extarnalUrl) {
             return sprintf('%s/order/%d/token/%s/', $route, $order->getId(), $token);
         }
 
-        return $order->getStore()->getUrl($route,
+        return $order->getStore()->getUrl(
+            $route,
             [
                 '_secure' => true,
                 'order_id' => $order->getId(),
                 'token' => $token
-            ]);
+            ]
+        );
     }
 
     /**
@@ -413,12 +474,12 @@ class TransactionService extends AbstractTransactionService
                 break;
             default:
                 $serviceClass = TransactionPaymentPageService::class;
-            }
+        }
 
             $url = $this->apiClient->getService($serviceClass)->paymentPageUrl(
-            $transaction->getLinkedSpaceId(),
-            $transaction->getId()
-        );
+                $transaction->getLinkedSpaceId(),
+                $transaction->getId()
+            );
 
         $this->logger->debug("ORDER-TRANSACTION-SERVICE::getTransactionPaymentUrl URL: " . $url);
         return $url;
@@ -470,21 +531,26 @@ class TransactionService extends AbstractTransactionService
     {
         $address = new AddressCreate();
         $address->setSalutation(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPrefix()), 20));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPrefix()), 20)
+        );
         $address->setCity($this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCity()), 100));
         $address->setCountry($customerAddress->getCountryId());
         $address->setFamilyName(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getLastname()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getLastname()), 100)
+        );
         $address->setGivenName(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getFirstname()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getFirstname()), 100)
+        );
         $address->setOrganizationName(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCompany()), 100));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCompany()), 100)
+        );
         $address->setPhoneNumber($customerAddress->getTelephone());
         if (! empty($customerAddress->getCountryId()) && ! empty($customerAddress->getRegionCode())) {
             $address->setPostalState($customerAddress->getCountryId() . '-' . $customerAddress->getRegionCode());
         }
         $address->setPostCode(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPostcode()), 40));
+            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPostcode()), 40)
+        );
         $street = $customerAddress->getStreet();
         $address->setStreet($this->helper->fixLength(\is_array($street) ? \implode("\n", $street) : $street, 300));
         return $address;
@@ -499,7 +565,9 @@ class TransactionService extends AbstractTransactionService
     public function complete(Order $order)
     {
         return $this->apiClient->getService(TransactionCompletionService::class)->completeOnline(
-            $order->getWalleeSpaceId(), $order->getWalleeTransactionId());
+            $order->getWalleeSpaceId(),
+            $order->getWalleeTransactionId()
+        );
     }
 
     /**
@@ -511,11 +579,14 @@ class TransactionService extends AbstractTransactionService
     public function void(Order $order)
     {
         return $this->apiClient->getService(TransactionVoidService::class)->voidOnline(
-            $order->getWalleeSpaceId(), $order->getWalleeTransactionId());
+            $order->getWalleeSpaceId(),
+            $order->getWalleeTransactionId()
+        );
     }
 
     /**
      * Marks the delivery indication belonging to the given payment as suitable.
+     *
      * Note: there are no delivery indication for Authorized transactions
      *
      * @param Order $order
@@ -524,12 +595,15 @@ class TransactionService extends AbstractTransactionService
     public function accept(Order $order)
     {
         return $this->apiClient->getService(DeliveryIndicationService::class)->markAsSuitable(
-            $order->getWalleeSpaceId(), $this->getDeliveryIndication($order)
-                ->getId());
+            $order->getWalleeSpaceId(),
+            $this->getDeliveryIndication($order)
+            ->getId()
+        );
     }
 
     /**
      * Marks the delivery indication belonging to the given payment as not suitable.
+     *
      * Note: there are no delivery indication for Authorized transactions
      *
      * @param Order $order
@@ -538,11 +612,14 @@ class TransactionService extends AbstractTransactionService
     public function deny(Order $order)
     {
         return $this->apiClient->getService(DeliveryIndicationService::class)->markAsNotSuitable(
-            $order->getWalleeSpaceId(), $this->getDeliveryIndication($order)
-                ->getId());
+            $order->getWalleeSpaceId(),
+            $this->getDeliveryIndication($order)
+            ->getId()
+        );
     }
 
     /**
+     * Gets the delivery indication linked to the given order.
      *
      * @param Order $order
      * @return \Wallee\Sdk\Model\DeliveryIndication
@@ -551,18 +628,22 @@ class TransactionService extends AbstractTransactionService
     {
         $query = new EntityQuery();
         $query->setFilter(
-            $this->helper->createEntityFilter('transaction.id', $order->getWalleeTransactionId()));
+            $this->helper->createEntityFilter('transaction.id', $order->getWalleeTransactionId())
+        );
         $query->setNumberOfEntities(1);
         return \current(
             $this->apiClient->getService(DeliveryIndicationService::class)->search(
-                $order->getWalleeSpaceId(), $query));
+                $order->getWalleeSpaceId(),
+                $query
+            )
+        );
     }
 
     /**
      * Gets the transaction invoice linked to the given order.
      *
      * @param Order $order
-     * @throws \Exception
+     * @throws NoSuchEntityException
      * @return \Wallee\Sdk\Model\TransactionInvoice
      */
     public function getTransactionInvoice(Order $order)
@@ -572,15 +653,23 @@ class TransactionService extends AbstractTransactionService
         $filter->setType(EntityQueryFilterType::_AND);
         $filter->setChildren(
             [
-                $this->helper->createEntityFilter('state', TransactionInvoiceState::CANCELED,
-                    CriteriaOperator::NOT_EQUALS),
-                $this->helper->createEntityFilter('completion.lineItemVersion.transaction.id',
-                    $order->getWalleeTransactionId())
-            ]);
+                $this->helper->createEntityFilter(
+                    'state',
+                    TransactionInvoiceState::CANCELED,
+                    CriteriaOperator::NOT_EQUALS
+                ),
+                $this->helper->createEntityFilter(
+                    'completion.lineItemVersion.transaction.id',
+                    $order->getWalleeTransactionId()
+                )
+            ]
+        );
         $query->setFilter($filter);
         $query->setNumberOfEntities(1);
         $result = $this->apiClient->getService(TransactionInvoiceService::class)->search(
-            $order->getWalleeSpaceId(), $query);
+            $order->getWalleeSpaceId(),
+            $query
+        );
         if (! empty($result)) {
             return $result[0];
         } else {
@@ -608,8 +697,8 @@ class TransactionService extends AbstractTransactionService
             if (\in_array($transactionInfo->getState(), $states)) {
                 return true;
             }
-
-            \sleep(2);
+            
+            usleep(2000000);
         }
     }
 }

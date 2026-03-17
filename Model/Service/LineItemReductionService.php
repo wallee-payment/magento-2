@@ -75,9 +75,13 @@ class LineItemReductionService
      * @param ApiClient $apiClient
      * @param EventManagerInterface $eventManager
      */
-    public function __construct(Helper $helper, LineItemReductionHelper $reductionHelper, LineItemHelper $lineItemHelper,
-        ApiClient $apiClient, EventManagerInterface $eventManager)
-    {
+    public function __construct(
+        Helper $helper,
+        LineItemReductionHelper $reductionHelper,
+        LineItemHelper $lineItemHelper,
+        ApiClient $apiClient,
+        EventManagerInterface $eventManager
+    ) {
         $this->helper = $helper;
         $this->reductionHelper = $reductionHelper;
         $this->lineItemHelper = $lineItemHelper;
@@ -101,8 +105,11 @@ class LineItemReductionService
         $unrefundedAmount = $this->lineItemHelper->getTotalAmountIncludingTax($baseLineItems);
 
         $reductions = [];
-        if ($this->helper->compareAmounts($unrefundedAmount, $creditmemo->getGrandTotal(),
-            $creditmemo->getOrderCurrencyCode()) == 0) {
+        if ($this->helper->compareAmounts(
+            $unrefundedAmount,
+            $creditmemo->getGrandTotal(),
+            $creditmemo->getOrderCurrencyCode()
+        ) == 0) {
             foreach ($baseLineItems as $baseLineItem) {
                 $reduction = new LineItemReductionCreate();
                 $reduction->setLineItemUniqueId($baseLineItem->getUniqueId());
@@ -126,12 +133,14 @@ class LineItemReductionService
         $transport = new DataObject([
             'items' => $reductions
         ]);
-        $this->eventManager->dispatch('wallee_payment_convert_line_item_reductions',
+        $this->eventManager->dispatch(
+            'wallee_payment_convert_line_item_reductions',
             [
                 'transport' => $transport,
                 'creditmemo' => $creditmemo,
                 'baseLineItems' => $baseLineItems
-            ]);
+            ]
+        );
         $this->validateReductions($transport->getData('items'), $creditmemo, $baseLineItems);
         return $transport->getData('items');
     }
@@ -190,16 +199,22 @@ class LineItemReductionService
         if ($creditmemo->getShippingAmount() > 0) {
             $reduction = new LineItemReductionCreate();
             $reduction->setLineItemUniqueId('shipping');
-            if ($this->helper->compareAmounts($creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
+            if ($this->helper->compareAmounts(
+                $creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
                 $creditmemo->getOrder()
-                    ->getShippingInclTax(), $creditmemo->getOrderCurrencyCode()) == 0) {
+                ->getShippingInclTax(),
+                $creditmemo->getOrderCurrencyCode()
+            ) == 0) {
                 $reduction->setQuantityReduction(1);
                 $reduction->setUnitPriceReduction(0);
             } else {
                 $reduction->setQuantityReduction(0);
                 $reduction->setUnitPriceReduction(
-                    $this->helper->roundAmount($creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
-                        $creditmemo->getOrderCurrencyCode()));
+                    $this->helper->roundAmount(
+                        $creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
+                        $creditmemo->getOrderCurrencyCode()
+                    )
+                );
             }
             return $reduction;
         }
@@ -216,10 +231,16 @@ class LineItemReductionService
      */
     private function validateReductions(array $reductions, Creditmemo $creditmemo, $baseLineItems)
     {
-        $reducedAmount = $this->reductionHelper->getReducedAmount($baseLineItems, $reductions,
-            $creditmemo->getOrderCurrencyCode());
-        if ($this->helper->compareAmounts($reducedAmount, $creditmemo->getGrandTotal(),
-            $creditmemo->getOrderCurrencyCode()) != 0) {
+        $reducedAmount = $this->reductionHelper->getReducedAmount(
+            $baseLineItems,
+            $reductions,
+            $creditmemo->getOrderCurrencyCode()
+        );
+        if ($this->helper->compareAmounts(
+            $reducedAmount,
+            $creditmemo->getGrandTotal(),
+            $creditmemo->getOrderCurrencyCode()
+        ) != 0) {
             throw new LineItemReductionException();
         }
     }
@@ -259,10 +280,14 @@ class LineItemReductionService
         $filter->setType(EntityQueryFilterType::_AND);
         $filter->setChildren(
             [
-                $this->helper->createEntityFilter('state', TransactionInvoiceState::CANCELED,
-                    CriteriaOperator::NOT_EQUALS),
+                $this->helper->createEntityFilter(
+                    'state',
+                    TransactionInvoiceState::CANCELED,
+                    CriteriaOperator::NOT_EQUALS
+                ),
                 $this->helper->createEntityFilter('completion.lineItemVersion.transaction.id', $transactionId)
-            ]);
+            ]
+        );
         $query->setFilter($filter);
         $query->setNumberOfEntities(1);
         $result = $this->apiClient->getService(TransactionInvoiceService::class)->search($spaceId, $query);

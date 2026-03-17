@@ -31,6 +31,7 @@ use Wallee\Sdk\Model\TransactionLineItemUpdateRequest;
 use Wallee\Sdk\Model\TransactionState;
 use Wallee\Sdk\Model\TransactionLineItemVersionCreate;
 use Wallee\Sdk\Service\TransactionLineItemVersionService;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service to handle transactions in invoice context.
@@ -70,6 +71,12 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param ResourceConnection $resource
      * @param CustomerRegistry $customerRegistry
      * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
@@ -79,19 +86,33 @@ class TransactionService extends AbstractTransactionService
      * @param LineItemService $lineItemService
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param OrderTransactionService $orderTransactionService
+     * @param LoggerInterface $logger
      */
-    public function __construct(ResourceConnection $resource, CustomerRegistry $customerRegistry,
-        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
-        CookieManagerInterface $cookieManager, LocaleHelper $localeHelper, LineItemService $lineItemService,
-        TransactionInfoRepositoryInterface $transactionInfoRepository, OrderTransactionService $orderTransactionService)
-    {
-        parent::__construct($resource, $customerRegistry, $paymentMethodConfigurationManagement, $apiClient,
-        $cookieManager);
+    public function __construct(
+        ResourceConnection $resource,
+        CustomerRegistry $customerRegistry,
+        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
+        ApiClient $apiClient,
+        CookieManagerInterface $cookieManager,
+        LocaleHelper $localeHelper,
+        LineItemService $lineItemService,
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        OrderTransactionService $orderTransactionService,
+        LoggerInterface $logger,
+    ) {
+        parent::__construct(
+            $resource,
+            $customerRegistry,
+            $paymentMethodConfigurationManagement,
+            $apiClient,
+            $cookieManager
+        );
         $this->apiClient = $apiClient;
         $this->localeHelper = $localeHelper;
         $this->lineItemService = $lineItemService;
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->orderTransactionService = $orderTransactionService;
+        $this->logger = $logger;
     }
 
     /**
@@ -115,7 +136,8 @@ class TransactionService extends AbstractTransactionService
 
             $lineItemsCreate = new TransactionLineItemVersionCreate($data);
             $this->apiClient->getService(TransactionLineItemVersionService::class)->create(
-                $transactionInfo->getSpaceId(), $lineItemsCreate
+                $transactionInfo->getSpaceId(),
+                $lineItemsCreate
             );
         }
     }
@@ -127,7 +149,7 @@ class TransactionService extends AbstractTransactionService
      * @param Invoice $invoice
      * @param float $amount
      * @return void
-     * @throws \Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function complete(Payment $payment, Invoice $invoice, $amount)
     {
@@ -137,9 +159,12 @@ class TransactionService extends AbstractTransactionService
         if (! ($completion instanceof TransactionCompletion) ||
             $completion->getState() == TransactionCompletionState::FAILED) {
             throw new \Magento\Framework\Exception\LocalizedException(
-                \__('The capture of the invoice failed on the gateway: %1.',
+                \__(
+                    'The capture of the invoice failed on the gateway: %1.',
                     $this->localeHelper->translate($completion->getFailureReason()
-                        ->getDescription())));
+                    ->getDescription())
+                )
+            );
         }
 
         try {
@@ -149,19 +174,29 @@ class TransactionService extends AbstractTransactionService
                 $transactionInvoice->getState() != TransactionInvoiceState::NOT_APPLICABLE) {
                 $invoice->setWalleeCapturePending(true);
             }
-        } catch (NoSuchEntityException $e) {}
+        } catch (NoSuchEntityException $e) {
+            $this->logger->debug(
+                sprintf(
+                    "There was an issue completing the %s transaction.",
+                    $payment->getTransactionId(),
+                ),
+                ['exception' => $e]
+            );
+        }
 
         $authorizationTransaction = $payment->getAuthorizationTransaction();
-        if($authorizationTransaction) {
+        if ($authorizationTransaction) {
             $authorizationTransaction->close(false);
             $invoice->getOrder()
                 ->addRelatedObject($invoice)
                 ->addRelatedObject($authorizationTransaction);
-        }
-        else {
+        } else {
             throw new \Magento\Framework\Exception\LocalizedException(
-                \__('The capture of the invoice failed in the store: %1.',
-                    \__('The associated authorization transaction for the payment could not be found.')));
+                \__(
+                    'The capture of the invoice failed in the store: %1.',
+                    \__('The associated authorization transaction for the payment could not be found.')
+                )
+            );
         }
     }
 }

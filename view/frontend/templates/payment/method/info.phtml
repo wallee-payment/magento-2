@@ -16,16 +16,20 @@
 /** @var $block \Wallee\Payment\Block\Method\Info */
 ?>
 
-<dl class="payment-method <?=$block->escapeHtml($block->getMethodCode())?>">
-    <dt class="title"><?=$block->escapeHtml($block->getMethod()->getTitle())?></dt>
-    <?php if ($block->isInvoiceDownloadAllowed()) : ?>
+<dl class="payment-method <?=$escaper->escapeHtml($block->getMethodCode())?>">
+    <dt class="title"><?=$escaper->escapeHtml($block->getMethod()->getTitle())?></dt>
+    <?php if ($block->isInvoiceDownloadAllowed()): ?>
         <dd class="content">
-            <a href="<?=$block->escapeHtml($block->getInvoiceDownloadUrl())?>"><?=$block->escapeHtml(\__('Download Invoice'))?></a>
+            <a href="<?=$escaper->escapeHtml($block->getInvoiceDownloadUrl())?>">
+                <?=$escaper->escapeHtml(\__('Download Invoice'))?>
+            </a>
         </dd>
     <?php endif; ?>
-    <?php if ($block->isPackingSlipDownloadAllowed()) : ?>
+    <?php if ($block->isPackingSlipDownloadAllowed()): ?>
         <dd class="content">
-            <a href="<?=$block->escapeHtml($block->getPackingSlipDownloadUrl())?>"><?=$block->escapeHtml(\__('Download Packing Slip'))?></a>
+            <a href="<?=$escaper->escapeHtml($block->getPackingSlipDownloadUrl())?>">
+                <?=$escaper->escapeHtml(\__('Download Packing Slip'))?>
+            </a>
         </dd>
     <?php endif; ?>
 </dl>

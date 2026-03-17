@@ -28,14 +28,12 @@ class Collection extends AbstractCollection
     protected $_idFieldName = 'entity_id';
 
     /**
-     * Event prefix
      *
      * @var string
      */
     protected $_eventPrefix = 'wallee_payment_transaction_info_resource_collection';
 
     /**
-     * Event object
      *
      * @var string
      */

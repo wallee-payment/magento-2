@@ -18,6 +18,8 @@ interface ListenerInterface
 {
 
     /**
+     * Execute webhook listener.
+     *
      * @param Request $request
      * @return mixed
      */

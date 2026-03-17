@@ -17,9 +17,14 @@ namespace Wallee\Payment\Model\Config\Source;
 class GdprMode implements \Magento\Framework\Option\ArrayInterface
 {
 
-    const ENABLED = 'enabled';
-    const DISABLED = 'disabled';
+    public const ENABLED = 'enabled';
+    public const DISABLED = 'disabled';
 
+    /**
+     * Return GDPR mode options.
+     *
+     * @return array
+     */
     public function toOptionArray()
     {
         return [

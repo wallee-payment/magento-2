@@ -15,6 +15,7 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Helper\Locale as LocaleHelper;
+use Psr\Log\LoggerInterface;
 
 /**
  * Webhook listener command to handle failed refunds.
@@ -36,19 +37,31 @@ class FailedCommand extends AbstractCommand
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param RefundJobRepositoryInterface $refundJobRepository
      * @param OrderRepositoryInterface $orderRepository
      * @param LocaleHelper $localeHelper
+     * @param LoggerInterface $logger
      */
-    public function __construct(RefundJobRepositoryInterface $refundJobRepository, OrderRepositoryInterface $orderRepository,
-        LocaleHelper $localeHelper)
-    {
-        parent::__construct($refundJobRepository);
+    public function __construct(
+        RefundJobRepositoryInterface $refundJobRepository,
+        OrderRepositoryInterface $orderRepository,
+        LocaleHelper $localeHelper,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($refundJobRepository, $logger);
         $this->orderRepository = $orderRepository;
         $this->localeHelper = $localeHelper;
+        $this->logger = $logger;
     }
 
     /**
+     * Execute failed refund flow.
      *
      * @param \Wallee\Sdk\Model\Refund $entity
      * @param Order $order
@@ -56,11 +69,14 @@ class FailedCommand extends AbstractCommand
     public function execute($entity, Order $order)
     {
         $order->addCommentToStatusHistory(
-            \__('The refund of %1 failed on the gateway: %2',
+            \__(
+                'The refund of %1 failed on the gateway: %2',
                 $order->getBaseCurrency()
                     ->formatTxt($entity->getAmount()),
                 $this->localeHelper->translate($entity->getFailureReason()
-                    ->getDescription())));
+                ->getDescription())
+            )
+        );
         $this->orderRepository->save($order);
         $this->deleteRefundJob($entity);
     }

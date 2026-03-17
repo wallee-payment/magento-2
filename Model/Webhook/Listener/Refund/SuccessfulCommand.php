@@ -28,6 +28,7 @@ use Wallee\Payment\Model\Service\Order\TransactionService;
 use Wallee\Sdk\Model\LineItemType;
 use Wallee\Sdk\Model\Refund;
 use Wallee\Sdk\Model\TransactionInvoiceState;
+use Psr\Log\LoggerInterface;
 
 /**
  * Webhook listener command to handle successful refunds.
@@ -97,6 +98,12 @@ class SuccessfulCommand extends AbstractCommand
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param RefundJobRepositoryInterface $refundJobRepository
      * @param CreditmemoRepositoryInterface $creditmemoRepository
      * @param CreditmemoFactory $creditmemoFactory
@@ -107,14 +114,22 @@ class SuccessfulCommand extends AbstractCommand
      * @param LineItemReductionService $lineItemReductionService
      * @param TransactionService $transactionService
      * @param Helper $helper
+     * @param LoggerInterface $logger
      */
-    public function __construct(RefundJobRepositoryInterface $refundJobRepository,
-        CreditmemoRepositoryInterface $creditmemoRepository, CreditmemoFactory $creditmemoFactory,
-        CreditmemoManagementInterface $creditmemoManagement, OrderRepositoryInterface $orderRepository,
-        InvoiceRepositoryInterface $invoiceRepository, StockConfigurationInterface $stockConfiguration,
-        LineItemReductionService $lineItemReductionService, TransactionService $transactionService, Helper $helper)
-    {
-        parent::__construct($refundJobRepository);
+    public function __construct(
+        RefundJobRepositoryInterface $refundJobRepository,
+        CreditmemoRepositoryInterface $creditmemoRepository,
+        CreditmemoFactory $creditmemoFactory,
+        CreditmemoManagementInterface $creditmemoManagement,
+        OrderRepositoryInterface $orderRepository,
+        InvoiceRepositoryInterface $invoiceRepository,
+        StockConfigurationInterface $stockConfiguration,
+        LineItemReductionService $lineItemReductionService,
+        TransactionService $transactionService,
+        Helper $helper,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($refundJobRepository, $logger);
         $this->refundJobRepository = $refundJobRepository;
         $this->creditmemoRepository = $creditmemoRepository;
         $this->creditmemoFactory = $creditmemoFactory;
@@ -125,12 +140,15 @@ class SuccessfulCommand extends AbstractCommand
         $this->lineItemReductionService = $lineItemReductionService;
         $this->transactionService = $transactionService;
         $this->helper = $helper;
+        $this->logger = $logger;
     }
 
     /**
+     * Execute successful refund flow.
      *
      * @param Refund $entity
      * @param Order $order
+     * @return null
      */
     public function execute($entity, Order $order)
     {
@@ -155,8 +173,10 @@ class SuccessfulCommand extends AbstractCommand
         }
 
         /** @var \Magento\Sales\Model\Order\Creditmemo $creditmemo */
-        $creditmemo = $this->creditmemoRepository->create()->load($entity->getExternalId(),
-            'wallee_external_id');
+        $creditmemo = $this->creditmemoRepository->create()->load(
+            $entity->getExternalId(),
+            'wallee_external_id'
+        );
         if (! $creditmemo->getId()) {
             $this->registerRefund($entity, $order);
         }
@@ -164,6 +184,8 @@ class SuccessfulCommand extends AbstractCommand
     }
 
     /**
+     * Check whether the transaction invoice is derecognized.
+     *
      * @param Refund $refund
      * @param Order $order
      * @return bool
@@ -180,6 +202,8 @@ class SuccessfulCommand extends AbstractCommand
     }
 
     /**
+     * Create and refund a credit memo for the given refund.
+     *
      * @param Refund $refund
      * @param Order $order
      * @return void
@@ -213,6 +237,8 @@ class SuccessfulCommand extends AbstractCommand
     }
 
     /**
+     * Build credit memo data from refund reductions.
+     *
      * @param Refund $refund
      * @param Order $order
      * @return array<mixed>
@@ -230,9 +256,12 @@ class SuccessfulCommand extends AbstractCommand
         }
 
         $baseLineItems = [];
-        foreach ($this->lineItemReductionService->getBaseLineItems($order->getWalleeSpaceId(),
+        foreach ($this->lineItemReductionService->getBaseLineItems(
+            $order->getWalleeSpaceId(),
             $refund->getTransaction()
-                ->getId(), $refund) as $lineItem) {
+            ->getId(),
+            $refund
+        ) as $lineItem) {
             $baseLineItems[$lineItem->getUniqueId()] = $lineItem;
         }
 
@@ -248,7 +277,8 @@ class SuccessfulCommand extends AbstractCommand
             switch ($lineItem->getType()) {
                 case LineItemType::PRODUCT:
                     if ($reduction->getQuantityReduction() > 0) {
-                        $refundQuantities[$orderItemMap[$reduction->getLineItemUniqueId()]->getId()] = $reduction->getQuantityReduction();
+                        $refundQuantities[$orderItemMap[$reduction->getLineItemUniqueId()]->getId()] =
+                        $reduction->getQuantityReduction();
                         $creditmemoAmount += $reduction->getQuantityReduction() *
                             ($orderItemMap[$reduction->getLineItemUniqueId()]->getRowTotal() +
                             $orderItemMap[$reduction->getLineItemUniqueId()]->getTaxAmount() -
@@ -262,7 +292,8 @@ class SuccessfulCommand extends AbstractCommand
                     break;
                 case LineItemType::SHIPPING:
                     if ($reduction->getQuantityReduction() > 0) {
-                        $shippingAmount = $baseLineItems[$reduction->getLineItemUniqueId()]->getAmountIncludingTax();
+                        $shippingAmount = $baseLineItems[$reduction->getLineItemUniqueId()]
+                            ->getAmountIncludingTax();
                     } elseif ($reduction->getUnitPriceReduction() > 0) {
                         $shippingAmount = $reduction->getUnitPriceReduction();
                     } else {
@@ -285,9 +316,11 @@ class SuccessfulCommand extends AbstractCommand
             }
         }
 
-        $roundedCreditmemoAmount = $this->helper->roundAmount($creditmemoAmount,
+        $roundedCreditmemoAmount = $this->helper->roundAmount(
+            $creditmemoAmount,
             $refund->getTransaction()
-                ->getCurrency());
+            ->getCurrency()
+        );
 
         $positiveAdjustment = 0;
         $negativeAdjustment = 0;

@@ -15,8 +15,9 @@ use Wallee\Payment\Model\Payment\Method\Adapter;
 
 class Create
 {
-
     /**
+     * Prevents confirmation email for admin orders using the custom payment method.
+     *
      * @param \Magento\Sales\Model\AdminOrder\Create $subject
      * @return void
      */

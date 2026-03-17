@@ -57,7 +57,8 @@ class LineItemReduction extends AbstractHelper
         foreach ($reductions as $reduction) {
             if (! isset($lineItemMap[$reduction->getLineItemUniqueId()])) {
                 throw new LocalizedException(
-                    \__("The refund cannot be executed as the transaction's line items do not match the order's."));
+                    \__("The refund cannot be executed as the transaction's line items do not match the order's.")
+                );
             }
 
             $lineItem = $lineItemMap[$reduction->getLineItemUniqueId()];

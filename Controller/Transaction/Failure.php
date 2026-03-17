@@ -18,6 +18,7 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Wallee\Payment\Model\Service\Order\TransactionService;
 use Wallee\Sdk\Model\Transaction;
+use Psr\Log\LoggerInterface;
 
 /**
  * Frontend controller action to handle failed payments.
@@ -39,19 +40,35 @@ class Failure extends \Wallee\Payment\Controller\Transaction
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
      * @param TransactionService $transactionService
      * @param CheckoutSession $checkoutSession
+     * @param LoggerInterface $logger
      */
-    public function __construct(Context $context, OrderRepositoryInterface $orderRepository,
-        TransactionService $transactionService, CheckoutSession $checkoutSession)
-    {
+    public function __construct(
+        Context $context,
+        OrderRepositoryInterface $orderRepository,
+        TransactionService $transactionService,
+        CheckoutSession $checkoutSession,
+        LoggerInterface $logger
+    ) {
         parent::__construct($context, $orderRepository);
         $this->transactionService = $transactionService;
         $this->checkoutSession = $checkoutSession;
+        $this->logger = $logger;
     }
 
+    /**
+     * Handle the checkout failure callback and redirect to the failure page.
+     *
+     * @return \Magento\Framework\Controller\Result\Redirect
+     */
     public function execute()
     {
         $order = $this->getOrder();
@@ -71,12 +88,19 @@ class Failure extends \Wallee\Payment\Controller\Transaction
     private function getFailureMessage(Order $order)
     {
         try {
-            $transaction = $this->transactionService->getTransaction($order->getWalleeSpaceId(),
-                $order->getWalleeTransactionId());
+            $transaction = $this->transactionService->getTransaction(
+                $order->getWalleeSpaceId(),
+                $order->getWalleeTransactionId()
+            );
             if ($transaction instanceof Transaction && $transaction->getUserFailureMessage() != null) {
                 return $transaction->getUserFailureMessage();
             }
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            $this->logger->debug(
+                'There was an issue retrieving the failure message.',
+                ['exception' => $e]
+            );
+        }
         return \__('The payment process could not have been finished successfully.');
     }
 
@@ -90,11 +114,13 @@ class Failure extends \Wallee\Payment\Controller\Transaction
     {
         $response = new DataObject();
         $response->setPath('checkout/cart');
-        $this->_eventManager->dispatch('wallee_failure_redirection_path',
+        $this->_eventManager->dispatch(
+            'wallee_failure_redirection_path',
             [
                 'order' => $order,
                 'response' => $response
-            ]);
+            ]
+        );
         return $response->getPath();
     }
 }

@@ -37,6 +37,7 @@ class VoidedCommand extends AbstractCommand
     }
 
     /**
+     * Execute voided transaction flow.
      *
      * @param \Wallee\Sdk\Model\Transaction $entity
      * @param Order $order
@@ -56,8 +57,10 @@ class VoidedCommand extends AbstractCommand
 
         if ($entity->getState() == TransactionState::VOIDED) {
             $order->setState(Order::STATE_CANCELED);
-            $order->addStatusToHistory('canceled',
-                \__('The order has been canceled.'));
+            $order->addStatusToHistory(
+                'canceled',
+                \__('The order has been canceled.')
+            );
         }
         $this->orderRepository->save($order);
     }

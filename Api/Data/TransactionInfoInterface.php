@@ -30,87 +30,87 @@ interface TransactionInfoInterface extends ExtensibleDataInterface
     /**
      * Authorization amount.
      */
-    const AUTHORIZATION_AMOUNT = 'authorization_amount';
+    public const AUTHORIZATION_AMOUNT = 'authorization_amount';
 
     /**
      * Connector ID.
      */
-    const CONNECTOR_ID = 'connector_id';
+    public const CONNECTOR_ID = 'connector_id';
 
     /**
      * Create-at timestamp.
      */
-    const CREATED_AT = 'created_at';
+    public const CREATED_AT = 'created_at';
 
     /**
      * Currency.
      */
-    const CURRENCY = 'currency';
+    public const CURRENCY = 'currency';
 
     /**
      * Entity ID.
      */
-    const ENTITY_ID = 'entity_id';
+    public const ENTITY_ID = 'entity_id';
 
     /**
      * Failure reason.
      */
-    const FAILURE_REASON = 'failure_reason';
+    public const FAILURE_REASON = 'failure_reason';
 
     /**
      * Image.
      */
-    const IMAGE = 'image';
+    public const IMAGE = 'image';
 
     /**
      * Labels.
      */
-    const LABELS = 'labels';
+    public const LABELS = 'labels';
 
     /**
      * Language.
      */
-    const LANGUAGE = 'language';
+    public const LANGUAGE = 'language';
 
     /**
      * Order ID.
      */
-    const ORDER_ID = 'order_id';
+    public const ORDER_ID = 'order_id';
 
     /**
      * Payment method ID.
      */
-    const PAYMENT_METHOD_ID = 'payment_method_id';
+    public const PAYMENT_METHOD_ID = 'payment_method_id';
 
     /**
      * Space ID.
      */
-    const SPACE_ID = 'space_id';
+    public const SPACE_ID = 'space_id';
 
     /**
      * Space view ID.
      */
-    const SPACE_VIEW_ID = 'space_view_id';
+    public const SPACE_VIEW_ID = 'space_view_id';
 
     /**
      * State.
      */
-    const STATE = 'state';
+    public const STATE = 'state';
 
     /**
      * Transaction ID.
      */
-    const TRANSACTION_ID = 'transaction_id';
+    public const TRANSACTION_ID = 'transaction_id';
 
     /**
      * Success URL to redirect the customer after placing the order.
      */
-	const SUCCESS_URL = 'success_url';
+    public const SUCCESS_URL = 'success_url';
 
-	/**
-	 * Failure URL to redirect the customer after placing the order.
-	 */
-	const FAILURE_URL = 'failure_url';
+    /**
+     * Failure URL to redirect the customer after placing the order.
+     */
+    public const FAILURE_URL = 'failure_url';
 
     /**
      * Gets the authorization amount of the transaction info.
@@ -225,16 +225,16 @@ interface TransactionInfoInterface extends ExtensibleDataInterface
     public function getSuccessUrl();
 
     /**
-	 * Gets the failure URL to redirection of the transaction info.
+     * Gets the failure URL to redirection of the transaction info.
      *
      * @return int Transaction ID.
      */
     public function getFailureUrl();
 
-	/**
-	 * Check if the transaction is an external payment.
-	 *
-	 * @return bool
-	 */
-	public function isExternalPaymentUrl();
+    /**
+     * Check if the transaction is an external payment.
+     *
+     * @return bool
+     */
+    public function isExternalPaymentUrl();
 }

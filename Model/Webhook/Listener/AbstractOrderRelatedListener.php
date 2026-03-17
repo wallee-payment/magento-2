@@ -28,11 +28,12 @@ use Wallee\Payment\Model\Webhook\Request;
 abstract class AbstractOrderRelatedListener implements ListenerInterface
 {
     /**
-     * Maximum number of attempts executeTransaction() function is allowed to loop through recursively to avoid infinite loops
+     * Maximum number of attempts executeTransaction() function is allowed to
+     * loop through recursively to avoid infinite loops.
      *
      * @var int
      */
-    const MAX_EXECUTE_ATTEMPTS = 20;
+    public const MAX_EXECUTE_ATTEMPTS = 20;
 
     /**
      *
@@ -104,6 +105,12 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
         $this->lockManager = $lockManager;
     }
 
+    /**
+     * Execute webhook request for the given entity.
+     *
+     * @param Request $request
+     * @return void
+     */
     public function execute(Request $request)
     {
         $entity = $this->loadEntity($request);
@@ -118,12 +125,12 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
 
     /**
      * Recursive function to process transactions.
-     * 
-     * It was implemented as a fix for possible deadlocks related to lock manager, 
-     * possibly caused when two processes with same transactionId are executed. 
-     * In that case we wait until one process unlocks the lock, while putting 
+     *
+     * It was implemented as a fix for possible deadlocks related to lock manager,
+     * possibly caused when two processes with same transactionId are executed.
+     * In that case we wait until one process unlocks the lock, while putting
      * other processes on hold by making them recursively call this function.
-     * This function is allowed to loop through only a set number of times. 
+     * This function is allowed to loop through only a set number of times.
      * That amount can be changed by modifying the MAX_EXECUTE_ATTEMPTS constant.
      *
      * @param mixed $request
@@ -135,12 +142,18 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
     {
         // check if current recursion loop attempt axceeds the allowed amount
         if ($attempt >= self::MAX_EXECUTE_ATTEMPTS) {
-            $this->logger->warning("AbstractOrderRelatedListener::executeTransaction - Max attempt number reached for transaction ID: " . $transactionId);
+            $this->logger->warning(
+                "AbstractOrderRelatedListener::executeTransaction - Max attempt number reached for transaction ID: " .
+                $transactionId
+            );
             return;
         }
         // if some other process has lock active for current transactionId, start another recursion loop
         if ($this->lockManager->isLocked($transactionId)) {
-            $this->logger->info("AbstractOrderRelatedListener::executeTransaction - Locked on transaction ID: " . $transactionId . " with attempt number: " . $attempt);
+            $this->logger->info(
+                "AbstractOrderRelatedListener::executeTransaction - Locked on transaction ID: " .
+                $transactionId . " with attempt number: " . $attempt
+            );
             // sleep for 500000 microseconds, or 0.5 seconds
             usleep(500000);
             $this->executeTransaction($request, $transactionId, $attempt + 1);
@@ -153,7 +166,8 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
             if ($transactionId != $this->getTransactionId($entity)) {
                 $this->logger->warning(
                     'wallee webhook: The transaction ID on the order ' . $order->getId() .
-                    ' does not match the webhook\'s: ' . $this->getTransactionId($entity));
+                    ' does not match the webhook\'s: ' . $this->getTransactionId($entity)
+                );
                 $connection->commit();
                 return;
             }
@@ -220,8 +234,10 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
     private function getOrderId($entity)
     {
         try {
-            $transactionInfo = $this->transactionInfoRepository->getByTransactionId($entity->getLinkedSpaceId(),
-                $this->getTransactionId($entity));
+            $transactionInfo = $this->transactionInfoRepository->getByTransactionId(
+                $entity->getLinkedSpaceId(),
+                $this->getTransactionId($entity)
+            );
             return $transactionInfo->getOrderId();
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
             return null;
@@ -231,6 +247,7 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
     /**
      * Creates a lock to prevent concurrency.
      *
+     * @param string $lockId
      * @return bool
      */
     protected function lock(string $lockId): bool
@@ -241,6 +258,7 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
     /**
      * Releases our lock.
      *
+     * @param string $lockId
      * @return bool
      */
     protected function unlock(string $lockId): bool
@@ -262,6 +280,15 @@ abstract class AbstractOrderRelatedListener implements ListenerInterface
                 ->execute($entity, $order);
         } catch (NotFoundException $e) {
             // If the command cannot be found, we ignore it.
+            $this->logger->debug(
+                sprintf(
+                    "There was an issue processing the order related webhook request. " .
+                    "state %s, order id %s",
+                    $entity->getState(),
+                    $order->getId()
+                ),
+                ['exception' => $e]
+            );
         }
     }
 

@@ -17,10 +17,15 @@ namespace Wallee\Payment\Model\Config\Source;
 class IntegrationMethod implements \Magento\Framework\Option\ArrayInterface
 {
 
-    const IFRAME = 'iframe';
-    const LIGHTBOX = 'lightbox';
-    const PAYMENT_PAGE = 'payment_page';
+    public const IFRAME = 'iframe';
+    public const LIGHTBOX = 'lightbox';
+    public const PAYMENT_PAGE = 'payment_page';
 
+    /**
+     * Return integration method options.
+     *
+     * @return array
+     */
     public function toOptionArray()
     {
         return [

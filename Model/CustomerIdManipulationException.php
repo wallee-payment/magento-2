@@ -15,6 +15,11 @@ use Magento\Framework\Exception\LocalizedException;
 
 class CustomerIdManipulationException extends LocalizedException
 {
+    /**
+     * Constructor.
+     *
+     * @return void
+     */
     public function __construct()
     {
         parent::__construct(\__('The payment timed out. Please reload the page and submit the order again.'));

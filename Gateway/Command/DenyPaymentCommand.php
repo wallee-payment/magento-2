@@ -36,6 +36,12 @@ class DenyPaymentCommand implements CommandInterface
         $this->orderTransactionService = $orderTransactionService;
     }
 
+    /**
+     * Deny the order transaction for the given payment command.
+     *
+     * @param array $commandSubject
+     * @return void
+     */
     public function execute(array $commandSubject)
     {
         /** @var \Magento\Sales\Model\Order\Payment $payment */

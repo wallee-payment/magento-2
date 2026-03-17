@@ -128,4 +128,18 @@
       <column name="connector_id"/>
     </index>
   </table>
+  <table name="wallee_webhook_progress" resource="default" engine="innodb" comment="wallee Webhook Progress Tracking">
+
+        <column xsi:type="int" name="entity_id" padding="10" unsigned="true" nullable="false" comment="The wallee Entity ID (e.g., Transaction ID, Refund ID)"/>
+
+        <column xsi:type="varchar" name="entity_type" length="128" nullable="false" comment="The wallee Entity Type (e.g., Transaction, Refund)"/>
+
+        <column xsi:type="varchar" name="last_processed_state" length="128" nullable="false" comment="The last webhook state processed for this entity"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+            <column name="entity_type"/>
+        </constraint>
+
+    </table>
 </schema>

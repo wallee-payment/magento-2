@@ -52,9 +52,21 @@ class UpdateDeclinedOrderTransaction implements ObserverInterface
      */
     private $quoteRepository;
 
-    public function __construct(CartRepositoryInterface $quoteRepository, TransactionService $transactionService,
-        TransactionInfoRepositoryInterface $transactionInfoRepository, LoggerInterface $logger, CheckoutSession $checkoutSession)
-    {
+    /**
+     *
+     * @param CartRepositoryInterface $quoteRepository
+     * @param TransactionService $transactionService
+     * @param TransactionInfoRepositoryInterface $transactionInfoRepository
+     * @param LoggerInterface $logger
+     * @param CheckoutSession $checkoutSession
+     */
+    public function __construct(
+        CartRepositoryInterface $quoteRepository,
+        TransactionService $transactionService,
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        LoggerInterface $logger,
+        CheckoutSession $checkoutSession
+    ) {
         $this->quoteRepository = $quoteRepository;
         $this->transactionService = $transactionService;
         $this->transactionInfoRepository = $transactionInfoRepository;

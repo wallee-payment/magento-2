@@ -25,6 +25,7 @@ use Wallee\Sdk\Model\TokenVersion;
 use Wallee\Sdk\Model\TokenVersionState;
 use Wallee\Sdk\Service\TokenService;
 use Wallee\Sdk\Service\TokenVersionService;
+use Psr\Log\LoggerInterface;
 
 /**
  * Token info management service.
@@ -64,24 +65,38 @@ class TokenInfoManagement implements TokenInfoManagementInterface
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param Helper $helper
      * @param TokenInfoRepositoryInterface $tokenInfoRepository
      * @param TokenInfoFactory $tokenInfoFactory
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param ApiClient $apiClient
+     * @param LoggerInterface $logger
      */
-    public function __construct(Helper $helper, TokenInfoRepositoryInterface $tokenInfoRepository,
+    public function __construct(
+        Helper $helper,
+        TokenInfoRepositoryInterface $tokenInfoRepository,
         TokenInfoFactory $tokenInfoFactory,
-        PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository, ApiClient $apiClient)
-    {
+        PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
+        ApiClient $apiClient,
+        LoggerInterface $logger
+    ) {
         $this->helper = $helper;
         $this->tokenInfoRepository = $tokenInfoRepository;
         $this->tokenInfoFactory = $tokenInfoFactory;
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->apiClient = $apiClient;
+        $this->logger = $logger;
     }
 
     /**
+     * Update local token version info based on token version id.
+     *
      * @param int $spaceId
      * @param int $tokenVersionId
      * @return void
@@ -93,6 +108,8 @@ class TokenInfoManagement implements TokenInfoManagementInterface
     }
 
     /**
+     * Synchronize local token info with the remote token state.
+     *
      * @param int $spaceId
      * @param int $tokenId
      * @return void
@@ -108,7 +125,8 @@ class TokenInfoManagement implements TokenInfoManagementInterface
             [
                 $this->helper->createEntityFilter('token.id', $tokenId),
                 $this->helper->createEntityFilter('state', TokenVersionState::ACTIVE)
-            ]);
+            ]
+        );
         $query->setFilter($filter);
         $query->setNumberOfEntities(1);
         $tokenVersions = $this->apiClient->getService(TokenVersionService::class)->search($spaceId, $query);
@@ -118,14 +136,24 @@ class TokenInfoManagement implements TokenInfoManagementInterface
             try {
                 $tokenInfo = $this->tokenInfoRepository->getByTokenId($spaceId, $tokenId);
                 $this->tokenInfoRepository->delete($tokenInfo);
-            } catch (NoSuchEntityException $e) {}
+            } catch (NoSuchEntityException $e) {
+                $this->logger->debug(
+                    sprintf(
+                        "An issue occurred retrieving or deleting the token info by token id %s.",
+                        $tokenId,
+                    ),
+                    ['exception' => $e]
+                );
+            }
         }
     }
 
     /**
+     * Updates token info based on the given token version.
+     *
      * @param TokenVersion $tokenVersion
      * @return void
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      * @throws \Magento\Framework\Exception\CouldNotSaveException
      * @throws \Magento\Framework\Exception\InputException
      * @throws \Magento\Framework\Exception\StateException
@@ -133,18 +161,22 @@ class TokenInfoManagement implements TokenInfoManagementInterface
     protected function updateTokenVersionInfo(TokenVersion $tokenVersion)
     {
         try {
-            $tokenInfo = $this->tokenInfoRepository->getByTokenId($tokenVersion->getLinkedSpaceId(),
+            $tokenInfo = $this->tokenInfoRepository->getByTokenId(
+                $tokenVersion->getLinkedSpaceId(),
                 $tokenVersion->getToken()
-                    ->getId());
+                ->getId()
+            );
         } catch (NoSuchEntityException $e) {
             $tokenInfo = $this->tokenInfoFactory->create();
         }
 
-        if (! \in_array($tokenVersion->getToken()->getState(),
+        if (! \in_array(
+            $tokenVersion->getToken()->getState(),
             [
                 CreationEntityState::ACTIVE,
                 CreationEntityState::INACTIVE
-            ])) {
+            ]
+        )) {
             if ($tokenInfo->getId()) {
                 $this->tokenInfoRepository->delete($tokenInfo);
             }
@@ -153,15 +185,21 @@ class TokenInfoManagement implements TokenInfoManagementInterface
                 ->getCustomerId());
             $tokenInfo->setData(TokenInfoInterface::NAME, $tokenVersion->getName());
             try {
-                $tokenInfo->setData(TokenInfoInterface::PAYMENT_METHOD_ID,
-                    $this->paymentMethodConfigurationRepository->getByConfigurationId($tokenVersion->getLinkedSpaceId(),
+                $tokenInfo->setData(
+                    TokenInfoInterface::PAYMENT_METHOD_ID,
+                    $this->paymentMethodConfigurationRepository->getByConfigurationId(
+                        $tokenVersion->getLinkedSpaceId(),
                         $tokenVersion->getPaymentConnectorConfiguration()
                             ->getPaymentMethodConfiguration()
-                            ->getId())
-                        ->getId());
-                $tokenInfo->setData(TokenInfoInterface::CONNECTOR_ID,
+                        ->getId()
+                    )
+                    ->getId()
+                );
+                $tokenInfo->setData(
+                    TokenInfoInterface::CONNECTOR_ID,
                     $tokenVersion->getPaymentConnectorConfiguration()
-                        ->getId());
+                    ->getId()
+                );
             } catch (\Error $e) { //Catching, but not showing, ticket WAL-69414
                 $error = $e;
             }
@@ -176,6 +214,8 @@ class TokenInfoManagement implements TokenInfoManagementInterface
     }
 
     /**
+     * Deletes token in portal and repository.
+     *
      * @param TokenInfoInterface $token
      * @return void
      * @throws \Magento\Framework\Exception\InputException

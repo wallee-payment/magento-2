@@ -35,7 +35,7 @@ use Wallee\Payment\Model\Service\Quote\TransactionService;
 class Adapter extends \Magento\Payment\Model\Method\Adapter
 {
 
-    const CAPTURE_INVOICE_REGISTRY_KEY = 'wallee_payment_capture_invoice';
+    public const CAPTURE_INVOICE_REGISTRY_KEY = 'wallee_payment_capture_invoice';
 
     /**
      *
@@ -102,16 +102,34 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
      * @param ValidatorPoolInterface $validatorPool
      * @param CommandManagerInterface $commandExecutor
      */
-    public function __construct(LoggerInterface $logger, ManagerInterface $eventManager,
-        ValueHandlerPoolInterface $valueHandlerPool, PaymentDataObjectFactory $paymentDataObjectFactory,
+    public function __construct(
+        LoggerInterface $logger,
+        ManagerInterface $eventManager,
+        ValueHandlerPoolInterface $valueHandlerPool,
+        PaymentDataObjectFactory $paymentDataObjectFactory,
         ScopeConfigInterface $scopeConfig,
-        PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository, ApiClient $apiClient,
-        TransactionService $transactionService, Helper $helper, $code, $paymentMethodConfigurationId,
-        CommandPoolInterface $commandPool = null, ValidatorPoolInterface $validatorPool = null,
-        CommandManagerInterface $commandExecutor = null)
-    {
-        parent::__construct($eventManager, $valueHandlerPool, $paymentDataObjectFactory, $code, Form::class, Info::class,
-            $commandPool, $validatorPool, $commandExecutor, $logger);
+        PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
+        ApiClient $apiClient,
+        TransactionService $transactionService,
+        Helper $helper,
+        $code,
+        $paymentMethodConfigurationId,
+        CommandPoolInterface $commandPool = null,
+        ValidatorPoolInterface $validatorPool = null,
+        CommandManagerInterface $commandExecutor = null
+    ) {
+        parent::__construct(
+            $eventManager,
+            $valueHandlerPool,
+            $paymentDataObjectFactory,
+            $code,
+            Form::class,
+            Info::class,
+            $commandPool,
+            $validatorPool,
+            $commandExecutor,
+            $logger
+        );
         $this->logger = $logger;
         $this->scopeConfig = $scopeConfig;
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
@@ -140,7 +158,8 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
     {
         if ($this->paymentMethodConfiguration == null) {
             $this->paymentMethodConfiguration = $this->paymentMethodConfigurationRepository->get(
-                $this->paymentMethodConfigurationId);
+                $this->paymentMethodConfigurationId
+            );
         }
         return $this->paymentMethodConfiguration;
     }
@@ -183,12 +202,21 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
     public function getImageUrl()
     {
         $spaceViewId = $this->scopeConfig->getValue('wallee_payment/general/space_view_id');
-        $language = $this->scopeConfig->getValue('general/locale/code', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+        $language = $this->scopeConfig->getValue(
+            'general/locale/code',
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        );
         return $this->helper->getResourceUrl($this->getPaymentMethodConfiguration()
             ->getImage(), $language, $this->getPaymentMethodConfiguration()
             ->getSpaceId(), $spaceViewId);
     }
 
+     /**
+      * Check whether the payment method is available for the given quote.
+      *
+      * @param CartInterface|null $quote
+      * @return bool
+      */
     public function isAvailable(CartInterface $quote = null)
     {
         $this->logger->debug("ADAPTER::isAvailable - INIT");
@@ -232,7 +260,9 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
 
         try {
             if (!$quote->getData('wallee_payment_payment_options_response')
-             || ($quote->getData('wallee_payment_payment_tmp_currency') != $quote->getQuoteCurrencyCode())) {
+                || ($quote->getData('wallee_payment_payment_tmp_currency')
+                    != $quote->getQuoteCurrencyCode())
+            ) {
                 $payment_options_response = $this->transactionService->getPossiblePaymentMethods($quote);
                 $quote->setData('wallee_payment_payment_options_response', $payment_options_response);
                 $quote->setData('wallee_payment_payment_tmp_currency', $quote->getQuoteCurrencyCode());

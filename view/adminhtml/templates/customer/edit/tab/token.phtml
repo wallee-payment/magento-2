@@ -25,22 +25,26 @@
                 if (!urlParams) {
                     urlParams = '';
                 }
-                var url = <?=$block->escapeJs($block->escapeUrl($block->getJsObjectName()))?>.url + '?ajax=true' + urlParams;
+                var url = <?=$escaper->escapeJs($escaper->escapeUrl($block->getJsObjectName()))?>
+                    .url + '?ajax=true' + urlParams;
                 new Ajax.Updater(
-                    <?=$block->escapeJs($block->escapeHtml($block->getJsObjectName()))?>.containerId,
+                    <?=$escaper->escapeJs($escaper->escapeHtml($block->getJsObjectName()))?>.containerId,
                     url, {
                         parameters: {form_key: FORM_KEY},
-                        onComplete: <?=$block->escapeJs($block->escapeHtml($block->getJsObjectName()))?>.initGrid.bind(<?=$block->escapeJs($block->escapeHtml($block->getJsObjectName()))?>),
+                        onComplete: <?=$escaper->escapeJs($escaper->escapeHtml($block->getJsObjectName()))?>
+                            .initGrid.bind(<?=$escaper->escapeJs($escaper->escapeHtml($block->getJsObjectName()))?>),
                         evalScripts:true
                     }
                 );
-        	},
+            },
 
             removeToken: function (tokenId) {
                 var self = this;
 
                 confirm({
-                    content: '<?=$block->escapeJs($block->escapeHtml(\__('Are you sure you want to remove this token?')))?>',
+                    content: '<?=$escaper->escapeJs(
+                        $escaper->escapeHtml(\__('Are you sure you want to remove this token?'))
+                    )?>',
                     actions: {
                         confirm: function () {
                             self.reload('&delete=' + tokenId);

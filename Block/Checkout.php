@@ -16,7 +16,11 @@ use Magento\Framework\View\Page\Config as ViewPageConfig;
 
 class Checkout extends \Magento\Framework\View\Element\AbstractBlock
 {
-
+    /**
+     * Initialize checkout compatibility scripts based on enabled modules.
+     *
+     * @return void
+     */
     protected function _construct()
     {
         /** @var \Magento\Framework\App\ObjectManager $om */

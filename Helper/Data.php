@@ -20,6 +20,7 @@ use Wallee\Sdk\Model\EntityQueryFilter;
 use Wallee\Sdk\Model\EntityQueryFilterType;
 use Wallee\Sdk\Model\EntityQueryOrderBy;
 use Wallee\Sdk\Model\EntityQueryOrderByType;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Basic helper.
@@ -63,7 +64,7 @@ class Data extends AbstractHelper
      */
     public function roundAmount($amount, $currencyCode)
     {
-        $roundedAmount = round($amount,2);
+        $roundedAmount = round($amount, 2);
         return $roundedAmount;
     }
 
@@ -133,9 +134,9 @@ class Data extends AbstractHelper
      */
     public function removeLinebreaks($string)
     {
-        if($string == NULL) //PHP8.1 does not support NULL on preg_replace
-        {
-            $string='';
+        // PHP8.1 does not support NULL on preg_replace
+        if ($string == null) {
+            $string = '';
         }
         return \preg_replace("/\r|\n/", ' ', $string);
     }
@@ -184,10 +185,8 @@ class Data extends AbstractHelper
      *
      * @return string the unique ID
      */
-    public function generateUUID() {
-        $data = \openssl_random_pseudo_bytes(16);
-        $data[6] = \chr(\ord($data[6]) & 0x0f | 0x40); // set version to 0100
-        $data[8] = \chr(\ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
-        return \vsprintf('%s%s-%s-%s-%s-%s%s%s', \str_split(\bin2hex($data), 4));
+    public function generateUUID()
+    {
+        return Uuid::uuid4()->toString();
     }
 }

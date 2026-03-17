@@ -65,10 +65,13 @@ abstract class AbstractTransactionService
      * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
      */
-    public function __construct(ResourceConnection $resource, CustomerRegistry $customerRegistry,
-        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement, ApiClient $apiClient,
-        CookieManagerInterface $cookieManager)
-    {
+    public function __construct(
+        ResourceConnection $resource,
+        CustomerRegistry $customerRegistry,
+        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
+        ApiClient $apiClient,
+        CookieManagerInterface $cookieManager
+    ) {
         $this->resource = $resource;
         $this->customerRegistry = $customerRegistry;
         $this->paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
@@ -110,13 +113,16 @@ abstract class AbstractTransactionService
      */
     protected function updateQuote(Quote $quote, Transaction $transaction)
     {
-        $this->resource->getConnection()->update($this->resource->getTableName('quote'),
+        $this->resource->getConnection()->update(
+            $this->resource->getTableName('quote'),
             [
                 'wallee_space_id' => $transaction->getLinkedSpaceId(),
                 'wallee_transaction_id' => $transaction->getId()
-            ], [
+            ],
+            [
                 'entity_id = ?' => $quote->getId()
-            ]);
+            ]
+        );
     }
 
     /**

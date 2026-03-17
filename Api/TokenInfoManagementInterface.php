@@ -13,11 +13,6 @@ namespace Wallee\Payment\Api;
 
 use Wallee\Payment\Api\Data\TokenInfoInterface;
 
-/**
- * Token info management interface.
- *
- * @api
- */
 interface TokenInfoManagementInterface
 {
 

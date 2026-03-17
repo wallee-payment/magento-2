@@ -21,14 +21,12 @@ class TokenInfo extends \Magento\Framework\Model\AbstractModel implements TokenI
 {
 
     /**
-     * Event prefix
      *
      * @var string
      */
     protected $_eventPrefix = 'wallee_payment_token_info';
 
     /**
-     * Event object
      *
      * @var string
      */
@@ -44,41 +42,81 @@ class TokenInfo extends \Magento\Framework\Model\AbstractModel implements TokenI
         $this->_init(ResourceModel::class);
     }
 
+    /**
+     * Get connector id.
+     *
+     * @return int
+     */
     public function getConnectorId()
     {
         return $this->getData(TokenInfoInterface::CONNECTOR_ID);
     }
 
+    /**
+     * Get created at timestamp.
+     *
+     * @return string|null
+     */
     public function getCreatedAt()
     {
         return $this->getData(TokenInfoInterface::CREATED_AT);
     }
 
+    /**
+     * Get customer id.
+     *
+     * @return int
+     */
     public function getCustomerId()
     {
         return $this->getData(TokenInfoInterface::CUSTOMER_ID);
     }
 
+    /**
+     * Get name.
+     *
+     * @return string
+     */
     public function getName()
     {
         return $this->getData(TokenInfoInterface::NAME);
     }
 
+    /**
+     * Get payment method id.
+     *
+     * @return int
+     */
     public function getPaymentMethodId()
     {
         return $this->getData(TokenInfoInterface::PAYMENT_METHOD_ID);
     }
 
+    /**
+     * Get space id.
+     *
+     * @return int
+     */
     public function getSpaceId()
     {
         return $this->getData(TokenInfoInterface::SPACE_ID);
     }
 
+    /**
+     * Get token state.
+     *
+     * @return string
+     */
     public function getState()
     {
         return $this->getData(TokenInfoInterface::STATE);
     }
 
+    /**
+     * Get token id.
+     *
+     * @return int
+     */
     public function getTokenId()
     {
         return $this->getData(TokenInfoInterface::TOKEN_ID);

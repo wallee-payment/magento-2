@@ -34,7 +34,6 @@ class DeviceSession extends \Magento\Framework\App\Action\Action
     private $helper;
 
     /**
-     *
      * @param Context $context
      * @param JsonFactory $resultJsonFactory
      * @param Helper $helper
@@ -46,6 +45,11 @@ class DeviceSession extends \Magento\Framework\App\Action\Action
         $this->helper = $helper;
     }
 
+    /**
+     * Generate a UUID and return it as a JSON response.
+     *
+     * @return \Magento\Framework\Controller\Result\Json
+     */
     public function execute()
     {
         /** @var \Magento\Framework\Controller\Result\Json $resultJson */

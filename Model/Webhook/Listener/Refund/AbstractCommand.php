@@ -15,6 +15,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Model\Webhook\Listener\AbstractOrderRelatedCommand;
 use Wallee\Sdk\Model\Refund;
+use Psr\Log\LoggerInterface;
 
 /**
  * Abstract webhook listener command to handle refunds.
@@ -30,11 +31,19 @@ abstract class AbstractCommand extends AbstractOrderRelatedCommand
 
     /**
      *
-     * @param RefundJobRepositoryInterface $refundJobRepository
+     * @var LoggerInterface
      */
-    public function __construct(RefundJobRepositoryInterface $refundJobRepository)
+    private $logger;
+
+    /**
+     *
+     * @param RefundJobRepositoryInterface $refundJobRepository
+     * @param LoggerInterface $logger
+     */
+    public function __construct(RefundJobRepositoryInterface $refundJobRepository, LoggerInterface $logger)
     {
         $this->refundJobRepository = $refundJobRepository;
+        $this->logger = $logger;
     }
 
     /**
@@ -50,6 +59,10 @@ abstract class AbstractCommand extends AbstractOrderRelatedCommand
             $this->refundJobRepository->delete($refundJob);
         } catch (NoSuchEntityException $e) {
             // If the refund job cannot be found, there is no need to delete it, so the exception can be ignored.
+            $this->logger->debug(
+                "There was an issue deleting the refund job.",
+                ['exception' => $e]
+            );
         }
     }
 }

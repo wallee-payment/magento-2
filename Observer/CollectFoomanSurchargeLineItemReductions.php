@@ -47,6 +47,12 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
         $this->helper = $helper;
     }
 
+    /**
+     * Append Fooman surcharges to the line item reductions.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         /* @var Creditmemo $creditmemo */
@@ -56,8 +62,10 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
         $transport = $observer->getTransport();
 
         if ($this->moduleManager->isEnabled('Fooman_Surcharge')) {
-            $transport->setData('items',
-                \array_merge($transport->getData('items'), $this->convertFoomanSurcharges($creditmemo, $baseLineItems)));
+            $transport->setData(
+                'items',
+                \array_merge($transport->getData('items'), $this->convertFoomanSurcharges($creditmemo, $baseLineItems))
+            );
         }
     }
 
@@ -90,15 +98,20 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
             if ($item->getAmount() <= 0) {
                 continue;
             }
-            $items[] = $this->createSurchargeReduction($creditmemo, $item->getTypeId(),
+            $items[] = $this->createSurchargeReduction(
+                $creditmemo,
+                $item->getTypeId(),
                 $item->getAmount() + $item->getTaxAmount(),
-                isset($baseLineItemMap['fooman_surcharge_' . $item->getTypeId()]) ? $baseLineItemMap['fooman_surcharge_' .
-                $item->getTypeId()] : null);
+                isset($baseLineItemMap['fooman_surcharge_' . $item->getTypeId()])
+                    ? $baseLineItemMap['fooman_surcharge_' . $item->getTypeId()]
+                    : null
+            );
         }
         return $items;
     }
 
     /**
+     * Create a surcharge line item reduction.
      *
      * @param Creditmemo $creditmemo
      * @param string $code

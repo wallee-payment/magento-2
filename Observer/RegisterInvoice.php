@@ -39,6 +39,13 @@ class RegisterInvoice implements ObserverInterface
         $this->transactionService = $transactionService;
     }
 
+    /**
+     * Validate invoice creation rules for this payment method.
+     *
+     * @param Observer $observer
+     * @return void
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
     public function execute(Observer $observer)
     {
         /** @var \Magento\Sales\Model\Order\Invoice $invoice */
@@ -51,22 +58,26 @@ class RegisterInvoice implements ObserverInterface
                 // Only allow to create a new invoice if all previous invoices of the order have been cancelled.
                 if (! $this->canCreateInvoice($order)) {
                     throw new \Magento\Framework\Exception\LocalizedException(
-                        \__('Only one invoice is allowed. To change the invoice, cancel the existing one first.'));
+                        \__('Only one invoice is allowed. To change the invoice, cancel the existing one first.')
+                    );
                 }
 
                 if (! $invoice->getWalleeCapturePending()) {
                     $invoice->setTransactionId(
                         $order->getWalleeSpaceId() . '_' .
-                        $order->getWalleeTransactionId());
+                        $order->getWalleeTransactionId()
+                    );
 
                     if (! $order->getWalleeInvoiceAllowManipulation()) {
                         // The invoice can only be created by the merchant if the transaction is in state 'AUTHORIZED'.
                         $transaction = $this->transactionService->getTransaction(
                             $order->getWalleeSpaceId(),
-                            $order->getWalleeTransactionId());
+                            $order->getWalleeTransactionId()
+                        );
                         if ($transaction->getState() != TransactionState::AUTHORIZED) {
                             throw new \Magento\Framework\Exception\LocalizedException(
-                                \__('The invoice cannot be created.'));
+                                \__('The invoice cannot be created.')
+                            );
                         }
 
                         $this->transactionService->updateLineItems($invoice, $invoice->getGrandTotal());
@@ -77,8 +88,7 @@ class RegisterInvoice implements ObserverInterface
     }
 
     /**
-     * Returns whether an invoice can be created for the given order, i.e.
-     * there is no existing uncancelled invoice.
+     * Returns whether an invoice can be created for the given order.
      *
      * @param Order $order
      * @return boolean

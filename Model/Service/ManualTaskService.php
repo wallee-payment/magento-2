@@ -27,7 +27,7 @@ use Wallee\Sdk\Service\ManualTaskService as ManualTaskApiService;
 class ManualTaskService
 {
 
-    const CONFIG_KEY = 'wallee_payment/general/manual_tasks';
+    public const CONFIG_KEY = 'wallee_payment/general/manual_tasks';
 
     /**
      *
@@ -74,9 +74,14 @@ class ManualTaskService
      * @param Helper $helper
      * @param ApiClient $apiClient
      */
-    public function __construct(StoreManagerInterface $storeManager, ScopeConfigInterface $scopeConfig,
-        CollectionFactory $configCollectionFactory, StorageWriter $configWriter, Helper $helper, ApiClient $apiClient)
-    {
+    public function __construct(
+        StoreManagerInterface $storeManager,
+        ScopeConfigInterface $scopeConfig,
+        CollectionFactory $configCollectionFactory,
+        StorageWriter $configWriter,
+        Helper $helper,
+        ApiClient $apiClient
+    ) {
         $this->storeManager = $storeManager;
         $this->scopeConfig = $scopeConfig;
         $this->configCollectionFactory = $configCollectionFactory;
@@ -117,13 +122,22 @@ class ManualTaskService
         $numberOfManualTasks = [];
         $spaceIds = [];
         foreach ($this->storeManager->getWebsites() as $website) {
-            $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
-                ScopeInterface::SCOPE_WEBSITE, $website->getId());
+            $spaceId = $this->scopeConfig->getValue(
+                'wallee_payment/general/space_id',
+                ScopeInterface::SCOPE_WEBSITE,
+                $website->getId()
+            );
             if ($spaceId && ! \in_array($spaceId, $spaceIds)) {
-                $websiteNumberOfManualTasks = $this->apiClient->getService(ManualTaskApiService::class)->count($spaceId,
-                    $this->helper->createEntityFilter('state', ManualTaskState::OPEN));
-                $this->configWriter->save(self::CONFIG_KEY, $websiteNumberOfManualTasks, ScopeInterface::SCOPE_WEBSITE,
-                    $website->getId());
+                $websiteNumberOfManualTasks = $this->apiClient->getService(ManualTaskApiService::class)->count(
+                    $spaceId,
+                    $this->helper->createEntityFilter('state', ManualTaskState::OPEN)
+                );
+                $this->configWriter->save(
+                    self::CONFIG_KEY,
+                    $websiteNumberOfManualTasks,
+                    ScopeInterface::SCOPE_WEBSITE,
+                    $website->getId()
+                );
                 if (! empty($websiteNumberOfManualTasks)) {
                     $numberOfManualTasks[$website->getId()] = $websiteNumberOfManualTasks;
                 }

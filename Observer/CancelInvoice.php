@@ -38,6 +38,13 @@ class CancelInvoice implements ObserverInterface
         $this->transactionService = $transactionService;
     }
 
+    /**
+     * Prevent invoice cancellation for this payment method in certain transaction states.
+     *
+     * @param Observer $observer the observer instance containing event data
+     * @return void
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
     public function execute(Observer $observer)
     {
         /** @var \Magento\Sales\Model\Order\Invoice $invoice */
@@ -47,14 +54,17 @@ class CancelInvoice implements ObserverInterface
         if ($order->getPayment()->getMethodInstance() instanceof Adapter) {
             if ($invoice->getWalleeCapturePending()) {
                 throw new \Magento\Framework\Exception\LocalizedException(
-                    \__('The invoice cannot be cancelled as its capture has already been requested.'));
+                    \__('The invoice cannot be cancelled as its capture has already been requested.')
+                );
             }
 
             if (! $order->getWalleeInvoiceAllowManipulation() &&
                 ! $invoice->getWalleeDerecognized()) {
                 // The invoice can only be cancelled by the merchant if the transaction is in state 'AUTHORIZED'.
-                $transaction = $this->transactionService->getTransaction($order->getWalleeSpaceId(),
-                    $order->getWalleeTransactionId());
+                $transaction = $this->transactionService->getTransaction(
+                    $order->getWalleeSpaceId(),
+                    $order->getWalleeTransactionId()
+                );
                 if ($transaction->getState() != TransactionState::AUTHORIZED) {
                     throw new \Magento\Framework\Exception\LocalizedException(\__('The invoice cannot be cancelled.'));
                 }

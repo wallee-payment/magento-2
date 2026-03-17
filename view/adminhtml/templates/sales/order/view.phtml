@@ -16,11 +16,13 @@
 /** @var $block \Wallee\Payment\Block\Adminhtml\Sales\Order\View */
 ?>
 
-<?php if ($block->hasPendingRefund()) : ?>
-	<div class="messages">
-		<div class="message message-warning warning">
-			<?=$block->escapeHtml(\__('This order has a pending refund request.'))?>
-			<a class="message-link" href="<?=$block->escapeHtml($block->getRefundUrl())?>"><?=$block->escapeHtml(\__('Send Refund Request'))?></a>
-		</div>
-	</div>
+<?php if ($block->hasPendingRefund()): ?>
+    <div class="messages">
+        <div class="message message-warning warning">
+            <?=$escaper->escapeHtml(\__('This order has a pending refund request.'))?>
+            <a class="message-link" href="<?=$escaper->escapeHtml($block->getRefundUrl())?>">
+                <?=$escaper->escapeHtml(\__('Send Refund Request'))?>
+            </a>
+        </div>
+    </div>
 <?php endif; ?>

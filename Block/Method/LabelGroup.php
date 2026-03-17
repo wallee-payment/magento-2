@@ -73,6 +73,7 @@ class LabelGroup
     }
 
     /**
+     * Gets the group descriptor's labels.
      *
      * @return Label[]
      */

@@ -20,20 +20,19 @@ use Magento\Sales\Api\Data\OrderInterface;
  */
 interface OrderRepositoryInterface
 {
-
-	/**
-	 * Get order by Order Increment Id
-	 *
-	 * @param $incrementId
-	 * @return OrderInterface|null
-	 */
+    /**
+     * Get order by Order Increment Id
+     *
+     * @param string $incrementId
+     * @return OrderInterface|null
+     */
     public function getOrderByIncrementId($incrementId);
 
-	/**
-	 * Get order by Id
-	 *
-	 * @param string $id
-	 * @return OrderInterface|null
-	 */
+    /**
+     * Get order by Id
+     *
+     * @param string $id
+     * @return OrderInterface|null
+     */
     public function getOrderById($id);
 }

@@ -88,9 +88,14 @@ class WebhookService
      * @param ListenerPoolInterface $webhookListenerPool
      * @param ApiClient $apiClient
      */
-    public function __construct(StoreManagerInterface $storeManager, ScopeConfigInterface $scopeConfig,
-        UrlInterface $urlBuilder, Helper $helper, ListenerPoolInterface $webhookListenerPool, ApiClient $apiClient)
-    {
+    public function __construct(
+        StoreManagerInterface $storeManager,
+        ScopeConfigInterface $scopeConfig,
+        UrlInterface $urlBuilder,
+        Helper $helper,
+        ListenerPoolInterface $webhookListenerPool,
+        ApiClient $apiClient
+    ) {
         $this->storeManager = $storeManager;
         $this->scopeConfig = $scopeConfig;
         $this->urlBuilder = $urlBuilder;
@@ -113,14 +118,18 @@ class WebhookService
 
     /**
      * Installs the necessary webhooks in wallee.
+     *
      * @return void
      */
     public function install()
     {
         $spaceIds = [];
         foreach ($this->storeManager->getWebsites() as $website) {
-            $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
-                ScopeInterface::SCOPE_WEBSITE, $website->getId());
+            $spaceId = $this->scopeConfig->getValue(
+                'wallee_payment/general/space_id',
+                ScopeInterface::SCOPE_WEBSITE,
+                $website->getId()
+            );
             if ($spaceId && ! in_array($spaceId, $spaceIds)) {
                 $webhookUrl = $this->getWebhookUrl($spaceId);
                 if (! ($webhookUrl instanceof WebhookUrl)) {
@@ -190,7 +199,8 @@ class WebhookService
             [
                 $this->helper->createEntityFilter('state', CreationEntityState::ACTIVE),
                 $this->helper->createEntityFilter('url.id', $webhookUrl->getId())
-            ]);
+            ]
+        );
         $query->setFilter($filter);
         return $this->apiClient->getService(WebhookListenerService::class)->search($spaceId, $query);
     }
@@ -226,7 +236,8 @@ class WebhookService
             [
                 $this->helper->createEntityFilter('state', CreationEntityState::ACTIVE),
                 $this->helper->createEntityFilter('url', $this->getUrl())
-            ]);
+            ]
+        );
         $query->setFilter($filter);
         $result = $this->apiClient->getService(WebhookUrlService::class)->search($spaceId, $query);
         if (! empty($result)) {
@@ -257,22 +268,31 @@ class WebhookService
     {
         $listeners = [];
 
-        $listeners[] = new Entity(1487165678181, 'Manual Task',
+        $listeners[] = new Entity(
+            1487165678181,
+            'Manual Task',
             [
                 ManualTaskState::DONE,
                 ManualTaskState::EXPIRED,
                 ManualTaskState::OPEN
-            ]);
+            ]
+        );
 
-        $listeners[] = new Entity(1472041857405, 'Payment Method Configuration',
+        $listeners[] = new Entity(
+            1472041857405,
+            'Payment Method Configuration',
             [
                 CreationEntityState::ACTIVE,
                 CreationEntityState::DELETED,
                 CreationEntityState::DELETING,
                 CreationEntityState::INACTIVE
-            ], true);
+            ],
+            true
+        );
 
-        $listeners[] = new Entity(1472041829003, 'Transaction',
+        $listeners[] = new Entity(
+            1472041829003,
+            'Transaction',
             [
                 TransactionState::AUTHORIZED,
                 TransactionState::DECLINE,
@@ -282,41 +302,54 @@ class WebhookService
                 TransactionState::COMPLETED,
                 TransactionState::PROCESSING,
                 TransactionState::CONFIRMED
-            ]);
+            ]
+        );
 
-        $listeners[] = new Entity(1472041819799, 'Delivery Indication',
+        $listeners[] = new Entity(
+            1472041819799,
+            'Delivery Indication',
             [
                 DeliveryIndicationState::MANUAL_CHECK_REQUIRED
-            ]);
+            ]
+        );
 
         $listeners[] = new Entity(1472041831364, 'Transaction Completion', [
             TransactionCompletionState::FAILED
         ]);
 
-        $listeners[] = new Entity(1472041816898, 'Transaction Invoice',
+        $listeners[] = new Entity(
+            1472041816898,
+            'Transaction Invoice',
             [
                 TransactionInvoiceState::NOT_APPLICABLE,
                 TransactionInvoiceState::PAID
-            ]);
+            ]
+        );
 
         $listeners[] = new Entity(1472041839405, 'Refund', [
             RefundState::FAILED,
             RefundState::SUCCESSFUL
         ]);
 
-        $listeners[] = new Entity(1472041806455, 'Token',
+        $listeners[] = new Entity(
+            1472041806455,
+            'Token',
             [
                 CreationEntityState::ACTIVE,
                 CreationEntityState::INACTIVE,
                 CreationEntityState::DELETING,
                 CreationEntityState::DELETED
-            ]);
+            ]
+        );
 
-        $listeners[] = new Entity(1472041811051, 'Token Version',
+        $listeners[] = new Entity(
+            1472041811051,
+            'Token Version',
             [
                 TokenVersionState::ACTIVE,
                 TokenVersionState::OBSOLETE
-            ]);
+            ]
+        );
 
         return $listeners;
     }

@@ -79,21 +79,48 @@ class UpdateTransactionUrls implements ResolverInterface
      */
     private $logger;
 
-
-    public function __construct(Session $customerSession, CheckoutSession $checkoutSession, GetCustomer $getCustomer,
-        MaskedQuoteIdToQuoteIdInterface $maskedQuoteIdToQuoteIdService, CartRepositoryInterface $cartRepository,
-        TransactionService $transactionQuoteService, TransactionInfoManagementInterface $transactionInfoManagement, LoggerInterface $logger)
-        {
+    /**
+     * @param Session $customerSession
+     * @param CheckoutSession $checkoutSession
+     * @param GetCustomer $getCustomer
+     * @param MaskedQuoteIdToQuoteIdInterface $maskedQuoteIdToQuoteIdService
+     * @param CartRepositoryInterface $cartRepository
+     * @param TransactionService $transactionQuoteService
+     * @param TransactionInfoManagementInterface $transactionInfoManagement
+     * @param LoggerInterface $logger
+     */
+    public function __construct(
+        Session $customerSession,
+        CheckoutSession $checkoutSession,
+        GetCustomer $getCustomer,
+        MaskedQuoteIdToQuoteIdInterface $maskedQuoteIdToQuoteIdService,
+        CartRepositoryInterface $cartRepository,
+        TransactionService $transactionQuoteService,
+        TransactionInfoManagementInterface $transactionInfoManagement,
+        LoggerInterface $logger
+    ) {
         $this->customerSession = $customerSession;
         $this->checkoutSession = $checkoutSession;
         $this->getCustomer = $getCustomer;
-        $this->cartRepository = $cartRepository;
         $this->maskedQuoteIdToQuoteIdService = $maskedQuoteIdToQuoteIdService;
-        $this->logger = $logger;
+        $this->cartRepository = $cartRepository;
         $this->transactionQuoteService = $transactionQuoteService;
         $this->transactionInfoManagement = $transactionInfoManagement;
+        $this->logger = $logger;
     }
 
+    /**
+     * Resolve transaction URL update request for the given cart.
+     *
+     * @param \Magento\Framework\GraphQl\Config\Element\Field $field
+     * @param \Magento\GraphQl\Model\Query\ContextInterface $context
+     * @param \Magento\Framework\GraphQl\Schema\Type\ResolveInfo $info
+     * @param array|null $value
+     * @param array|null $args
+     * @return mixed
+     * @throws \Magento\Framework\GraphQl\Exception\GraphQlAuthorizationException
+     * @throws \Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException
+     */
     public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
     {
         //only perform validations if the user is anonymous.
@@ -104,7 +131,9 @@ class UpdateTransactionUrls implements ResolverInterface
             }
 
             $customer = $this->getCustomer->execute($context);
-            if ($this->customerSession === null && $customer->getId() !== $this->customerSession->getCustomer()->getId()) {
+            if ($this->customerSession === null
+                && $customer->getId() !== $this->customerSession->getCustomer()->getId()
+            ) {
                 throw new GraphQlAuthorizationException(__('The current customer isn\'t authorized.'));
             }
         }
@@ -127,7 +156,7 @@ class UpdateTransactionUrls implements ResolverInterface
      * @param string $successUrl
      * @param string $failureUrl
      * @return array<mixed>
-     * @throws LocalizedException
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     private function setTransactionUrls($cartIdMasked, $successUrl, $failureUrl)
     {

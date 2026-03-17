@@ -54,25 +54,27 @@ class CaptureCommand extends AbstractCommand
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         OrderEmailSender $orderEmailSender,
-        AuthorizedCommand $authorizedCommand)
-    {
+        AuthorizedCommand $authorizedCommand
+    ) {
         $this->orderRepository = $orderRepository;
         $this->orderEmailSender = $orderEmailSender;
         $this->authorizedCommand = $authorizedCommand;
     }
 
     /**
+     * Execute invoice capture flow.
      *
      * @param \Wallee\Sdk\Model\TransactionInvoice $entity
      * @param Order $order
+     * @return bool|null
      */
-	public function execute($entity, Order $order)
-	{
-		$this->authorizedCommand->execute($entity, $order);
+    public function execute($entity, Order $order)
+    {
+        $this->authorizedCommand->execute($entity, $order);
 
-		$transaction = $entity->getCompletion()
-		  ->getLineItemVersion()
-		  ->getTransaction();
+        $transaction = $entity->getCompletion()
+          ->getLineItemVersion()
+          ->getTransaction();
         
         $txState = $transaction->getState();
         
@@ -85,58 +87,63 @@ class CaptureCommand extends AbstractCommand
             }
         }
 
-		$invoice = $this->getInvoiceForTransaction($transaction, $order);
+        $invoice = $this->getInvoiceForTransaction($transaction, $order);
 
-		$needsCapture = !($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN;
-		if ($needsCapture) {
-			$invoice = $this->captureInvoice($order, $entity->getAmount(), $invoice);
-		}
+        $needsCapture = !($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN;
+        if ($needsCapture) {
+            $invoice = $this->captureInvoice($order, $entity->getAmount(), $invoice);
+        }
 
-		if (!$invoice) {
-			return false;
-		}
+        if (!$invoice) {
+            return false;
+        }
 
-		// Mark transaction complete
-		if ($transaction->getState() == TransactionState::FULFILL) {
-			$order->setState(Order::STATE_PROCESSING);
-			$order->setStatus('processing');
-		}
+        // Mark transaction complete
+        if ($transaction->getState() == TransactionState::FULFILL) {
+            $order->setState(Order::STATE_PROCESSING);
+            $order->setStatus('processing');
+        }
 
-		$order->setWalleeAuthorized(true);
+        $order->setWalleeAuthorized(true);
 
-		$this->orderRepository->save($order);
-		$this->sendOrderEmail($order);
-	}
+        $this->orderRepository->save($order);
+        $this->sendOrderEmail($order);
+    }
 
-	/**
-	 * @return InvoiceInterface|null
-	 */
-	private function captureInvoice(Order $order, float $amount, ?InvoiceInterface $invoice)
-	{
-		/** @var \Magento\Sales\Model\Order\Payment $payment */
-		$payment = $order->getPayment();
-		$payment->setTransactionId(null);
-		$payment->setParentTransactionId($payment->getTransactionId());
-		$payment->setIsTransactionClosed(true);
-		$payment->registerCaptureNotification($amount, true);
+    /**
+     * Capture invoice amount and return the invoice.
+     *
+     * @param Order $order
+     * @param float $amount
+     * @param InvoiceInterface|null $invoice
+     * @return InvoiceInterface|null
+     */
+    private function captureInvoice(Order $order, float $amount, ?InvoiceInterface $invoice)
+    {
+        /** @var \Magento\Sales\Model\Order\Payment $payment */
+        $payment = $order->getPayment();
+        $payment->setTransactionId(null);
+        $payment->setParentTransactionId($payment->getTransactionId());
+        $payment->setIsTransactionClosed(true);
+        $payment->registerCaptureNotification($amount, true);
 
-		$invoice = $payment->getCreatedInvoice() ?: $invoice;
+        $invoice = $payment->getCreatedInvoice() ?: $invoice;
 
-		if ($invoice instanceof InvoiceInterface) {
-			$invoice->pay();
-			$invoice->setWalleeCapturePending(false);
-			$order->addRelatedObject($invoice);
-			return $invoice;
-		}
+        if ($invoice instanceof InvoiceInterface) {
+            $invoice->pay();
+            $invoice->setWalleeCapturePending(false);
+            $order->addRelatedObject($invoice);
+            return $invoice;
+        }
 
-		foreach ($order->getRelatedObjects() as $object) {
-			if ($object instanceof InvoiceInterface) {
-				return $object;
-			}
-		}
+        foreach ($order->getRelatedObjects() as $object) {
+            if ($object instanceof InvoiceInterface) {
+                return $object;
+            }
+        }
 
-		return null;
-	}
+        return null;
+    }
 
     /**
      * Sends the order email if not already sent.
@@ -150,5 +157,4 @@ class CaptureCommand extends AbstractCommand
             $this->orderEmailSender->send($order);
         }
     }
-
 }

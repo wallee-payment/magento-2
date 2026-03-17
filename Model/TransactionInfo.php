@@ -21,14 +21,12 @@ class TransactionInfo extends \Magento\Framework\Model\AbstractModel implements 
 {
 
     /**
-     * Event prefix
      *
      * @var string
      */
     protected $_eventPrefix = 'wallee_payment_transaction_info';
 
     /**
-     * Event object
      *
      * @var string
      */
@@ -44,88 +42,173 @@ class TransactionInfo extends \Magento\Framework\Model\AbstractModel implements 
         $this->_init(ResourceModel::class);
     }
 
+    /**
+     * Get authorization amount.
+     *
+     * @return float.
+     */
     public function getAuthorizationAmount()
     {
         return $this->getData(TransactionInfoInterface::AUTHORIZATION_AMOUNT);
     }
 
+    /**
+     * Get connector id.
+     *
+     * @return int.
+     */
     public function getConnectorId()
     {
         return $this->getData(TransactionInfoInterface::CONNECTOR_ID);
     }
 
+    /**
+     * Get created at timestamp.
+     *
+     * @return string|null
+     */
     public function getCreatedAt()
     {
         return $this->getData(TransactionInfoInterface::CREATED_AT);
     }
 
+    /**
+     * Get currency.
+     *
+     * @return string
+     */
     public function getCurrency()
     {
         return $this->getData(TransactionInfoInterface::CURRENCY);
     }
 
+    /**
+     * Get failure reason.
+     *
+     * @return string
+     */
     public function getFailureReason()
     {
         return $this->getData(TransactionInfoInterface::FAILURE_REASON);
     }
 
+    /**
+     * Get image.
+     *
+     * @return string
+     */
     public function getImage()
     {
         return $this->getData(TransactionInfoInterface::IMAGE);
     }
 
+    /**
+     * Get labels.
+     *
+     * @return array
+     */
     public function getLabels()
     {
         return $this->getData(TransactionInfoInterface::LABELS);
     }
 
+    /**
+     * Get language.
+     *
+     * @return string
+     */
     public function getLanguage()
     {
         return $this->getData(TransactionInfoInterface::LANGUAGE);
     }
 
+    /**
+     * Get order id.
+     *
+     * @return string
+     */
     public function getOrderId()
     {
         return $this->getData(TransactionInfoInterface::ORDER_ID);
     }
 
+    /**
+     * Get payment method id.
+     *
+     * @return string
+     */
     public function getPaymentMethodId()
     {
         return $this->getData(TransactionInfoInterface::PAYMENT_METHOD_ID);
     }
 
+    /**
+     * Get space id.
+     *
+     * @return int
+     */
     public function getSpaceId()
     {
         return $this->getData(TransactionInfoInterface::SPACE_ID);
     }
 
+    /**
+     * Get space view id.
+     *
+     * @return int
+     */
     public function getSpaceViewId()
     {
         return $this->getData(TransactionInfoInterface::SPACE_VIEW_ID);
     }
 
+    /**
+     * Get transaction state.
+     *
+     * @return string
+     */
     public function getState()
     {
         return $this->getData(TransactionInfoInterface::STATE);
     }
 
+    /**
+     * Get transaction id.
+     *
+     * @return int
+     */
     public function getTransactionId()
     {
         return $this->getData(TransactionInfoInterface::TRANSACTION_ID);
     }
 
-	public function getSuccessUrl()
-	{
-		return $this->getData(TransactionInfoInterface::SUCCESS_URL);
-	}
+    /**
+     * Get success URL.
+     *
+     * @return string
+     */
+    public function getSuccessUrl()
+    {
+        return $this->getData(TransactionInfoInterface::SUCCESS_URL);
+    }
 
-	public function getFailureUrl()
-	{
-		return $this->getData(TransactionInfoInterface::FAILURE_URL);
-	}
+    /**
+     * Get failure URL.
+     *
+     * @return string|null
+     */
+    public function getFailureUrl()
+    {
+        return $this->getData(TransactionInfoInterface::FAILURE_URL);
+    }
 
-	public function isExternalPaymentUrl()
-	{
-		return !empty($this->getSuccessUrl()) && !empty($this->getFailureUrl());
-	}
+    /**
+     * Check whether external payment URLs are set.
+     *
+     * @return bool
+     */
+    public function isExternalPaymentUrl()
+    {
+        return !empty($this->getSuccessUrl()) && !empty($this->getFailureUrl());
+    }
 }

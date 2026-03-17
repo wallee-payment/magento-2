@@ -22,106 +22,106 @@ use Wallee\Payment\Api\OrderRepositoryInterface;
 
 class OrderRepository implements OrderRepositoryInterface
 {
-	/**
-	 * @var FilterBuilder
-	 */
-	protected $filterBuilder;
+    /**
+     * @var FilterBuilder
+     */
+    protected $filterBuilder;
 
-	/**
-	 * @var FilterGroupBuilder
-	 */
-	protected $filterGroupBuilder;
+    /**
+     * @var FilterGroupBuilder
+     */
+    protected $filterGroupBuilder;
 
-	/**
-	 * @var SearchCriteriaBuilder
-	 */
-	protected $searchCriteriaBuilder;
+    /**
+     * @var SearchCriteriaBuilder
+     */
+    protected $searchCriteriaBuilder;
 
-	/**
-	 * @var BaseOrderRepositoryInterface
-	 */
-	private $orderRepository;
+    /**
+     * @var BaseOrderRepositoryInterface
+     */
+    private $orderRepository;
 
-	/**
-	 * @var LoggerInterface
-	 */
-	private $logger;
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
 
-	/**
-	 *
-	 * @param SearchCriteriaBuilder $searchCriteriaBuilder
-	 * @param BaseOrderRepositoryInterface $orderRepository
-	 * @param FilterBuilder $filterBuilder
-	 * @param FilterGroupBuilder $filterGroupBuilder
-	 * @param LoggerInterface $logger
-	 */
-	public function __construct(
-		SearchCriteriaBuilder $searchCriteriaBuilder,
-		BaseOrderRepositoryInterface $orderRepository,
-		FilterBuilder $filterBuilder,
-		FilterGroupBuilder $filterGroupBuilder,
-		LoggerInterface $logger
-	) {
-		$this->filterBuilder = $filterBuilder;
-		$this->filterGroupBuilder = $filterGroupBuilder;
-		$this->searchCriteriaBuilder = $searchCriteriaBuilder;
-		$this->orderRepository = $orderRepository;
-		$this->logger = $logger;
-	}
+    /**
+     *
+     * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param BaseOrderRepositoryInterface $orderRepository
+     * @param FilterBuilder $filterBuilder
+     * @param FilterGroupBuilder $filterGroupBuilder
+     * @param LoggerInterface $logger
+     */
+    public function __construct(
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        BaseOrderRepositoryInterface $orderRepository,
+        FilterBuilder $filterBuilder,
+        FilterGroupBuilder $filterGroupBuilder,
+        LoggerInterface $logger
+    ) {
+        $this->filterBuilder = $filterBuilder;
+        $this->filterGroupBuilder = $filterGroupBuilder;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->orderRepository = $orderRepository;
+        $this->logger = $logger;
+    }
 
-	/**
-	 * Get Order data by Order Increment Id
-	 *
-	 * @param string $incrementId
-	 * @return OrderInterface|null
-	 */
-	public function getOrderByIncrementId($incrementId)
-	{
-		$orderData = null;
+    /**
+     * Get Order data by Order Increment Id
+     *
+     * @param string $incrementId
+     * @return OrderInterface|null
+     */
+    public function getOrderByIncrementId($incrementId)
+    {
+        $orderData = null;
 
-		/** @var SearchCriteriaBuilder $searchCriteriaBuilder */
-		$searchCriteriaBuilder = $this->searchCriteriaBuilder;
+        /** @var SearchCriteriaBuilder $searchCriteriaBuilder */
+        $searchCriteriaBuilder = $this->searchCriteriaBuilder;
 
-		/** @var FilterBuilder $filterBuilder */
-		$filterBuilder = $this->filterBuilder;
+        /** @var FilterBuilder $filterBuilder */
+        $filterBuilder = $this->filterBuilder;
 
-		/** @var FilterGroupBuilder $filterGroupBuilder */
-		$filterGroupBuilder = $this->filterGroupBuilder;
+        /** @var FilterGroupBuilder $filterGroupBuilder */
+        $filterGroupBuilder = $this->filterGroupBuilder;
 
-		$filter = $filterBuilder
-			->setField('increment_id')
-			->setValue($incrementId)
-			->setConditionType('eq')
-			->create();
+        $filter = $filterBuilder
+            ->setField('increment_id')
+            ->setValue($incrementId)
+            ->setConditionType('eq')
+            ->create();
 
-		$filterGroup = $filterGroupBuilder
-			->addFilter($filter)
-			->create();
+        $filterGroup = $filterGroupBuilder
+            ->addFilter($filter)
+            ->create();
 
-		$searchCriteriaBuilder->setFilterGroups([$filterGroup]);
-		$searchCriteriaBuilder->setPageSize(1);
-		$searchCriteria = $searchCriteriaBuilder->create();
+        $searchCriteriaBuilder->setFilterGroups([$filterGroup]);
+        $searchCriteriaBuilder->setPageSize(1);
+        $searchCriteria = $searchCriteriaBuilder->create();
 
-		try {
-			$orderList = $this->orderRepository->getList($searchCriteria);
-			if ($orderList->getTotalCount() > 0) {
-				$items = $orderList->getItems();
-				$orderData = reset($items);
-			}
-		} catch (Exception $exception) {
-			$this->logger->critical($exception->getMessage());
-		}
-		return $orderData;
-	}
+        try {
+            $orderList = $this->orderRepository->getList($searchCriteria);
+            if ($orderList->getTotalCount() > 0) {
+                $items = $orderList->getItems();
+                $orderData = reset($items);
+            }
+        } catch (Exception $exception) {
+            $this->logger->critical($exception->getMessage());
+        }
+        return $orderData;
+    }
 
-	/**
-	 * Get Order data by Id
-	 *
-	 * @param $id
-	 * @return OrderInterface|null
-	 */
-	public function getOrderById($id)
-	{
-		return $this->orderRepository->get($id);
-	}
+    /**
+     * Get Order data by Id
+     *
+     * @param string $id
+     * @return OrderInterface|null
+     */
+    public function getOrderById($id)
+    {
+        return $this->orderRepository->get($id);
+    }
 }

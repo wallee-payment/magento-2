@@ -36,6 +36,12 @@ class TokenVersionListener implements ListenerInterface
         $this->tokenInfoManagement = $tokenInfoManagement;
     }
 
+    /**
+     * Execute token version handling flow.
+     *
+     * @param Request $request
+     * @return void
+     */
     public function execute(Request $request)
     {
         $this->tokenInfoManagement->updateTokenVersion($request->getSpaceId(), $request->getEntityId());

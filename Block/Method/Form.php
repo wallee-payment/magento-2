@@ -55,10 +55,13 @@ class Form extends \Magento\Payment\Block\Form
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param array $data
      */
-    public function __construct(Context $context, SessionQuote $backendQuoteSession,
-        TokenInfoRepositoryInterface $tokenInfoRepository, SearchCriteriaBuilder $searchCriteriaBuilder,
-        array $data = [])
-    {
+    public function __construct(
+        Context $context,
+        SessionQuote $backendQuoteSession,
+        TokenInfoRepositoryInterface $tokenInfoRepository,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        array $data = []
+    ) {
         parent::__construct($context, $data);
         $this->backendQuoteSession = $backendQuoteSession;
         $this->tokenInfoRepository = $tokenInfoRepository;
@@ -77,8 +80,10 @@ class Form extends \Magento\Payment\Block\Form
         $quote = $this->backendQuoteSession->getQuote();
         $method = $this->getMethod();
 
-        $searchCriteria = $this->searchCriteriaBuilder->addFilter(TokenInfoInterface::CUSTOMER_ID,
-            $quote->getCustomerId())
+        $searchCriteria = $this->searchCriteriaBuilder->addFilter(
+            TokenInfoInterface::CUSTOMER_ID,
+            $quote->getCustomerId()
+        )
             ->addFilter(TokenInfoInterface::PAYMENT_METHOD_ID, $method->getPaymentMethodConfigurationId())
             ->create();
 

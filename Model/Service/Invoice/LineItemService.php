@@ -23,6 +23,7 @@ use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\Service\AbstractLineItemService;
 use Wallee\Sdk\Model\LineItemAttributeCreate;
 use Wallee\Sdk\Model\TaxCreate;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service to handle line items in invoice context.
@@ -50,6 +51,12 @@ class LineItemService extends AbstractLineItemService
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param Helper $helper
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
@@ -58,17 +65,35 @@ class LineItemService extends AbstractLineItemService
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
      * @param ProductRepositoryInterface $productRepository
+     * @param LoggerInterface $logger
      */
-    public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
-        TaxClassRepositoryInterface $taxClassRepository, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
-        ProductRepositoryInterface $productRepository)
-    {
-        parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxCalculation,
-            $groupRegistry, $eventManager, $productRepository);
+    public function __construct(
+        Helper $helper,
+        LineItemHelper $lineItemHelper,
+        ScopeConfigInterface $scopeConfig,
+        TaxClassRepositoryInterface $taxClassRepository,
+        TaxCalculation $taxCalculation,
+        CustomerGroupRegistry $groupRegistry,
+        EventManagerInterface $eventManager,
+        ProductRepositoryInterface $productRepository,
+        LoggerInterface $logger
+    ) {
+        parent::__construct(
+            $helper,
+            $lineItemHelper,
+            $scopeConfig,
+            $taxClassRepository,
+            $taxCalculation,
+            $groupRegistry,
+            $eventManager,
+            $productRepository,
+            null,
+            $logger
+        );
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
         $this->taxClassRepository = $taxClassRepository;
+        $this->logger = $logger;
     }
 
     /**
@@ -80,8 +105,11 @@ class LineItemService extends AbstractLineItemService
      */
     public function convertInvoiceLineItems(Invoice $invoice, $expectedAmount)
     {
-        return $this->lineItemHelper->reduceAmount($this->convertLineItems($invoice), $expectedAmount,
-            $invoice->getOrderCurrencyCode());
+        return $this->lineItemHelper->reduceAmount(
+            $this->convertLineItems($invoice),
+            $expectedAmount,
+            $invoice->getOrderCurrencyCode()
+        );
     }
 
     /**
@@ -105,9 +133,11 @@ class LineItemService extends AbstractLineItemService
             $attributes[$this->getAttributeKey($option)] = $attribute;
         }
 
-        return \array_merge($attributes,
+        return \array_merge(
+            $attributes,
             $this->getCustomAttributes($entityItem->getProductId(), $entityItem->getInvoice()
-                ->getStoreId()));
+            ->getStoreId())
+        );
     }
 
     /**
@@ -144,11 +174,15 @@ class LineItemService extends AbstractLineItemService
      */
     protected function convertShippingLineItem($invoice)
     {
-        return $this->convertShippingLineItemInner($invoice, $invoice->getShippingAmount(),
+        return $this->convertShippingLineItemInner(
+            $invoice,
+            $invoice->getShippingAmount(),
             $invoice->getShippingTaxAmount() + $invoice->getShippingDiscountTaxCompensationAmount(),
             $invoice->getOrder()
-                ->getShippingDiscountAmount(), $invoice->getOrder()
-                ->getShippingDescription());
+                ->getShippingDiscountAmount(),
+            $invoice->getOrder()
+            ->getShippingDescription()
+        );
     }
 
     /**
@@ -163,6 +197,7 @@ class LineItemService extends AbstractLineItemService
     }
 
     /**
+     * Gets the unique ID of the given item.
      *
      * @param Invoice\Item $entityItem
      * @return string

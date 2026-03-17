@@ -58,21 +58,23 @@ class Request
      */
     public function __construct($model)
     {
-        $this->eventId = self::checkArgument($model, 'eventId');
-        $this->entityId = self::checkArgument($model, 'entityId');
-        $this->listenerEntityId = self::checkArgument($model, 'listenerEntityId');
-        $this->listenerEntityTechnicalName = self::checkArgument($model, 'listenerEntityTechnicalName');
-        $this->spaceId = self::checkArgument($model, 'spaceId');
-        $this->webhookListenerId = self::checkArgument($model, 'webhookListenerId');
-        $this->timestamp = self::checkArgument($model, 'timestamp');
+        $this->eventId = $this->checkArgument($model, 'eventId');
+        $this->entityId = $this->checkArgument($model, 'entityId');
+        $this->listenerEntityId = $this->checkArgument($model, 'listenerEntityId');
+        $this->listenerEntityTechnicalName = $this->checkArgument($model, 'listenerEntityTechnicalName');
+        $this->spaceId = $this->checkArgument($model, 'spaceId');
+        $this->webhookListenerId = $this->checkArgument($model, 'webhookListenerId');
+        $this->timestamp = $this->checkArgument($model, 'timestamp');
     }
 
     /**
+     * Retrieve value from array.
+     *
      * @param array<mixed> $array
      * @param string $key
      * @return mixed
      */
-    private static function checkArgument($array, $key)
+    private function checkArgument($array, $key)
     {
         if (array_key_exists($key, $array)) {
             return $array[$key];

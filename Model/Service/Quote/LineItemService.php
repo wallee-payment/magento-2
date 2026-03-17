@@ -24,6 +24,7 @@ use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\Service\AbstractLineItemService;
 use Wallee\Sdk\Model\LineItemAttributeCreate;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service to handle line items in quote context.
@@ -57,6 +58,12 @@ class LineItemService extends AbstractLineItemService
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param Helper $helper
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
@@ -67,19 +74,38 @@ class LineItemService extends AbstractLineItemService
      * @param ProductRepositoryInterface $productRepository
      * @param ProductConfigurationHelper $productConfigurationHelper
      * @param GiftCardAccountWrapper $giftCardAccountManagement
+     * @param LoggerInterface $logger
      */
-    public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
-        TaxClassRepositoryInterface $taxClassRepository, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
-        ProductRepositoryInterface $productRepository, ProductConfigurationHelper $productConfigurationHelper,
-        GiftCardAccountWrapper $giftCardAccountManagement)
-    {
-        parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxCalculation,
-            $groupRegistry, $eventManager, $productRepository, $giftCardAccountManagement);
+    public function __construct(
+        Helper $helper,
+        LineItemHelper $lineItemHelper,
+        ScopeConfigInterface $scopeConfig,
+        TaxClassRepositoryInterface $taxClassRepository,
+        TaxCalculation $taxCalculation,
+        CustomerGroupRegistry $groupRegistry,
+        EventManagerInterface $eventManager,
+        ProductRepositoryInterface $productRepository,
+        ProductConfigurationHelper $productConfigurationHelper,
+        GiftCardAccountWrapper $giftCardAccountManagement,
+        LoggerInterface $logger
+    ) {
+        parent::__construct(
+            $helper,
+            $lineItemHelper,
+            $scopeConfig,
+            $taxClassRepository,
+            $taxCalculation,
+            $groupRegistry,
+            $eventManager,
+            $productRepository,
+            $giftCardAccountManagement,
+            $logger
+        );
         $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
         $this->productConfigurationHelper = $productConfigurationHelper;
+        $this->logger = $logger;
     }
 
     /**
@@ -90,10 +116,17 @@ class LineItemService extends AbstractLineItemService
      */
     public function convertQuoteLineItems(Quote $quote)
     {
-        return $this->lineItemHelper->correctLineItems($this->convertLineItems($quote), $quote->getGrandTotal(),
+        return $this->lineItemHelper->correctLineItems(
+            $this->convertLineItems($quote),
+            $quote->getGrandTotal(),
             $this->getCurrencyCode($quote),
-            $this->scopeConfig->getValue('wallee_payment/line_items/enforce_consistency',
-                ScopeInterface::SCOPE_STORE, $quote->getStoreId()), []);
+            $this->scopeConfig->getValue(
+                'wallee_payment/line_items/enforce_consistency',
+                ScopeInterface::SCOPE_STORE,
+                $quote->getStoreId()
+            ),
+            []
+        );
     }
 
     /**
@@ -117,9 +150,11 @@ class LineItemService extends AbstractLineItemService
             $attributes[$this->getAttributeKey($option)] = $attribute;
         }
 
-        return \array_merge($attributes,
+        return \array_merge(
+            $attributes,
             $this->getCustomAttributes($entityItem->getProductId(), $entityItem->getQuote()
-                ->getStoreId()));
+            ->getStoreId())
+        );
     }
 
     /**
@@ -130,16 +165,22 @@ class LineItemService extends AbstractLineItemService
      */
     protected function convertShippingLineItem($quote)
     {
-        return $this->convertShippingLineItemInner($quote, $quote->getShippingAddress()
+        return $this->convertShippingLineItemInner(
+            $quote,
+            $quote->getShippingAddress()
             ->getShippingAmount(),
             $quote->getShippingAddress()
                 ->getShippingTaxAmount() + $quote->getShippingAddress()
-                ->getShippingDiscountTaxCompensationAmount(), $quote->getShippingAddress()
-                ->getShippingDiscountAmount(), $quote->getShippingAddress()
-                ->getShippingDescription());
+                ->getShippingDiscountTaxCompensationAmount(),
+            $quote->getShippingAddress()
+                ->getShippingDiscountAmount(),
+            $quote->getShippingAddress()
+            ->getShippingDescription()
+        );
     }
 
     /**
+     * Gets the unique ID of the given item.
      *
      * @param Quote\Item $entityItem
      * @return string

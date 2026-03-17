@@ -32,6 +32,11 @@ class CustomerAttribute implements \Magento\Framework\Option\ArrayInterface
         $this->customerForm = $customerForm;
     }
 
+    /**
+     * Return customer attribute options array.
+     *
+     * @return array
+     */
     public function toOptionArray()
     {
         $options = [];

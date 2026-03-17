@@ -24,14 +24,12 @@ class RefundJob extends AbstractDb
 {
 
     /**
-     * Event prefix
      *
      * @var string
      */
     protected $_eventPrefix = 'wallee_payment_refund_job_resource';
 
     /**
-     * Serializable fields
      *
      * @var array<string, mixed>
      */
@@ -70,6 +68,15 @@ class RefundJob extends AbstractDb
         $this->_init('wallee_payment_refund_job', 'entity_id');
     }
 
+    /**
+     * Serialize refund data before saving.
+     *
+     * @param DataObject $object
+     * @param string $field
+     * @param mixed $defaultValue
+     * @param bool $unsetEmpty
+     * @return $this
+     */
     protected function _serializeField(DataObject $object, $field, $defaultValue = null, $unsetEmpty = false)
     {
         if ($field == RefundJobInterface::REFUND) {
@@ -77,9 +84,11 @@ class RefundJob extends AbstractDb
             if (empty($value) && $unsetEmpty) {
                 $object->unsetData($field);
             } else {
-                $object->setData($field,
+                $object->setData(
+                    $field,
                     $this->getSerializer()
-                        ->serialize($this->objectSerializer->sanitizeForSerialization($value) ?: $defaultValue));
+                    ->serialize($this->objectSerializer->sanitizeForSerialization($value) ?: $defaultValue)
+                );
             }
 
             return $this;
@@ -88,6 +97,15 @@ class RefundJob extends AbstractDb
         }
     }
 
+    /**
+     * Unserialize refund data after loading.
+     *
+     * @param DataObject $object
+     * @param string $field
+     * @param mixed $defaultValue
+     * @return void
+     * @throws \InvalidArgumentException
+     */
     protected function _unserializeField(DataObject $object, $field, $defaultValue = null)
     {
         if ($field == RefundJobInterface::REFUND) {
@@ -97,8 +115,10 @@ class RefundJob extends AbstractDb
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     throw new \InvalidArgumentException('Unable to unserialize value.');
                 }
-                $value = $this->objectSerializer->deserialize($rawValue,
-                    '\Wallee\Sdk\Model\RefundCreate');
+                $value = $this->objectSerializer->deserialize(
+                    $rawValue,
+                    \Wallee\Sdk\Model\RefundCreate::class
+                );
                 if (empty($value)) {
                     $object->setData($field, $defaultValue);
                 } else {

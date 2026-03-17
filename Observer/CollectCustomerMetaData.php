@@ -47,6 +47,12 @@ class CollectCustomerMetaData implements ObserverInterface
         $this->customerRegistry = $customerRegistry;
     }
 
+    /**
+     * Add customer metadata to the transaction payload.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         /* @var \Magento\Sales\Model\Order $order */
@@ -54,9 +60,13 @@ class CollectCustomerMetaData implements ObserverInterface
         $transport = $observer->getTransport();
 
         if (! empty($order->getCustomerId())) {
-            $transport->setData('metaData',
-                \array_merge($transport->getData('metaData'),
-                    $this->collectCustomerMetaData($this->customerRegistry->retrieve($order->getCustomerId()))));
+            $transport->setData(
+                'metaData',
+                \array_merge(
+                    $transport->getData('metaData'),
+                    $this->collectCustomerMetaData($this->customerRegistry->retrieve($order->getCustomerId()))
+                )
+            );
         }
     }
 
@@ -70,8 +80,10 @@ class CollectCustomerMetaData implements ObserverInterface
     {
         $metaData = [];
         $attributeCodesConfig = $this->scopeConfig->getValue(
-            'wallee_payment/meta_data/customer_attributes', ScopeInterface::SCOPE_STORE,
-            $customer->getStoreId());
+            'wallee_payment/meta_data/customer_attributes',
+            ScopeInterface::SCOPE_STORE,
+            $customer->getStoreId()
+        );
         if (! empty($attributeCodesConfig)) {
             $attributeCodes = \explode(',', $attributeCodesConfig);
             foreach ($attributeCodes as $attributeCode) {

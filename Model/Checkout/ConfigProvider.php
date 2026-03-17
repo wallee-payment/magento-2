@@ -83,10 +83,15 @@ class ConfigProvider implements ConfigProviderInterface
      * @param LoggerInterface $logger
      * @param PaymentHelper $paymentHelper
      */
-    public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        TransactionService $transactionService, SearchCriteriaBuilder $searchCriteriaBuilder,
-        CheckoutSession $checkoutSession, ScopeConfigInterface $scopeConfig, LoggerInterface $logger, PaymentHelper $paymentHelper)
-    {
+    public function __construct(
+        PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
+        TransactionService $transactionService,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        CheckoutSession $checkoutSession,
+        ScopeConfigInterface $scopeConfig,
+        LoggerInterface $logger,
+        PaymentHelper $paymentHelper
+    ) {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->transactionService = $transactionService;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
@@ -96,6 +101,11 @@ class ConfigProvider implements ConfigProviderInterface
         $this->paymentHelper = $paymentHelper;
     }
 
+    /**
+     * Retrieve payment configuration for frontend checkout.
+     *
+     * @return array
+     */
     public function getConfig()
     {
         $this->logger->debug("CONFIG-PROVIDER::getConfig - INIT");
@@ -108,11 +118,15 @@ class ConfigProvider implements ConfigProviderInterface
         $quote = $this->checkoutSession->getQuote();
         // Make sure that the quote's totals are collected before generating javascript and payment page URLs.
         $quote->collectTotals();
-        $integrationMethod = $this->scopeConfig->getValue('wallee_payment/checkout/integration_method',
-            ScopeInterface::SCOPE_STORE, $quote->getStoreId());
+        $integrationMethod = $this->scopeConfig->getValue(
+            'wallee_payment/checkout/integration_method',
+            ScopeInterface::SCOPE_STORE,
+            $quote->getStoreId()
+        );
         $config['wallee']['integrationMethod'] = $integrationMethod;
 
-        $config['wallee']['restoreCartUrl'] = $quote->getStore()->getUrl('wallee_payment/checkout/restoreCart', [
+        $config['wallee']['restoreCartUrl'] =
+        $quote->getStore()->getUrl('wallee_payment/checkout/restoreCart', [
             '_secure' => true
         ]);
 
@@ -122,7 +136,7 @@ class ConfigProvider implements ConfigProviderInterface
             } catch (\Exception $e) {
                 $this->logger->critical($e);
             }
-        } else if ($integrationMethod == IntegrationMethod::LIGHTBOX){
+        } elseif ($integrationMethod == IntegrationMethod::LIGHTBOX) {
             try {
                 $config['wallee']['lightboxUrl'] = $this->transactionService->getLightboxUrl($quote);
             } catch (\Exception $e) {
@@ -138,11 +152,14 @@ class ConfigProvider implements ConfigProviderInterface
                 $this->logger->critical($e);
             }
         }
-        $searchCriteria = $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
+        $searchCriteria = $this->searchCriteriaBuilder->addFilter(
+            PaymentMethodConfigurationInterface::STATE,
             [
                 PaymentMethodConfiguration::STATE_ACTIVE,
                 PaymentMethodConfiguration::STATE_INACTIVE
-            ], 'in')->create();
+            ],
+            'in'
+        )->create();
 
         $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
         foreach ($configurations as $configuration) {
@@ -164,9 +181,10 @@ class ConfigProvider implements ConfigProviderInterface
     }
 
     /**
+     * Retrieve payment method instance.
      *
      * @param string $methodCode
-     * @return Adapter
+     * @return Adapter|null
      */
     private function getPaymentMethodInstance($methodCode)
     {

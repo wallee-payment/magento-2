@@ -36,6 +36,12 @@ class SynchronizePaymentMethodConfiguration implements ObserverInterface
         $this->paymentMethodConfigurationManagement = $paymentMethodConfigurationManagement;
     }
 
+    /**
+     * Synchronize payment method configurations.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         $this->paymentMethodConfigurationManagement->synchronize();

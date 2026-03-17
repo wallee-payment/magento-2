@@ -26,6 +26,7 @@ use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Sdk\Model\LineItemCreate;
 use Wallee\Sdk\Model\LineItemType;
 use Wallee\Sdk\Model\TaxCreate;
+use Psr\Log\LoggerInterface;
 
 /**
  * Observer to collect the line items for the fooman surcharges.
@@ -71,25 +72,44 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param ObjectManagerInterface $objectManager
      * @param ModuleManager $moduleManager
      * @param TaxClassRepositoryInterface $taxClassRepository
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
      * @param Helper $helper
+     * @param LoggerInterface $logger
      */
-    public function __construct(ObjectManagerInterface $objectManager, ModuleManager $moduleManager,
-        TaxClassRepositoryInterface $taxClassRepository, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry, Helper $helper)
-    {
+    public function __construct(
+        ObjectManagerInterface $objectManager,
+        ModuleManager $moduleManager,
+        TaxClassRepositoryInterface $taxClassRepository,
+        TaxCalculation $taxCalculation,
+        CustomerGroupRegistry $groupRegistry,
+        Helper $helper,
+        LoggerInterface $logger
+    ) {
         $this->objectManager = $objectManager;
         $this->moduleManager = $moduleManager;
         $this->taxClassRepository = $taxClassRepository;
         $this->taxCalculation = $taxCalculation;
         $this->groupRegistry = $groupRegistry;
         $this->helper = $helper;
+        $this->logger = $logger;
     }
 
+    /**
+     * Append Fooman surcharges to the line items.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         /* @var Quote|Order|Invoice $entity */
@@ -97,12 +117,15 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
         $transport = $observer->getTransport();
 
         if ($this->moduleManager->isEnabled('Fooman_Surcharge')) {
-            $transport->setData('items',
-                \array_merge($transport->getData('items'), $this->convertFoomanSurchargeLineItems($entity)));
+            $transport->setData(
+                'items',
+                \array_merge($transport->getData('items'), $this->convertFoomanSurchargeLineItems($entity))
+            );
         }
     }
 
     /**
+     * Convert Fooman surcharge totals into line items.
      *
      * @param Quote|Order|Invoice $entity
      * @return LineItemCreate[]
@@ -121,6 +144,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
     }
 
     /**
+     * Build surcharge line items for an order.
      *
      * @param Order $order
      * @return LineItemCreate[]
@@ -128,7 +152,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
     protected function convertOrderFoomanSurchargeLineItems(Order $order)
     {
         /* @var \Fooman\Totals\Model\OrderTotalManagement $orderTotalManagement */
-        $orderTotalManagement = $this->objectManager->get('Fooman\Totals\Model\OrderTotalManagement');
+        $orderTotalManagement = $this->objectManager->get(\Fooman\Totals\Model\OrderTotalManagement::class);
         $surchargeCollection = $orderTotalManagement->getByOrderId($order->getId());
 
         $items = [];
@@ -136,13 +160,20 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
             if ($item->getAmount() <= 0) {
                 continue;
             }
-            $items[] = $this->createSurchargeLineItem($order, $order->getOrderCurrencyCode(), $item->getAmount(),
-                $item->getTaxAmount(), $item->getTypeId(), $item->getLabel());
+            $items[] = $this->createSurchargeLineItem(
+                $order,
+                $order->getOrderCurrencyCode(),
+                $item->getAmount(),
+                $item->getTaxAmount(),
+                $item->getTypeId(),
+                $item->getLabel()
+            );
         }
         return $items;
     }
 
     /**
+     * Build surcharge line items for a quote.
      *
      * @param Quote $quote
      * @return LineItemCreate[]
@@ -167,13 +198,20 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
             if ($item->getAmount() <= 0) {
                 continue;
             }
-            $items[] = $this->createSurchargeLineItem($quote, $quote->getQuoteCurrencyCode(), $item->getAmount(),
-                $item->getTaxAmount(), $item->getTypeId(), $item->getLabel());
+            $items[] = $this->createSurchargeLineItem(
+                $quote,
+                $quote->getQuoteCurrencyCode(),
+                $item->getAmount(),
+                $item->getTaxAmount(),
+                $item->getTypeId(),
+                $item->getLabel()
+            );
         }
         return $items;
     }
 
     /**
+     * Build surcharge line items for an invoice.
      *
      * @param Invoice $invoice
      * @return LineItemCreate[]
@@ -181,7 +219,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
     protected function convertInvoiceFoomanSurchargeLineItems(Invoice $invoice)
     {
         /* @var \Fooman\Totals\Model\InvoiceTotalManagement $invoiceTotalManagement */
-        $invoiceTotalManagement = $this->objectManager->get('Fooman\Totals\Model\InvoiceTotalManagement');
+        $invoiceTotalManagement = $this->objectManager->get(\Fooman\Totals\Model\InvoiceTotalManagement::class);
         $surchargeCollection = $invoiceTotalManagement->getByInvoiceId($invoice->getId());
 
         $items = [];
@@ -189,13 +227,20 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
             if ($item->getAmount() <= 0) {
                 continue;
             }
-            $items[] = $this->createSurchargeLineItem($invoice->getOrder(), $invoice->getOrderCurrencyCode(),
-                $item->getAmount(), $item->getTaxAmount(), $item->getTypeId(), $item->getLabel());
+            $items[] = $this->createSurchargeLineItem(
+                $invoice->getOrder(),
+                $invoice->getOrderCurrencyCode(),
+                $item->getAmount(),
+                $item->getTaxAmount(),
+                $item->getTypeId(),
+                $item->getLabel()
+            );
         }
         return $items;
     }
 
     /**
+     * Create a surcharge line item.
      *
      * @param Quote|Order $entity
      * @param string $currency
@@ -231,7 +276,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      *
      * @param Quote|Order $entity
      * @param string $code
-     * @return TaxCreate
+     * @return TaxCreate|null
      */
     protected function getTax($entity, $code)
     {
@@ -244,12 +289,17 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
             }
         } catch (NoSuchEntityException $e) {
             // group not found, do nothing
+            $this->logger->debug('Customer group not found.');
         }
-        $taxRateRequest = $this->taxCalculation->getRateRequest($entity->getShippingAddress(),
-            $entity->getBillingAddress(), $taxClassId, $entity->getStore());
+        $taxRateRequest = $this->taxCalculation->getRateRequest(
+            $entity->getShippingAddress(),
+            $entity->getBillingAddress(),
+            $taxClassId,
+            $entity->getStore()
+        );
 
         /* @var \Fooman\Surcharge\Helper\Surcharge $surchargeHelper */
-        $surchargeHelper = $this->objectManager->get('Fooman\Surcharge\Helper\Surcharge');
+        $surchargeHelper = $this->objectManager->get(\Fooman\Surcharge\Helper\Surcharge::class);
         $taxClassId = $surchargeHelper->getSurchargeTaxClassIdByTypeId($code);
         if ($taxClassId > 0) {
             $taxClass = $this->taxClassRepository->get($taxClassId);
@@ -262,5 +312,6 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
                 return $tax;
             }
         }
+        return null;
     }
 }

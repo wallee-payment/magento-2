@@ -21,14 +21,12 @@ class PaymentMethodConfiguration extends AbstractDb
 {
 
     /**
-     * Event prefix
      *
      * @var string
      */
     protected $_eventPrefix = 'wallee_payment_method_configuration_resource';
 
     /**
-     * Serializable fields
      *
      * @var array<string, mixed>
      */

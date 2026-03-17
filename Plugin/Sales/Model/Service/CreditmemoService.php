@@ -73,9 +73,14 @@ class CreditmemoService
      * @param RefundService $refundService
      * @param ApiClient $apiClient
      */
-    public function __construct(LoggerInterface $logger, LineItemReductionService $lineItemReductionService,
-        RefundJobFactory $refundJobFactory, RefundJobRepositoryInterface $refundJobRepository, RefundService $refundService, ApiClient $apiClient)
-    {
+    public function __construct(
+        LoggerInterface $logger,
+        LineItemReductionService $lineItemReductionService,
+        RefundJobFactory $refundJobFactory,
+        RefundJobRepositoryInterface $refundJobRepository,
+        RefundService $refundService,
+        ApiClient $apiClient
+    ) {
         $this->logger = $logger;
         $this->lineItemReductionService = $lineItemReductionService;
         $this->refundJobFactory = $refundJobFactory;
@@ -85,41 +90,53 @@ class CreditmemoService
     }
 
     /**
+     * Wrap refund execution to clean up refund job on failure.
+     *
      * @param \Magento\Sales\Model\Service\CreditmemoService $subject
      * @param callable $proceed
      * @param \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo
      * @param bool $offlineRequested
      * @return mixed
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      * @throws \Magento\Framework\Exception\InputException
      * @throws \Magento\Framework\Exception\StateException
      */
-    public function aroundRefund(\Magento\Sales\Model\Service\CreditmemoService $subject, callable $proceed,
-        \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo, $offlineRequested = false)
-    {
+    public function aroundRefund(
+        \Magento\Sales\Model\Service\CreditmemoService $subject,
+        callable $proceed,
+        \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo,
+        $offlineRequested = false
+    ) {
         try {
             return $proceed($creditmemo, $offlineRequested);
         } catch (\Exception $e) {
             if ($creditmemo->getWalleeKeepRefundJob() !== true) {
                 try {
                     $this->refundJobRepository->delete(
-                        $this->refundJobRepository->getByOrderId($creditmemo->getOrderId()));
-                } catch (NoSuchEntityException $exc) {}
+                        $this->refundJobRepository->getByOrderId($creditmemo->getOrderId())
+                    );
+                } catch (NoSuchEntityException $exc) {
+                    $this->logger->debug('No refund job found for deletion.');
+                }
             }
             throw $e;
         }
     }
 
     /**
+     * Create external refund job before refund execution.
+     *
      * @param \Magento\Sales\Model\Service\CreditmemoService $subject
      * @param \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo
      * @param bool $offlineRequested
      * @return void|null
      * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function beforeRefund(\Magento\Sales\Model\Service\CreditmemoService $subject,
-        \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo, $offlineRequested = false)
-    {
+    public function beforeRefund(
+        \Magento\Sales\Model\Service\CreditmemoService $subject,
+        \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo,
+        $offlineRequested = false
+    ) {
         if ($offlineRequested || ! $creditmemo->getInvoice()) {
             return null;
         }
@@ -152,15 +169,18 @@ class CreditmemoService
             $existingRefundJob = $this->refundJobRepository->getByOrderId($order->getId());
             try {
                 $this->apiClient->getService(ApiRefundService::class)->refund(
-                    $order->getWalleeSpaceId(), $existingRefundJob->getRefund());
+                    $order->getWalleeSpaceId(),
+                    $existingRefundJob->getRefund()
+                );
             } catch (\Exception $e) {
                 $this->logger->critical($e);
             }
 
             throw new \Magento\Framework\Exception\LocalizedException(
-                \__('As long as there is an open creditmemo for the order, no new creditmemo can be created.'));
-        } catch (NoSuchEntityException $e) {}
+                \__('As long as there is an open creditmemo for the order, no new creditmemo can be created.')
+            );
+        } catch (NoSuchEntityException $e) {
+            $this->logger->debug('No existing refund job found for order ' . $order->getId());
+        }
     }
-
-
 }

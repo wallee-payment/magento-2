@@ -21,6 +21,10 @@ class GetCartForUser
      */
     protected $logger;
 
+    /**
+     * @param CartManagementInterface $cartManagement
+     * @param LoggerInterface $logger
+     */
     public function __construct(CartManagementInterface $cartManagement, LoggerInterface $logger)
     {
         $this->cartManagement = $cartManagement;
@@ -28,6 +32,8 @@ class GetCartForUser
     }
 
     /**
+     * Ensure customer has an active cart by creating one if missing.
+     *
      * @param OriginalGetCartForUser $subject
      * @param callable $proceed
      * @param int $userId
@@ -42,8 +48,12 @@ class GetCartForUser
         } catch (NoSuchEntityException $e) {
             //handle any exceptions occurring in the main class
             $cartId = $result = $this->cartManagement->createEmptyCartForCustomer($userId);
-            $this->logger->debug("GET-CART-FOR-USER-INTERCEPTOR::aroundExecute - Cart was created: customer id:" . $userId);
-            $this->logger->debug("GET-CART-FOR-USER-INTERCEPTOR::aroundExecute - Cart was created: cart id:" . $cartId);
+            $this->logger->debug(
+                "GET-CART-FOR-USER-INTERCEPTOR::aroundExecute - Cart was created: customer id:" . $userId
+            );
+            $this->logger->debug(
+                "GET-CART-FOR-USER-INTERCEPTOR::aroundExecute - Cart was created: cart id:" . $cartId
+            );
         }
 
         return $result;

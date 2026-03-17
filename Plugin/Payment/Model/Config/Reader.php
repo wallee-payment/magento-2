@@ -47,15 +47,19 @@ class Reader
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param ResourceConnection $resourceConnection
      */
-    public function __construct(PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, ResourceConnection $resourceConnection)
-    {
+    public function __construct(
+        PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        ResourceConnection $resourceConnection
+    ) {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->resourceConnection = $resourceConnection;
     }
 
     /**
+     * Add dynamically configured payment methods to payment config.
+     *
      * @param \Magento\Payment\Model\Config\Reader $subject
      * @param array<mixed> $result
      * @return array<mixed>|mixed
@@ -68,11 +72,14 @@ class Reader
         }
 
         if (isset($result['methods'])) {
-            $searchCriteria = $this->searchCriteriaBuilder->addFilter(PaymentMethodConfigurationInterface::STATE,
+            $searchCriteria = $this->searchCriteriaBuilder->addFilter(
+                PaymentMethodConfigurationInterface::STATE,
                 [
                     PaymentMethodConfiguration::STATE_ACTIVE,
                     PaymentMethodConfiguration::STATE_INACTIVE
-                ], 'in')->create();
+                ],
+                'in'
+            )->create();
 
             $configurations = $this->paymentMethodConfigurationRepository->getList($searchCriteria)->getItems();
             foreach ($configurations as $configuration) {
@@ -83,6 +90,9 @@ class Reader
     }
 
     /**
+     * Build payment method code for configuration.
+     *
+     * @param PaymentMethodConfigurationInterface $configuration
      * @return string
      */
     private function getPaymentMethodId(PaymentMethodConfigurationInterface $configuration)
@@ -91,6 +101,8 @@ class Reader
     }
 
     /**
+     * Generate default config for dynamic payment method.
+     *
      * @return array<mixed>
      */
     private function generateConfig()
@@ -108,6 +120,7 @@ class Reader
     private function isTableExists()
     {
         return $this->resourceConnection->getConnection()->isTableExists(
-            $this->resourceConnection->getTableName('wallee_payment_method_configuration'));
+            $this->resourceConnection->getTableName('wallee_payment_method_configuration')
+        );
     }
 }

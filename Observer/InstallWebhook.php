@@ -36,6 +36,12 @@ class InstallWebhook implements ObserverInterface
         $this->webhookService = $webhookService;
     }
 
+    /**
+     * Install webhooks.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         $this->webhookService->install();

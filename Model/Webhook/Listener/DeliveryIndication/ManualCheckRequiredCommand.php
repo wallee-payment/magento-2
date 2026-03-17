@@ -36,9 +36,11 @@ class ManualCheckRequiredCommand extends AbstractCommand
     }
 
     /**
+     * Execute manual check requirement flow.
      *
      * @param mixed $entity
      * @param Order $order
+     * @return null
      */
     public function execute($entity, Order $order)
     {

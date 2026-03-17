@@ -27,21 +27,18 @@ abstract class AbstractProvider
     private $cache;
 
     /**
-     * Entry type.
      *
      * @var string
      */
     private $type;
 
     /**
-     * Cache key.
      *
      * @var string
      */
     private $cacheKey;
 
     /**
-     * Data.
      *
      * @var array<mixed>
      */
@@ -94,6 +91,7 @@ abstract class AbstractProvider
 
     /**
      * Fetches the data from the remote server.
+     *
      * @return mixed
      */
     abstract protected function fetchData();
@@ -107,6 +105,8 @@ abstract class AbstractProvider
     abstract protected function getId($entry);
 
     /**
+     * Load data from cache or fetch and cache it.
+     *
      * @return void
      */
     private function loadData()
@@ -115,7 +115,11 @@ abstract class AbstractProvider
         if ($cachedData) {
             $deserialized = $this->deserialize($cachedData);
             if ($deserialized != null) {
-                $this->data = $deserialized;
+                $this->data = [];
+                // Rebuild deserialized data with proper keys
+                foreach ($deserialized as $entry) {
+                    $this->data[$this->getId($entry)] = $entry;
+                }
                 return;
             }
         }
@@ -128,6 +132,8 @@ abstract class AbstractProvider
     }
 
     /**
+     * Serialize data for caching.
+     *
      * @param mixed $data
      * @return false|string
      */
@@ -138,6 +144,8 @@ abstract class AbstractProvider
     }
 
     /**
+     * Deserialize cached data.
+     *
      * @param mixed $data
      * @return object|array|null
      */
@@ -145,7 +153,7 @@ abstract class AbstractProvider
     {
         $serializer = new ObjectSerializer();
         $decoded = \json_decode($data);
-        if (\json_last_error() !== JSON_ERROR_NONE) {
+        if (\json_last_error() === JSON_ERROR_NONE) {
             return $serializer->deserialize($decoded, $this->type . '[]');
         } else {
             return null;

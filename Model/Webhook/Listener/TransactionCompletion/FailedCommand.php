@@ -37,9 +37,12 @@ class FailedCommand extends AbstractCommand
     }
 
     /**
+     * Execute failed transaction completion flow.
      *
      * @param \Wallee\Sdk\Model\TransactionCompletion $entity
      * @param Order $order
+     * @return null
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function execute($entity, Order $order)
     {
@@ -52,17 +55,19 @@ class FailedCommand extends AbstractCommand
             /** @var \Magento\Sales\Model\Order\Payment $payment */
             $payment = $order->getPayment();
             $authTransaction = $payment->getAuthorizationTransaction();
-            if($authTransaction) {
+            if ($authTransaction) {
                 $authTransaction->setIsClosed(false);
     
                 $order->addRelatedObject($invoice);
                 $order->addRelatedObject($authTransaction);
                 $this->orderRepository->save($order);
-            }
-            else {
+            } else {
                 throw new \Magento\Framework\Exception\LocalizedException(
-                \__('Failing authorization in store failed: %1.',
-                    \__('The associated authorization transaction for the payment could not be found.')));
+                    \__(
+                        'Failing authorization in store failed: %1.',
+                        \__('The associated authorization transaction for the payment could not be found.')
+                    )
+                );
             
             }
         }

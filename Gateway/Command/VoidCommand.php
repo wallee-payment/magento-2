@@ -46,6 +46,13 @@ class VoidCommand implements CommandInterface
         $this->orderTransactionService = $orderTransactionService;
     }
 
+    /**
+     * Void the order transaction for the given payment command.
+     *
+     * @param array $commandSubject
+     * @return void
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
     public function execute(array $commandSubject)
     {
         /** @var \Magento\Sales\Model\Order\Payment $payment */
@@ -54,9 +61,12 @@ class VoidCommand implements CommandInterface
         $void = $this->orderTransactionService->void($payment->getOrder());
         if ($void->getState() == TransactionVoidState::FAILED) {
             throw new \Magento\Framework\Exception\LocalizedException(
-                \__('The void of the payment failed on the gateway: %1',
+                \__(
+                    'The void of the payment failed on the gateway: %1',
                     $this->localeHelper->translate($void->getFailureReason()
-                        ->getDescription())));
+                    ->getDescription())
+                )
+            );
         }
     }
 }

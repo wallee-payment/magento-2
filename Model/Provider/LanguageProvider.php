@@ -34,20 +34,12 @@ class LanguageProvider extends AbstractProvider
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, 'wallee_payment_languages',
-            \Wallee\Sdk\Model\RestLanguage::class);
+        parent::__construct(
+            $cache,
+            'wallee_payment_languages',
+            \Wallee\Sdk\Model\RestLanguage::class
+        );
         $this->apiClient = $apiClient;
-    }
-
-    /**
-     * Gets the language by the given code.
-     *
-     * @param string $code
-     * @return \Wallee\Sdk\Model\RestLanguage
-     */
-    public function find($code)
-    {
-        return parent::find($code);
     }
 
     /**
@@ -69,16 +61,8 @@ class LanguageProvider extends AbstractProvider
     }
 
     /**
-     * Gets a list of languages.
+     * Fetch languages from the API.
      *
-     * @return \Wallee\Sdk\Model\RestLanguage[]
-     */
-    public function getAll()
-    {
-        return parent::getAll();
-    }
-
-    /**
      * @return mixed
      */
     protected function fetchData()
@@ -86,6 +70,12 @@ class LanguageProvider extends AbstractProvider
         return $this->apiClient->getService(LanguageService::class)->all();
     }
 
+    /**
+     * Get language ID from the given entry.
+     *
+     * @param \Wallee\Sdk\Model\RestLanguage $entry
+     * @return int
+     */
     protected function getId($entry)
     {
         /** @var \Wallee\Sdk\Model\RestLanguage $entry */

@@ -32,7 +32,7 @@ class Refund extends \Wallee\Payment\Controller\Adminhtml\Order
      *
      * @see _isAllowed()
      */
-    const ADMIN_RESOURCE = 'Magento_Sales::sales_creditmemo';
+    public const ADMIN_RESOURCE = 'Magento_Sales::sales_creditmemo';
 
     /**
      *
@@ -73,7 +73,9 @@ class Refund extends \Wallee\Payment\Controller\Adminhtml\Order
      * @param ApiClient $apiClient
      * @param ScopeConfigInterface $scopeConfig
      */
-    public function __construct(Context $context, ForwardFactory $resultForwardFactory,
+    public function __construct(
+        Context $context,
+        ForwardFactory $resultForwardFactory,
         LocaleHelper $localeHelper,
         RefundJobRepositoryInterface $refundJobRepository,
         ApiClient $apiClient,
@@ -87,27 +89,38 @@ class Refund extends \Wallee\Payment\Controller\Adminhtml\Order
         $this->scopeConfig = $scopeConfig;
     }
 
+    /**
+     * Process refund request for the given order and redirect back to order view.
+     *
+     * @return \Magento\Framework\Controller\ResultInterface
+     */
     public function execute()
     {
         $orderId = $this->getRequest()->getParam('order_id');
-        $isIgnorePendingRefundStatusEnabled = $this->scopeConfig->getValue('wallee_payment/pending_refund_status/pending_refund_status_enabled');
+        $isIgnorePendingRefundStatusEnabled = $this->scopeConfig->getValue(
+            'wallee_payment/pending_refund_status/pending_refund_status_enabled'
+        );
         if ($orderId) {
             try {
                 $refundJob = $this->refundJobRepository->getByOrderId($orderId);
 
                 try {
-                    $refund = $this->apiClient->getService(RefundService::class)->refund($refundJob->getSpaceId(),
-                        $refundJob->getRefund());
+                    $refund = $this->apiClient->getService(RefundService::class)->refund(
+                        $refundJob->getSpaceId(),
+                        $refundJob->getRefund()
+                    );
 
                     if ($refund->getState() == RefundState::FAILED) {
                         $this->messageManager->addErrorMessage(
                             $this->localeHelper->translate($refund->getFailureReason()
-                                ->getDescription()));
-                    } elseif ( ! $isIgnorePendingRefundStatusEnabled &&
+                            ->getDescription())
+                        );
+                    } elseif (! $isIgnorePendingRefundStatusEnabled &&
                         ( $refund->getState() == RefundState::PENDING ||
-                        $refund->getState() == RefundState::MANUAL_CHECK ) ) {
+                        $refund->getState() == RefundState::MANUAL_CHECK )) {
                         $this->messageManager->addErrorMessage(
-                            \__('The refund was requested successfully, but is still pending on the gateway.'));
+                            \__('The refund was requested successfully, but is still pending on the gateway.')
+                        );
                     } else {
                         $this->messageManager->addSuccessMessage(\__('Successfully refunded.'));
                     }
@@ -117,11 +130,13 @@ class Refund extends \Wallee\Payment\Controller\Adminhtml\Order
                             ->getMessage());
                     } else {
                         $this->messageManager->addErrorMessage(
-                            \__('There has been an error while sending the refund to the gateway.'));
+                            \__('There has been an error while sending the refund to the gateway.')
+                        );
                     }
                 } catch (\Exception $e) {
                     $this->messageManager->addErrorMessage(
-                        \__('There has been an error while sending the refund to the gateway.'));
+                        \__('There has been an error while sending the refund to the gateway.')
+                    );
                 }
             } catch (NoSuchEntityException $e) {
                 $this->messageManager->addErrorMessage(\__('For this order no refund request exists.'));

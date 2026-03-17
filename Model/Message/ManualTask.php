@@ -45,16 +45,31 @@ class ManualTask implements MessageInterface
         $this->manualTaskService = $manualTaskService;
     }
 
+    /**
+     * Get message severity level.
+     *
+     * @return int
+     */
     public function getSeverity()
     {
         return self::SEVERITY_MINOR;
     }
 
+    /**
+     * Get message identity.
+     *
+     * @return string
+     */
     public function getIdentity()
     {
         return 'wle_manual_task';
     }
 
+    /**
+     * Get admin notification message text.
+     *
+     * @return string
+     */
     public function getText()
     {
         $numberOfManualTasks = $this->manualTaskService->getNumberOfManualTasks();
@@ -63,27 +78,39 @@ class ManualTask implements MessageInterface
         if ($totalNumberOfManualTasks == 1) {
             return \__('There is a <a href="%1" target="_blank">manual task</a> that needs your attention.', $url);
         } else {
-            return \__('There are <a href="%1" target="_blank">%2 manual tasks</a> that need your attention.', $url,
-                $totalNumberOfManualTasks);
+            return \__(
+                'There are <a href="%1" target="_blank">%2 manual tasks</a> that need your attention.',
+                $url,
+                $totalNumberOfManualTasks
+            );
         }
     }
 
+    /**
+     * Check whether the notification should be displayed.
+     *
+     * @return bool
+     */
     public function isDisplayed()
     {
         return \array_sum($this->manualTaskService->getNumberOfManualTasks()) > 0;
     }
 
     /**
+     * Build manual task URL for the given website.
      *
-     * @param int $websiteId
+     * @param int|null $websiteId
      * @return string
      */
     private function buildManualTaskUrl($websiteId = null)
     {
         $url = \rtrim($this->scopeConfig->getValue('wallee_payment/general/base_gateway_url'), '/');
         if ($websiteId != null) {
-            $spaceId = $this->scopeConfig->getValue('wallee_payment/general/space_id',
-                ScopeInterface::SCOPE_WEBSITE, $websiteId);
+            $spaceId = $this->scopeConfig->getValue(
+                'wallee_payment/general/space_id',
+                ScopeInterface::SCOPE_WEBSITE,
+                $websiteId
+            );
             $url .= '/s/' . $spaceId . '/manual-task/list';
         }
         return $url;

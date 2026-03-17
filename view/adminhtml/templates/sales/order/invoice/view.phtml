@@ -16,10 +16,15 @@
 /** @var $block \Wallee\Payment\Block\Adminhtml\Sales\Order\Invoice\View */
 ?>
 
-<?php if ($block->isCapturePending()) : ?>
-	<div class="messages">
-		<div class="message message-warning warning">
-			<?=$block->escapeHtml(\__('The capture has been requested but could not be completed yet. The invoice will be updated, as soon as the capture is done.'))?>
-		</div>
-	</div>
+<?php if ($block->isCapturePending()): ?>
+    <div class="messages">
+        <div class="message message-warning warning">
+            <?=$escaper->escapeHtml(
+                \__(
+                    'The capture has been requested but could not be completed yet. ' .
+                    'The invoice will be updated, as soon as the capture is done.'
+                )
+            )?>
+        </div>
+    </div>
 <?php endif; ?>

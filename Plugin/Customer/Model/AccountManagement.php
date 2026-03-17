@@ -32,14 +32,18 @@ class AccountManagement
     }
 
     /**
+     *  Store checkout email before availability check.
+     *
      * @param \Magento\Customer\Model\AccountManagement $subject
      * @param string $customerEmail
      * @param int $websiteId
      * @return void
      */
-    public function beforeIsEmailAvailable(\Magento\Customer\Model\AccountManagement $subject, $customerEmail,
-        $websiteId = null)
-    {
+    public function beforeIsEmailAvailable(
+        \Magento\Customer\Model\AccountManagement $subject,
+        $customerEmail,
+        $websiteId = null
+    ) {
         $this->checkoutSession->setWalleeCheckoutEmailAddress($customerEmail);
     }
 }

@@ -60,14 +60,24 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
      * @param Helper $helper
      * @param ModuleListInterface $moduleList
      */
-    public function __construct(ObjectManagerInterface $objectManager, ModuleManager $moduleManager, Helper $helper, ModuleListInterface $moduleList)
-    {
+    public function __construct(
+        ObjectManagerInterface $objectManager,
+        ModuleManager $moduleManager,
+        Helper $helper,
+        ModuleListInterface $moduleList
+    ) {
         $this->objectManager = $objectManager;
         $this->moduleManager = $moduleManager;
         $this->helper = $helper;
         $this->_moduleList = $moduleList;
     }
 
+    /**
+     * Append Amasty checkout items.
+     *
+     * @param Observer $observer the observer instance containing event data
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         /* @var Quote|Order|Invoice $entity */
@@ -75,12 +85,15 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
         $transport = $observer->getTransport();
 
         if ($this->moduleManager->isEnabled('Amasty_Checkout')) {
-            $transport->setData('items',
-                \array_merge($transport->getData('items'), $this->convertAmastyCheckoutLineItems($entity)));
+            $transport->setData(
+                'items',
+                \array_merge($transport->getData('items'), $this->convertAmastyCheckoutLineItems($entity))
+            );
         }
     }
 
     /**
+     * Convert Amasty checkout items into line items.
      *
      * @param Quote|Order|Invoice $entity
      * @return LineItemCreate[]
@@ -89,13 +102,14 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
     {
         $items = [];
         $giftWrapLineItem = $this->convertGiftWrapLineItem($entity);
-        if ($giftWrapLineItem != null) {
+        if ($giftWrapLineItem !== null) {
             $items[] = $giftWrapLineItem;
         }
         return $items;
     }
 
     /**
+     * Create a gift wrap line item from Amasty fee data.
      *
      * @param Quote|Order|Invoice $entity
      * @return LineItemCreate
@@ -105,9 +119,9 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
         $moduleInfo = $this->_moduleList->getOne('Amasty_Checkout');
 
         if (version_compare($moduleInfo['setup_version'], '4.0.0', '>=')) {
-            $feeRepository = $this->objectManager->get('Amasty\CheckoutCore\Api\FeeRepositoryInterface');
+            $feeRepository = $this->objectManager->get(\Amasty\CheckoutCore\Api\FeeRepositoryInterface::class);
         } else {
-            $feeRepository = $this->objectManager->get('Amasty\Checkout\Api\FeeRepositoryInterface');
+            $feeRepository = $this->objectManager->get(\Amasty\Checkout\Api\FeeRepositoryInterface::class);
         }
 
         $currency = null;
@@ -129,6 +143,7 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
     }
 
     /**
+     * Build the gift wrap fee line item.
      *
      * @param float $amount
      * @param string $currency

@@ -17,9 +17,18 @@ namespace Wallee\Payment\Model\Config;
 class Dom extends \Magento\Framework\Config\Dom
 {
 
-    const SYSTEM_INITIAL_CONTENT = '<?xml version="1.0"?><config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd"><system></system></config>';
+    public const SYSTEM_INITIAL_CONTENT =
+    '<?xml version="1.0"?>' .
+    '<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
+    'xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">' .
+    '<system></system>' .
+    '</config>';
 
-    const CONFIG_INITIAL_CONTENT = '<?xml version="1.0"?><config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd"></config>';
+    public const CONFIG_INITIAL_CONTENT =
+    '<?xml version="1.0"?>' .
+    '<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
+    'xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">' .
+    '</config>';
 
     /**
      * Sets the DOM document.

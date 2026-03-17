@@ -29,115 +29,138 @@ use Wallee\Payment\Model\Service\Order\TransactionService as TransactionOrderSer
 
 class CustomerOrderTransactionSettings implements ResolverInterface
 {
-	/**
-	 *
-	 * @var Session
-	 */
-	private $customerSession;
+    /**
+     *
+     * @var Session
+     */
+    private $customerSession;
 
-	/**
-	 *
-	 * @var CheckoutSession
-	 */
-	private $checkoutSession;
+    /**
+     *
+     * @var CheckoutSession
+     */
+    private $checkoutSession;
 
-	/**
-	 *
-	 * @var GetCustomer
-	 */
-	private $getCustomer;
+    /**
+     *
+     * @var GetCustomer
+     */
+    private $getCustomer;
 
-	/**
-	 *
-	 * @var OrderRepositoryInterface
-	 */
-	private $orderRepository;
+    /**
+     *
+     * @var OrderRepositoryInterface
+     */
+    private $orderRepository;
 
-	/**
-	 *
-	 * @var TransactionQuoteService
-	 */
-	private $transactionQuoteService;
+    /**
+     *
+     * @var TransactionQuoteService
+     */
+    private $transactionQuoteService;
 
-	/**
-	 *
-	 * @var TransactionOrderService
-	 */
-	private $transactionOrderService;
+    /**
+     *
+     * @var TransactionOrderService
+     */
+    private $transactionOrderService;
 
-	/**
-	 *
-	 * @var LoggerInterface
-	 */
-	private $logger;
+    /**
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
 
+    /**
+     * @param Session $customerSession
+     * @param CheckoutSession $checkoutSession
+     * @param GetCustomer $getCustomer
+     * @param OrderRepositoryInterface $orderRepository
+     * @param TransactionQuoteService $transactionQuoteService
+     * @param TransactionOrderService $transactionOrderService
+     * @param LoggerInterface $logger
+     */
+    public function __construct(
+        Session                  $customerSession,
+        CheckoutSession          $checkoutSession,
+        GetCustomer              $getCustomer,
+        OrderRepositoryInterface $orderRepository,
+        TransactionQuoteService  $transactionQuoteService,
+        TransactionOrderService  $transactionOrderService,
+        LoggerInterface          $logger
+    ) {
+        $this->customerSession = $customerSession;
+        $this->checkoutSession = $checkoutSession;
+        $this->getCustomer = $getCustomer;
+        $this->logger = $logger;
+        $this->transactionQuoteService = $transactionQuoteService;
+        $this->transactionOrderService = $transactionOrderService;
+        $this->orderRepository = $orderRepository;
+    }
 
-	public function __construct(
-		Session                  $customerSession,
-		CheckoutSession          $checkoutSession,
-		GetCustomer              $getCustomer,
-		OrderRepositoryInterface $orderRepository,
-		TransactionQuoteService  $transactionQuoteService,
-		TransactionOrderService  $transactionOrderService,
-		LoggerInterface          $logger
-	) {
-		$this->customerSession = $customerSession;
-		$this->checkoutSession = $checkoutSession;
-		$this->getCustomer = $getCustomer;
-		$this->logger = $logger;
-		$this->transactionQuoteService = $transactionQuoteService;
-		$this->transactionOrderService = $transactionOrderService;
-		$this->orderRepository = $orderRepository;
-	}
+    /**
+     * Resolve transaction settings request for the given order.
+     *
+     * @param \Magento\Framework\GraphQl\Config\Element\Field $field
+     * @param \Magento\GraphQl\Model\Query\ContextInterface $context
+     * @param \Magento\Framework\GraphQl\Schema\Type\ResolveInfo $info
+     * @param array|null $value
+     * @param array|null $args
+     * @return mixed
+     * @throws \Magento\Framework\GraphQl\Exception\GraphQlAuthorizationException
+     * @throws \Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException
+     */
+    public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
+    {
+        //only perform validations if the user is anonymous.
+        if ($this->checkoutSession->getQuote()->getCustomerId()) {
+            /** @var ContextInterface $context */
+            if (false === $context->getExtensionAttributes()->getIsCustomer()) {
+                throw new GraphQlAuthorizationException(__('The current customer isn\'t authorized.'));
+            }
 
-	public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
-	{
-		//only perform validations if the user is anonymous.
-		if ($this->checkoutSession->getQuote()->getCustomerId()) {
-			/** @var ContextInterface $context */
-			if (false === $context->getExtensionAttributes()->getIsCustomer()) {
-				throw new GraphQlAuthorizationException(__('The current customer isn\'t authorized.'));
-			}
+            $customer = $this->getCustomer->execute($context);
+            if ($this->customerSession !== null
+                && $customer->getId() !== $this->customerSession->getCustomer()->getId()) {
+                throw new GraphQlAuthorizationException(__('The current customer isn\'t authorized.'));
+            }
+        }
 
-			$customer = $this->getCustomer->execute($context);
-			if ($this->customerSession !== null && $customer->getId() !== $this->customerSession->getCustomer()->getId()) {
-				throw new GraphQlAuthorizationException(__('The current customer isn\'t authorized.'));
-			}
-		}
+        try {
+            $orderId = $args['orderId'];
+            $integrationType = $args['integrationType'];
+            return $this->getTransactionSettings($orderId, $integrationType);
+        } catch (NoSuchEntityException $e) {
+            $this->logger->critical($e);
+            throw new GraphQlNoSuchEntityException(__($e->getMessage()));
+        }
+    }
 
-		try {
-			$orderId = $args['order_id'];
-			$integrationType = $args['integration_type'];
-			return $this->getTransactionSettings($orderId, $integrationType);
-		} catch (NoSuchEntityException $e) {
-			$this->logger->critical($e);
-			throw new GraphQlNoSuchEntityException(__($e->getMessage()));
-		}
-	}
+    /**
+     * Gets the transaction settings to use their custom payment integration
+     *
+     * @param string $incrementId
+     * @param string $integrationType
+     * @return array
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
+    private function getTransactionSettings(string $incrementId, string $integrationType)
+    {
+        /** @var \Magento\Sales\Model\Order  $order */
+        $order = $this->orderRepository->getOrderByIncrementId($incrementId);
+        $transaction = $this->transactionQuoteService->getTransaction(
+            $order->getWalleeSpaceId(),
+            $order->getWalleeTransactionId()
+        );
+        $url = $this->transactionOrderService->getTransactionPaymentUrl($order, $integrationType);
 
-	/**
-	 * Gets the transaction settings to use their custom payment integration
-	 *
-	 * @return array
-	 * @throws NoSuchEntityException
-	 * @throws LocalizedException
-	 */
-	private function getTransactionSettings(string $incrementId, string $integrationType)
-	{
-		/** @var \Magento\Sales\Model\Order  $order */
-		$order = $this->orderRepository->getOrderByIncrementId($incrementId);
-		$transaction = $this->transactionQuoteService->getTransaction(
-			$order->getWalleeSpaceId(),
-			$order->getWalleeTransactionId()
-		);
-		$url = $this->transactionOrderService->getTransactionPaymentUrl($order, $integrationType);
-
-		return [
-			'order_id' => $order->getId(),
-			'transaction_id' => $transaction->getId(),
-			'transaction_state' => $transaction->getState(),
-			'payment_url' => $url,
-			'integration_type' => $integrationType
-		];
-	}
+        return [
+            'order_id' => $order->getId(),
+            'transaction_id' => $transaction->getId(),
+            'transaction_state' => $transaction->getState(),
+            'payment_url' => $url,
+            'integration_type' => $integrationType
+        ];
+    }
 }

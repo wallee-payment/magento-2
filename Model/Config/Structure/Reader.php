@@ -24,28 +24,8 @@ use Wallee\Payment\Model\Config\Dom;
  */
 class Reader extends \Magento\Config\Model\Config\Structure\Reader
 {
-
     /**
-     *
-     * @param FileResolverInterface $fileResolver
-     * @param Converter $converter
-     * @param SchemaLocator $schemaLocator
-     * @param ValidationStateInterface $validationState
-     * @param CompilerInterface $compiler
-     * @param string $fileName
-     * @param array $idAttributes
-     * @param string $domDocumentClass
-     * @param string $defaultScope
-     */
-    public function __construct(FileResolverInterface $fileResolver, Converter $converter, SchemaLocator $schemaLocator,
-        ValidationStateInterface $validationState, CompilerInterface $compiler, $fileName = 'system.xml', $idAttributes = [],
-        $domDocumentClass = \Magento\Framework\Config\Dom::class, $defaultScope = 'global')
-    {
-        parent::__construct($fileResolver, $converter, $schemaLocator, $validationState, $compiler, $fileName,
-            $idAttributes, $domDocumentClass, $defaultScope);
-    }
-
-    /**
+     * Create configuration merger instance.
      *
      * @return Dom
      */
@@ -55,6 +35,7 @@ class Reader extends \Magento\Config\Model\Config\Structure\Reader
     }
 
     /**
+     * Process configuration document content.
      *
      * @param string $content
      * @return string

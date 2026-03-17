@@ -51,14 +51,23 @@ class CaptureCommand implements CommandInterface
      * @param InvoiceTransactionService $invoiceTransactionService
      * @param OrderTransactionService $orderTransactionService
      */
-    public function __construct(Registry $registry, InvoiceTransactionService $invoiceTransactionService,
-        OrderTransactionService $orderTransactionService)
-    {
+    public function __construct(
+        Registry $registry,
+        InvoiceTransactionService $invoiceTransactionService,
+        OrderTransactionService $orderTransactionService
+    ) {
         $this->registry = $registry;
         $this->invoiceTransactionService = $invoiceTransactionService;
         $this->orderTransactionService = $orderTransactionService;
     }
 
+    /**
+     * Capture payment for the given invoice.
+     *
+     * @param array $commandSubject
+     * @return void
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
     public function execute(array $commandSubject)
     {
         $amount = SubjectReader::readAmount($commandSubject);
@@ -71,14 +80,16 @@ class CaptureCommand implements CommandInterface
 
         if ($invoice->getWalleeCapturePending() || $this->isTransactionInvoiceOpen($invoice)) {
             throw new \Magento\Framework\Exception\LocalizedException(
-                \__(
-                    'The capture has already been requested but could not be completed yet. The invoice will be updated, as soon as the capture is done.'));
+                \__('The capture has already been requested but could not be completed yet. ' .
+                'The invoice will be updated, as soon as the capture is done.')
+            );
         }
 
         $this->invoiceTransactionService->complete($payment, $invoice, $amount);
         if (! $invoice->getId()) {
             throw new \Magento\Framework\Exception\LocalizedException(
-                \__('The capture has been registered. The invoice will be created, as soon as the capture is done.'));
+                \__('The capture has been registered. The invoice will be created, as soon as the capture is done.')
+            );
         }
     }
 

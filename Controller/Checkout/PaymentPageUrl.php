@@ -48,15 +48,23 @@ class PaymentPageUrl extends \Wallee\Payment\Controller\Checkout
      * @param ScopeConfigInterface $scopeConfig
      * @param TransactionService $transactionService
      */
-    public function __construct(Context $context, CheckoutSession $checkoutSession, 
-    ScopeConfigInterface $scopeConfig, TransactionService $transactionService)
-    {
+    public function __construct(
+        Context $context,
+        CheckoutSession $checkoutSession,
+        ScopeConfigInterface $scopeConfig,
+        TransactionService $transactionService
+    ) {
         parent::__construct($context);
         $this->checkoutSession = $checkoutSession;
         $this->scopeConfig = $scopeConfig;
         $this->transactionService = $transactionService;
     }
 
+    /**
+     * Redirect customer to the payment page for the last placed order.
+     *
+     * @return \Magento\Framework\Controller\Result\Redirect
+     */
     public function execute()
     {
         $redirect = $this->resultRedirectFactory->create();
@@ -68,7 +76,11 @@ class PaymentPageUrl extends \Wallee\Payment\Controller\Checkout
         }
 
         try {
-            $integrationMethod = $this->scopeConfig->getValue('wallee_payment/checkout/integration_method', ScopeInterface::SCOPE_STORE, $order->getStoreId());
+            $integrationMethod = $this->scopeConfig->getValue(
+                'wallee_payment/checkout/integration_method',
+                ScopeInterface::SCOPE_STORE,
+                $order->getStoreId()
+            );
             $url = $this->transactionService->getTransactionPaymentUrl($order, $integrationMethod);
             $configurationId = $order->getPayment()
                 ->getMethodInstance()
@@ -76,7 +88,9 @@ class PaymentPageUrl extends \Wallee\Payment\Controller\Checkout
                 ->getConfigurationId();
             return $redirect->setPath($url . '&paymentMethodConfigurationId=' . (string)$configurationId);
         } catch (\Exception $e) {
-            $this->messageManager->addErrorMessage(__('An error occurred while trying to redirect to payment page. Please try again.'));
+            $this->messageManager->addErrorMessage(
+                __('An error occurred while trying to redirect to payment page. Please try again.')
+            );
             return $redirect->setPath('checkout/cart');
         }
     }

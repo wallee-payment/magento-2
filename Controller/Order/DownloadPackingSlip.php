@@ -22,6 +22,7 @@ use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Document as DocumentHelper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Sdk\Service\TransactionService;
+use Magento\Framework\Encryption\EncryptorInterface;
 
 /**
  * Frontend controller action to download a packing slip.
@@ -73,6 +74,11 @@ class DownloadPackingSlip extends \Wallee\Payment\Controller\Order
 
     /**
      *
+     * @var EncryptorInterface
+     */
+    private $encryptor;
+
+    /**
      * @param Context $context
      * @param ForwardFactory $resultForwardFactory
      * @param FileFactory $fileFactory
@@ -81,11 +87,19 @@ class DownloadPackingSlip extends \Wallee\Payment\Controller\Order
      * @param OrderLoaderInterface $orderLoader
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param ApiClient $apiClient
+     * @param EncryptorInterface $encryptor
      */
-    public function __construct(Context $context, ForwardFactory $resultForwardFactory, FileFactory $fileFactory,
-        Registry $registry, DocumentHelper $documentHelper, OrderLoaderInterface $orderLoader,
-        TransactionInfoRepositoryInterface $transactionInfoRepository, ApiClient $apiClient)
-    {
+    public function __construct(
+        Context $context,
+        ForwardFactory $resultForwardFactory,
+        FileFactory $fileFactory,
+        Registry $registry,
+        DocumentHelper $documentHelper,
+        OrderLoaderInterface $orderLoader,
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        ApiClient $apiClient,
+        EncryptorInterface $encryptor
+    ) {
         parent::__construct($context);
         $this->resultForwardFactory = $resultForwardFactory;
         $this->fileFactory = $fileFactory;
@@ -94,8 +108,14 @@ class DownloadPackingSlip extends \Wallee\Payment\Controller\Order
         $this->orderLoader = $orderLoader;
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->apiClient = $apiClient;
+        $this->encryptor = $encryptor;
     }
 
+    /**
+     * Download the transaction packing slip document if allowed.
+     *
+     * @return \Magento\Framework\App\ResponseInterface|\Magento\Framework\Controller\ResultInterface
+     */
     public function execute()
     {
         $result = $this->orderLoader->load($this->_request);
@@ -108,9 +128,16 @@ class DownloadPackingSlip extends \Wallee\Payment\Controller\Order
         $transaction = $this->transactionInfoRepository->getByOrderId($order->getId());
         if ($this->documentHelper->isInvoiceDownloadAllowed($transaction, $order->getStoreId())) {
             $document = $this->apiClient->getService(TransactionService::class)->getPackingSlip(
-                $transaction->getSpaceId(), $transaction->getTransactionId());
-            return $this->fileFactory->create($document->getTitle() . '.pdf', \base64_decode($document->getData()),
-                DirectoryList::VAR_DIR, 'application/pdf');
+                $transaction->getSpaceId(),
+                $transaction->getTransactionId()
+            );
+            $decoded = $this->encryptor->decrypt($document->getData());
+            return $this->fileFactory->create(
+                $document->getTitle() . '.pdf',
+                $decoded,
+                DirectoryList::VAR_DIR,
+                'application/pdf'
+            );
         } else {
             return $this->resultForwardFactory->create()->forward('noroute');
         }

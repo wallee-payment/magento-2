@@ -14,11 +14,6 @@ namespace Wallee\Payment\Api;
 use Magento\Sales\Model\Order;
 use Wallee\Sdk\Model\Transaction;
 
-/**
- * Transaction info management interface.
- *
- * @api
- */
 interface TransactionInfoManagementInterface
 {
 
@@ -31,14 +26,14 @@ interface TransactionInfoManagementInterface
      */
     public function update(Transaction $transaction, Order $order);
 
-	/**
-	 * Update the transaction info with the success and failure URL to redirect the customer after placing the order
-	 *
-	 * @param Transaction $transaction
-	 * @param int $orderId
-	 * @param string $successUrl
-	 * @param string $failureUrl
-	 * @return Data\TransactionInfoInterface
-	 */
-	public function setRedirectUrls(Transaction $transaction, $orderId, $successUrl, $failureUrl);
+    /**
+     * Update the transaction info with the success and failure URL to redirect the customer after placing the order
+     *
+     * @param Transaction $transaction
+     * @param int $orderId
+     * @param string $successUrl
+     * @param string $failureUrl
+     * @return Data\TransactionInfoInterface
+     */
+    public function setRedirectUrls(Transaction $transaction, $orderId, $successUrl, $failureUrl);
 }

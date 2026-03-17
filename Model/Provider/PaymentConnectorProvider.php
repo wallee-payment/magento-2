@@ -34,33 +34,17 @@ class PaymentConnectorProvider extends AbstractProvider
      */
     public function __construct(FrontendInterface $cache, ApiClient $apiClient)
     {
-        parent::__construct($cache, 'wallee_payment_connectors',
-            \Wallee\Sdk\Model\PaymentConnector::class);
+        parent::__construct(
+            $cache,
+            'wallee_payment_connectors',
+            \Wallee\Sdk\Model\PaymentConnector::class
+        );
         $this->apiClient = $apiClient;
     }
 
     /**
-     * Gets the payment connector by the given id.
+     * Fetch payment connectors from the API.
      *
-     * @param string $id
-     * @return \Wallee\Sdk\Model\PaymentConnector
-     */
-    public function find($id)
-    {
-        return parent::find($id);
-    }
-
-    /**
-     * Gets a list of payment connectors.
-     *
-     * @return \Wallee\Sdk\Model\PaymentConnector[]
-     */
-    public function getAll()
-    {
-        return parent::getAll();
-    }
-
-    /**
      * @return mixed
      */
     protected function fetchData()
@@ -68,6 +52,12 @@ class PaymentConnectorProvider extends AbstractProvider
         return $this->apiClient->getService(PaymentConnectorService::class)->all();
     }
 
+    /**
+     * Get connector ID from the given entry.
+     *
+     * @param \Wallee\Sdk\Model\PaymentConnector $entry
+     * @return int
+     */
     protected function getId($entry)
     {
         /** @var \Wallee\Sdk\Model\PaymentConnector $entry */

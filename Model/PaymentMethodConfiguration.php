@@ -22,23 +22,27 @@ class PaymentMethodConfiguration extends AbstractModel implements PaymentMethodC
 {
 
     /**
-     * Payment method configuration states
+     * @var int
      */
-    const STATE_ACTIVE = 1;
-
-    const STATE_INACTIVE = 2;
-
-    const STATE_HIDDEN = 3;
+    public const STATE_ACTIVE = 1;
 
     /**
-     * Event prefix
+     * @var int
+     */
+    public const STATE_INACTIVE = 2;
+
+    /**
+     * @var int
+     */
+    public const STATE_HIDDEN = 3;
+
+    /**
      *
      * @var string
      */
     protected $_eventPrefix = 'wallee_payment_method_configuration';
 
     /**
-     * Event object
      *
      * @var string
      */
@@ -54,51 +58,101 @@ class PaymentMethodConfiguration extends AbstractModel implements PaymentMethodC
         $this->_init(ResourceModel::class);
     }
 
+    /**
+     * Get configuration ID.
+     *
+     * @return int
+     */
     public function getConfigurationId()
     {
         return $this->getData(PaymentMethodConfigurationInterface::CONFIGURATION_ID);
     }
 
+    /**
+     * Get configuration name.
+     *
+     * @return string
+     */
     public function getConfigurationName()
     {
         return $this->getData(PaymentMethodConfigurationInterface::CONFIGURATION_NAME);
     }
 
+    /**
+     * Get created at timestamp.
+     *
+     * @return string|null
+     */
     public function getCreatedAt()
     {
         return $this->getData(PaymentMethodConfigurationInterface::CREATED_AT);
     }
 
+    /**
+     * Get description.
+     *
+     * @return string
+     */
     public function getDescription()
     {
         return $this->getData(PaymentMethodConfigurationInterface::DESCRIPTION);
     }
 
+    /**
+     * Get image.
+     *
+     * @return string
+     */
     public function getImage()
     {
         return $this->getData(PaymentMethodConfigurationInterface::IMAGE);
     }
 
+    /**
+     * Get sort order.
+     *
+     * @return int
+     */
     public function getSortOrder()
     {
         return $this->getData(PaymentMethodConfigurationInterface::SORT_ORDER);
     }
 
+    /**
+     * Get space id.
+     *
+     * @return int
+     */
     public function getSpaceId()
     {
         return $this->getData(PaymentMethodConfigurationInterface::SPACE_ID);
     }
 
+    /**
+     * Get state.
+     *
+     * @return string
+     */
     public function getState()
     {
         return $this->getData(PaymentMethodConfigurationInterface::STATE);
     }
 
+    /**
+     * Get title.
+     *
+     * @return string
+     */
     public function getTitle()
     {
         return $this->getData(PaymentMethodConfigurationInterface::TITLE);
     }
 
+    /**
+     * Get updated at timestamp.
+     *
+     * @return string|null
+     */
     public function getUpdatedAt()
     {
         return $this->getData(PaymentMethodConfigurationInterface::UPDATED_AT);

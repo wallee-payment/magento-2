@@ -54,9 +54,12 @@ class Refund
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param ApiClient $apiClient
      */
-    public function __construct(LoggerInterface $logger, RefundJobRepositoryInterface $refundJobRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, ApiClient $apiClient)
-    {
+    public function __construct(
+        LoggerInterface $logger,
+        RefundJobRepositoryInterface $refundJobRepository,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        ApiClient $apiClient
+    ) {
         $this->logger = $logger;
         $this->refundJobRepository = $refundJobRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
@@ -64,6 +67,8 @@ class Refund
     }
 
     /**
+     * Process pending refund jobs.
+     *
      * @return void
      * @throws \Magento\Framework\Exception\InputException
      * @throws \Magento\Framework\Exception\LocalizedException
@@ -75,8 +80,10 @@ class Refund
         $refundJobs = $this->refundJobRepository->getList($searchCriteria)->getItems();
         foreach ($refundJobs as $refundJob) {
             try {
-                $this->apiClient->getService(RefundService::class)->refund($refundJob->getSpaceId(),
-                    $refundJob->getRefund());
+                $this->apiClient->getService(RefundService::class)->refund(
+                    $refundJob->getSpaceId(),
+                    $refundJob->getRefund()
+                );
             } catch (\Wallee\Sdk\ApiException $e) {
                 if ($e->getResponseObject() instanceof \Wallee\Sdk\Model\ClientError) {
                     $this->refundJobRepository->delete($refundJob);

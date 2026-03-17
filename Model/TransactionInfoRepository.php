@@ -21,7 +21,8 @@ use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Api\Data\TransactionInfoInterface;
 use Wallee\Payment\Api\Data\TransactionInfoSearchResultsInterfaceFactory;
 use Wallee\Payment\Model\ResourceModel\TransactionInfo as TransactionInfoResource;
-use Wallee\Payment\Model\ResourceModel\TransactionInfo\CollectionFactory as TransactionInfoCollectionFactory;
+use Wallee\Payment\Model\ResourceModel\TransactionInfo\CollectionFactory
+    as TransactionInfoCollectionFactory;
 
 /**
  * Transaction info CRUD service.
@@ -67,11 +68,13 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
      * @param TransactionInfoResource $resource
      * @param CollectionProcessorInterface $collectionProcessor
      */
-    public function __construct(TransactionInfoFactory $transactionInfoFactory,
+    public function __construct(
+        TransactionInfoFactory $transactionInfoFactory,
         TransactionInfoCollectionFactory $transactionInfoCollectionFactory,
-        TransactionInfoSearchResultsInterfaceFactory $searchResultsFactory, TransactionInfoResource $resource,
-        CollectionProcessorInterface $collectionProcessor)
-    {
+        TransactionInfoSearchResultsInterfaceFactory $searchResultsFactory,
+        TransactionInfoResource $resource,
+        CollectionProcessorInterface $collectionProcessor
+    ) {
         $this->transactionInfoFactory = $transactionInfoFactory;
         $this->transactionInfoCollectionFactory = $transactionInfoCollectionFactory;
         $this->searchResultsFactory = $searchResultsFactory;
@@ -91,8 +94,10 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
         try {
             $this->resource->save($object);
         } catch (\Exception $exception) {
-            throw new CouldNotSaveException(\__('Could not save the transaction info: %1', $exception->getMessage()),
-                $exception);
+            throw new CouldNotSaveException(
+                \__('Could not save the transaction info: %1', $exception->getMessage()),
+                $exception
+            );
         }
         return $object;
     }
@@ -103,7 +108,7 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
      * @param int $entityId
      * @return TransactionInfo
      * @throws InputException
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function get($entityId)
     {
@@ -126,7 +131,7 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
      * @param int $spaceId
      * @param int $transactionId
      * @return TransactionInfo
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function getByTransactionId($spaceId, $transactionId)
     {
@@ -151,7 +156,7 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
      *
      * @param int $orderId
      * @return TransactionInfo
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function getByOrderId($orderId)
     {
@@ -168,6 +173,12 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
         return $object;
     }
 
+    /**
+     * Retrieve transaction info list matching the given search criteria.
+     *
+     * @param SearchCriteriaInterface $searchCriteria
+     * @return TransactionInfoSearchResultsInterface
+     */
     public function getList(SearchCriteriaInterface $searchCriteria)
     {
         /** @var \Wallee\Payment\Model\ResourceModel\TransactionInfo\Collection $collection */
@@ -183,16 +194,34 @@ class TransactionInfoRepository implements TransactionInfoRepositoryInterface
         return $searchResults;
     }
 
+    /**
+     * Deletes transaction info.
+     *
+     * @param TransactionInfoInterface $object
+     * @return bool
+     * @throws \Magento\Framework\Exception\CouldNotDeleteException
+     */
     public function delete(TransactionInfoInterface $object)
     {
         try {
             $this->resource->delete($object);
         } catch (\Exception $exception) {
-            throw new CouldNotDeleteException(\__('Could not delete the transaction info: %1', $exception->getMessage()));
+            throw new CouldNotDeleteException(
+                \__(
+                    'Could not delete the transaction info: %1',
+                    $exception->getMessage()
+                )
+            );
         }
         return true;
     }
 
+    /**
+     * Deletes transaction info by entity ID.
+     *
+     * @param int $entityId
+     * @return void
+     */
     public function deleteByIdentifier($entityId)
     {
         $this->delete($this->get($entityId));

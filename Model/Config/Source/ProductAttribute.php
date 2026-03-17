@@ -45,14 +45,21 @@ class ProductAttribute implements \Magento\Framework\Option\ArrayInterface
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param SortOrderBuilder $sortOrderBuilder
      */
-    public function __construct(ProductAttributeRepositoryInterface $attributeRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder, SortOrderBuilder $sortOrderBuilder)
-    {
+    public function __construct(
+        ProductAttributeRepositoryInterface $attributeRepository,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        SortOrderBuilder $sortOrderBuilder
+    ) {
         $this->attributeRepository = $attributeRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->sortOrderBuilder = $sortOrderBuilder;
     }
 
+    /**
+     * Return product attribute options array.
+     *
+     * @return array
+     */
     public function toOptionArray()
     {
         $options = [];
@@ -61,7 +68,8 @@ class ProductAttribute implements \Magento\Framework\Option\ArrayInterface
             ->create();
         $attributes = $this->attributeRepository->getList(
             $this->searchCriteriaBuilder->addSortOrder($sortOrder)
-                ->create());
+            ->create()
+        );
         foreach ($attributes->getItems() as $attribute) {
             $options[] = [
                 'value' => $attribute->getAttributeCode(),

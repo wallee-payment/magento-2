@@ -17,72 +17,96 @@
 ?>
 
 <div class="admin__page-section-item-content">
-	<table class="data-table admin__table-secondary">
-		<tr>
-			<th><?=$block->escapeHtml(\__('Payment Method'))?></th>
-			<td><?=$block->escapeHtml($block->getMethod()->getPaymentMethodConfiguration()->getConfigurationName()) ?></td>
-		</tr>
-    	<?php $imageUrl = $block->getImageUrl(); if ($imageUrl) : ?>
-    		<tr>
-    			<th></th>
-    			<td><img src="<?=$block->escapeHtml($imageUrl)?>" width="50" /></td>
-    		</tr>
-    	<?php endif; ?>
-    	<?php if ($block->getTransaction()) : ?>
-    		<tr>
-    			<th><?=$block->escapeHtml(\__('Transaction State'))?></th>
-    			<td><?=$block->escapeHtml($block->getTransactionState()) ?></td>
-    		</tr>
-    		<?php if ($block->getTransaction()->getFailureReason() != null) : ?>
-        		<tr>
-        			<th><?=$block->escapeHtml(\__('Failure Reason'))?></th>
-        			<td><?=$block->escapeHtml($block->translate($block->getTransaction()->getFailureReason())) ?></td>
-        		</tr>
-    		<?php endif; ?>
-    		<tr>
-    			<th><?=$block->escapeHtml(\__('Authorization Amount'))?></th>
-    			<td><?=$block->escapeHtml($block->formatAmount($block->getTransaction()->getAuthorizationAmount())) ?></td>
-    		</tr>
-    		<tr>
-    			<th><?=$block->escapeHtml(\__('Transaction'))?></th>
-    			<td><a target="_blank" href="<?=$block->escapeHtml($block->getTransactionUrl())?>"><?=$block->escapeHtml(\__('View in wallee'))?></a></td>
-    		</tr>
-    		<tr>
-    			<th><?=$block->escapeHtml(\__('Customer'))?></th>
-    			<td><a target="_blank" href="<?=$block->escapeHtml($block->getCustomerUrl())?>"><?=$block->escapeHtml(\__('View in wallee'))?></a></td>
-    		</tr>
-    	<?php endif; ?>
-        <?php if ($block->isInvoice() && $block->isInvoiceDownloadAllowed()) : ?>
-			<tr>
-    			<th><?=$block->escapeHtml(\__('Invoice'))?></th>
-    			<td><a href="<?=$block->escapeHtml($block->getInvoiceDownloadUrl())?>"><?=$block->escapeHtml(\__('Download Invoice'))?></a></td>
-			</tr>
+    <table class="data-table admin__table-secondary">
+        <tr>
+            <th><?=$escaper->escapeHtml(\__('Payment Method'))?></th>
+            <td>
+                <?=$escaper->escapeHtml($block->getMethod()->getPaymentMethodConfiguration()->getConfigurationName()) ?>
+            </td>
+        </tr>
+        <?php $imageUrl = $block->getImageUrl(); if ($imageUrl): ?>
+            <tr>
+                <th></th>
+                <td><img src="<?=$escaper->escapeHtml($imageUrl)?>" width="50" /></td>
+            </tr>
+        <?php endif; ?>
+        <?php if ($block->getTransaction()): ?>
+            <tr>
+                <th><?=$escaper->escapeHtml(\__('Transaction State'))?></th>
+                <td><?=$escaper->escapeHtml($block->getTransactionState()) ?></td>
+            </tr>
+            <?php if ($block->getTransaction()->getFailureReason() != null): ?>
+                <tr>
+                    <th><?=$escaper->escapeHtml(\__('Failure Reason'))?></th>
+                    <td><?=$escaper->escapeHtml($block->translate($block->getTransaction()->getFailureReason())) ?></td>
+                </tr>
+            <?php endif; ?>
+            <tr>
+                <th><?=$escaper->escapeHtml(\__('Authorization Amount'))?></th>
+                <td>
+                    <?=$escaper->escapeHtml($block->formatAmount($block->getTransaction()->getAuthorizationAmount())) ?>
+                </td>
+            </tr>
+            <tr>
+                <th><?=$escaper->escapeHtml(\__('Transaction'))?></th>
+                <td>
+                    <a target="_blank" href="<?=$escaper->escapeHtml($block->getTransactionUrl())?>">
+                        <?=$escaper->escapeHtml(\__('View in wallee'))?>
+                    </a>
+                </td>
+            </tr>
+            <tr>
+                <th><?=$escaper->escapeHtml(\__('Customer'))?></th>
+                <td>
+                    <a target="_blank" href="<?=$escaper->escapeHtml($block->getCustomerUrl())?>">
+                        <?=$escaper->escapeHtml(\__('View in wallee'))?>
+                    </a>
+                </td>
+            </tr>
+        <?php endif; ?>
+        <?php if ($block->isInvoice() && $block->isInvoiceDownloadAllowed()): ?>
+            <tr>
+                <th><?=$escaper->escapeHtml(\__('Invoice'))?></th>
+                <td>
+                    <a href="<?=$escaper->escapeHtml($block->getInvoiceDownloadUrl())?>">
+                        <?=$escaper->escapeHtml(\__('Download Invoice'))?>
+                    </a>
+                </td>
+            </tr>
         <?php endif;?>
-        <?php if ($block->isShipment() && $block->isPackingSlipDownloadAllowed()) : ?>
-			<tr>
-    			<th><?=$block->escapeHtml(\__('Packing Slip'))?></th>
-    			<td><a href="<?=$block->escapeHtml($block->getPackingSlipDownloadUrl())?>"><?=$block->escapeHtml(\__('Download Packing Slip'))?></a></td>
-			</tr>
+        <?php if ($block->isShipment() && $block->isPackingSlipDownloadAllowed()): ?>
+            <tr>
+                <th><?=$escaper->escapeHtml(\__('Packing Slip'))?></th>
+                <td>
+                    <a href="<?=$escaper->escapeHtml($block->getPackingSlipDownloadUrl())?>">
+                        <?=$escaper->escapeHtml(\__('Download Packing Slip'))?>
+                    </a>
+                </td>
+            </tr>
         <?php endif;?>
-        <?php if ($block->isCreditmemo() && $block->isRefundDownloadAllowed()) : ?>
-			<tr>
-    			<th><?=$block->escapeHtml(\__('Refund'))?></th>
-    			<td><a href="<?=$block->escapeHtml($block->getRefundDownloadUrl())?>"><?=$block->escapeHtml(\__('Download Refund'))?></a></td>
-			</tr>
+        <?php if ($block->isCreditmemo() && $block->isRefundDownloadAllowed()): ?>
+            <tr>
+                <th><?=$escaper->escapeHtml(\__('Refund'))?></th>
+                <td>
+                    <a href="<?=$escaper->escapeHtml($block->getRefundDownloadUrl())?>">
+                        <?=$escaper->escapeHtml(\__('Download Refund'))?>
+                    </a>
+                </td>
+            </tr>
         <?php endif;?>
-	</table>
+    </table>
 
-	<?php foreach ($block->getGroupedLabels() as $group) : ?>
-		<div class="wallee-label-container">
-    		<a><?=$block->escapeHtml($block->translate($group->getName()))?></a>
-    		<table class="data-table admin__table-secondary">
-    			<?php foreach ($group->getLabels() as $label) : ?>
-            		<tr>
-            			<th><?=$block->escapeHtml($block->translate($label->getName()))?></th>
-            			<td><?=$block->escapeHtml($label->getValue()) ?></td>
-            		</tr>
-    			<?php endforeach; ?>
-    		</table>
-		</div>
-	<?php endforeach; ?>
+    <?php foreach ($block->getGroupedLabels() as $group): ?>
+        <div class="wallee-label-container">
+            <a><?=$escaper->escapeHtml($block->translate($group->getName()))?></a>
+            <table class="data-table admin__table-secondary">
+                <?php foreach ($group->getLabels() as $label): ?>
+                    <tr>
+                        <th><?=$escaper->escapeHtml($block->translate($label->getName()))?></th>
+                        <td><?=$escaper->escapeHtml($label->getValue()) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+        </div>
+    <?php endforeach; ?>
 </div>

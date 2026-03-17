@@ -22,14 +22,12 @@ class RefundJob extends AbstractModel implements RefundJobInterface
 {
 
     /**
-     * Event prefix
      *
      * @var string
      */
     protected $_eventPrefix = 'wallee_payment_refund_job';
 
     /**
-     * Event object
      *
      * @var string
      */
@@ -45,31 +43,61 @@ class RefundJob extends AbstractModel implements RefundJobInterface
         $this->_init(ResourceModel::class);
     }
 
+    /**
+     * Get created at timestamp.
+     *
+     * @return string|null
+     */
     public function getCreatedAt()
     {
         return $this->getData(RefundJobInterface::CREATED_AT);
     }
 
+    /**
+     * Get external id.
+     *
+     * @return string
+     */
     public function getExternalId()
     {
         return $this->getData(RefundJobInterface::EXTERNAL_ID);
     }
 
+    /**
+     * Get order id.
+     *
+     * @return int
+     */
     public function getOrderId()
     {
         return $this->getData(RefundJobInterface::ORDER_ID);
     }
 
+    /**
+     * Get invoice id.
+     *
+     * @return int
+     */
     public function getInvoiceId()
     {
         return $this->getData(RefundJobInterface::INVOICE_ID);
     }
 
+    /**
+     * Get refund.
+     *
+     * @return string
+     */
     public function getRefund()
     {
         return $this->getData(RefundJobInterface::REFUND);
     }
 
+    /**
+     * Get space id.
+     *
+     * @return int
+     */
     public function getSpaceId()
     {
         return $this->getData(RefundJobInterface::SPACE_ID);

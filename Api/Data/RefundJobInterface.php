@@ -30,37 +30,37 @@ interface RefundJobInterface extends ExtensibleDataInterface
     /**
      * Create-at timestamp.
      */
-    const CREATED_AT = 'created_at';
+    public const CREATED_AT = 'created_at';
 
     /**
      * Entity ID.
      */
-    const ENTITY_ID = 'entity_id';
+    public const ENTITY_ID = 'entity_id';
 
     /**
      * External ID.
      */
-    const EXTERNAL_ID = 'external_id';
+    public const EXTERNAL_ID = 'external_id';
 
     /**
      * Order ID.
      */
-    const ORDER_ID = 'order_id';
+    public const ORDER_ID = 'order_id';
 
     /**
      * Invoice ID.
      */
-    const INVOICE_ID = 'invoice_id';
+    public const INVOICE_ID = 'invoice_id';
 
     /**
      * Payment method ID.
      */
-    const REFUND = 'refund';
+    public const REFUND = 'refund';
 
     /**
      * Space ID.
      */
-    const SPACE_ID = 'space_id';
+    public const SPACE_ID = 'space_id';
 
     /**
      * Gets the created-at timestamp of the refund job.

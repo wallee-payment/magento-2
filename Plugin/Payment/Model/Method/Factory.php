@@ -39,6 +39,8 @@ class Factory
     }
 
     /**
+     * Replace dynamic payment method creation with custom adapter.
+     *
      * @param \Magento\Payment\Model\Method\Factory $subject
      * @param string $classname
      * @param array<mixed> $data
@@ -63,19 +65,25 @@ class Factory
     }
 
     /**
+     * Create value handler pool for dynamic payment method.
+     *
      * @param int $configurationId
      * @return mixed
      */
     private function getValueHandlerPool($configurationId)
     {
-        $configInterface = $this->objectManager->create(Config::class,
+        $configInterface = $this->objectManager->create(
+            Config::class,
             [
                 'methodCode' => 'wallee_payment_' . $configurationId
-            ]);
-        $valueHandler = $this->objectManager->create(ConfigValueHandler::class,
+            ]
+        );
+        $valueHandler = $this->objectManager->create(
+            ConfigValueHandler::class,
             [
                 'configInterface' => $configInterface
-            ]);
+            ]
+        );
         return $this->objectManager->create(ValueHandlerPool::class, [
             'handler' => $valueHandler
         ]);

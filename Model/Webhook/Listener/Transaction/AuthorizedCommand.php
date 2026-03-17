@@ -48,9 +48,11 @@ class AuthorizedCommand extends AbstractCommand
     }
 
     /**
+     * Execute authorized transaction flow.
      *
      * @param \Wallee\Sdk\Model\Transaction $entity
      * @param Order $order
+     * @return void
      */
     public function execute($entity, Order $order)
     {
@@ -78,7 +80,8 @@ class AuthorizedCommand extends AbstractCommand
             if ($entity->getState() != TransactionState::FULFILL) {
                 // Order's state cannot be Payment Review, but pending or processing.
                 $order->setState(Order::STATE_PROCESSING);
-                $order->addStatusToHistory('pending',
+                $order->addStatusToHistory(
+                    'pending',
                     \__('The order should not be fulfilled yet, as the payment is not guaranteed.')
                 );
             }

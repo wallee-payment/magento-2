@@ -16,8 +16,10 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\Exception\NotFoundException;
-use Wallee\Payment\Model\Service\WebhookService;
-use Wallee\Payment\Model\Webhook\Request;
+use Wallee\PluginCore\Webhook\WebhookProcessor;
+use Wallee\Payment\Model\CoreWebhook\RegistryConfigurer;
+use Wallee\PluginCore\Http\Request as PluginCoreRequest;
+use Psr\Log\LoggerInterface;
 
 /**
  * Frontend controller action to proces webhook requests.
@@ -27,57 +29,71 @@ class Index extends \Wallee\Payment\Controller\Webhook implements CsrfAwareActio
 
     /**
      *
-     * @var WebhookService
+     * @var WebhookProcessor
      */
-    private $webhookService;
+    private WebhookProcessor $webhookProcessor;
 
     /**
      *
-     * @param Context $context
-     * @param WebhookService $webhookService
+     * @var LoggerInterface
      */
-    public function __construct(Context $context, WebhookService $webhookService)
-    {
+    private LoggerInterface $logger;
+
+    /**
+     * @param Context $context The context object.
+     * @param WebhookProcessor $webhookProcessor The webhook processor.
+     * @param RegistryConfigurer $registryConfigurer The registry configurer.
+     * @param LoggerInterface $logger The logger instance.
+     */
+    public function __construct(
+        Context $context,
+        WebhookProcessor $webhookProcessor,
+        private readonly RegistryConfigurer $registryConfigurer,
+        LoggerInterface $logger,
+    ) {
         parent::__construct($context);
-        $this->webhookService = $webhookService;
+        $this->webhookProcessor = $webhookProcessor;
+        $this->logger = $logger;
     }
 
+    /**
+     * Handle the incoming webhook request and set the HTTP response code.
+     *
+     * @return void
+     */
     public function execute()
     {
         http_response_code(500);
         $this->getResponse()->setHttpResponseCode(500);
         try {
-            $this->webhookService->execute($this->parseRequest());
-        } catch (NotFoundException $e) {
-            throw new \Exception($e);
+            $this->registryConfigurer->configure();
+            $pluginCoreRequest = PluginCoreRequest::fromMagentoRequest($this->getRequest());
+            $this->webhookProcessor->process($pluginCoreRequest);
+        } catch (\Exception $e) {
+            $this->logger->critical($e);
+            $this->getResponse()->setHttpResponseCode(500);
+            return;
         }
         $this->getResponse()->setHttpResponseCode(200);
     }
 
     /**
-     * Parses the HTTP request.
+     * Bypass CSRF validation for this endpoint.
      *
-     * @throws \InvalidArgumentException
-     * @return \Wallee\Payment\Model\Webhook\Request
+     * @param RequestInterface $request
+     * @return bool|null
      */
-    private function parseRequest()
-    {
-        $jsonRequest = $this->getRequest()->getContent();
-        if (empty($jsonRequest)) {
-            throw new \InvalidArgumentException('Empty request.');
-        }
-        $parsedRequest = \json_decode($jsonRequest, true);
-        if (\json_last_error() !== JSON_ERROR_NONE) {
-            throw new \InvalidArgumentException('Unable to unserialize value.');
-        }
-        return new Request($parsedRequest);
-    }
-
     public function validateForCsrf(RequestInterface $request): ?bool
     {
         return true;
     }
 
+    /**
+     * No CSRF validation exception is required for this endpoint.
+     *
+     * @param RequestInterface $request
+     * @return InvalidRequestException|null
+     */
     public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
     {
         return null;

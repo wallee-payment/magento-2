@@ -36,6 +36,12 @@ class ManualTaskListener implements ListenerInterface
         $this->manualTaskService = $manualTaskService;
     }
 
+    /**
+     * Execute manual task flow.
+     *
+     * @param Request $request
+     * @return void
+     */
     public function execute(Request $request)
     {
         $this->manualTaskService->update();

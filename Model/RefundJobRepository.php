@@ -67,11 +67,13 @@ class RefundJobRepository implements RefundJobRepositoryInterface
      * @param RefundJobResource $resource
      * @param CollectionProcessorInterface $collectionProcessor
      */
-    public function __construct(RefundJobFactory $refundJobFactory,
+    public function __construct(
+        RefundJobFactory $refundJobFactory,
         RefundJobCollectionFactory $refundJobCollectionFactory,
-        RefundJobSearchResultsInterfaceFactory $searchResultsFactory, RefundJobResource $resource,
-        CollectionProcessorInterface $collectionProcessor)
-    {
+        RefundJobSearchResultsInterfaceFactory $searchResultsFactory,
+        RefundJobResource $resource,
+        CollectionProcessorInterface $collectionProcessor
+    ) {
         $this->refundJobFactory = $refundJobFactory;
         $this->refundJobCollectionFactory = $refundJobCollectionFactory;
         $this->searchResultsFactory = $searchResultsFactory;
@@ -91,8 +93,10 @@ class RefundJobRepository implements RefundJobRepositoryInterface
         try {
             $this->resource->save($object);
         } catch (\Exception $exception) {
-            throw new CouldNotSaveException(\__('Could not save the refund job: %1', $exception->getMessage()),
-                $exception);
+            throw new CouldNotSaveException(
+                \__('Could not save the refund job: %1', $exception->getMessage()),
+                $exception
+            );
         }
         return $object;
     }
@@ -103,7 +107,7 @@ class RefundJobRepository implements RefundJobRepositoryInterface
      * @param int $entityId
      * @return RefundJob
      * @throws InputException
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function get($entityId)
     {
@@ -125,7 +129,7 @@ class RefundJobRepository implements RefundJobRepositoryInterface
      *
      * @param int $orderId
      * @return RefundJob
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function getByOrderId($orderId)
     {
@@ -147,7 +151,7 @@ class RefundJobRepository implements RefundJobRepositoryInterface
      *
      * @param string $externalId
      * @return RefundJob
-     * @throws NoSuchEntityException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function getByExternalId($externalId)
     {
@@ -164,6 +168,12 @@ class RefundJobRepository implements RefundJobRepositoryInterface
         return $object;
     }
 
+    /**
+     * Retrieve refund jobs matching the given search criteria.
+     *
+     * @param SearchCriteriaInterface $searchCriteria
+     * @return RefundJobSearchResultsInterface
+     */
     public function getList(SearchCriteriaInterface $searchCriteria)
     {
         /** @var \Wallee\Payment\Model\ResourceModel\RefundJob\Collection $collection */
@@ -179,6 +189,13 @@ class RefundJobRepository implements RefundJobRepositoryInterface
         return $searchResults;
     }
 
+    /**
+     * Deletes refund job.
+     *
+     * @param RefundJobInterface $object
+     * @return bool
+     * @throws \Magento\Framework\Exception\CouldNotDeleteException
+     */
     public function delete(RefundJobInterface $object)
     {
         try {
@@ -189,6 +206,12 @@ class RefundJobRepository implements RefundJobRepositoryInterface
         return true;
     }
 
+    /**
+     * Deletes refund job by entity ID.
+     *
+     * @param int $entityId
+     * @return void
+     */
     public function deleteByIdentifier($entityId)
     {
         $this->delete($this->get($entityId));

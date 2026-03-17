@@ -42,9 +42,12 @@ class View extends Template
      * @param RefundJobRepositoryInterface $refundJobRepository
      * @param array $data
      */
-    public function __construct(Context $context, Registry $coreRegistry,
-        RefundJobRepositoryInterface $refundJobRepository, array $data = [])
-    {
+    public function __construct(
+        Context $context,
+        Registry $coreRegistry,
+        RefundJobRepositoryInterface $refundJobRepository,
+        array $data = []
+    ) {
         parent::__construct($context, $data);
         $this->coreRegistry = $coreRegistry;
         $this->refundJobRepository = $refundJobRepository;

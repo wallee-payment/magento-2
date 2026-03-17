@@ -24,6 +24,7 @@ use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\Service\AbstractLineItemService;
 use Wallee\Sdk\Model\LineItemAttributeCreate;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service to handle line items in order context.
@@ -57,6 +58,12 @@ class LineItemService extends AbstractLineItemService
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param Helper $helper
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
@@ -66,18 +73,37 @@ class LineItemService extends AbstractLineItemService
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
      * @param ProductRepositoryInterface $productRepository
+     * @param LoggerInterface $logger
      */
-    public function __construct(Helper $helper, LineItemHelper $lineItemHelper, ScopeConfigInterface $scopeConfig,
-        TaxClassRepositoryInterface $taxClassRepository, TaxHelper $taxHelper, TaxCalculation $taxCalculation,
-        CustomerGroupRegistry $groupRegistry, EventManagerInterface $eventManager,
-        ProductRepositoryInterface $productRepository)
-    {
-        parent::__construct($helper, $lineItemHelper, $scopeConfig, $taxClassRepository, $taxCalculation,
-            $groupRegistry, $eventManager, $productRepository);
+    public function __construct(
+        Helper $helper,
+        LineItemHelper $lineItemHelper,
+        ScopeConfigInterface $scopeConfig,
+        TaxClassRepositoryInterface $taxClassRepository,
+        TaxHelper $taxHelper,
+        TaxCalculation $taxCalculation,
+        CustomerGroupRegistry $groupRegistry,
+        EventManagerInterface $eventManager,
+        ProductRepositoryInterface $productRepository,
+        LoggerInterface $logger
+    ) {
+        parent::__construct(
+            $helper,
+            $lineItemHelper,
+            $scopeConfig,
+            $taxClassRepository,
+            $taxCalculation,
+            $groupRegistry,
+            $eventManager,
+            $productRepository,
+            null,
+            $logger
+        );
         $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
         $this->taxHelper = $taxHelper;
+        $this->logger = $logger;
     }
 
     /**
@@ -88,10 +114,17 @@ class LineItemService extends AbstractLineItemService
      */
     public function convertOrderLineItems(Order $order)
     {
-        return $this->lineItemHelper->correctLineItems($this->convertLineItems($order), $order->getGrandTotal(),
+        return $this->lineItemHelper->correctLineItems(
+            $this->convertLineItems($order),
+            $order->getGrandTotal(),
             $this->getCurrencyCode($order),
-            $this->scopeConfig->getValue('wallee_payment/line_items/enforce_consistency',
-                ScopeInterface::SCOPE_STORE, $order->getStoreId()), $this->taxHelper->getCalculatedTaxes($order));
+            $this->scopeConfig->getValue(
+                'wallee_payment/line_items/enforce_consistency',
+                ScopeInterface::SCOPE_STORE,
+                $order->getStoreId()
+            ),
+            $this->taxHelper->getCalculatedTaxes($order)
+        );
     }
 
     /**
@@ -115,12 +148,15 @@ class LineItemService extends AbstractLineItemService
             $attributes[$this->getAttributeKey($option)] = $attribute;
         }
 
-        return \array_merge($attributes,
+        return \array_merge(
+            $attributes,
             $this->getCustomAttributes($entityItem->getProductId(), $entityItem->getOrder()
-                ->getStoreId()));
+            ->getStoreId())
+        );
     }
 
     /**
+     * Gets the unique ID of the given item.
      *
      * @param Order\Item $entityItem
      * @return string

@@ -58,9 +58,12 @@ class InitializeCommand implements CommandInterface
      * @param Helper $helper
      * @param TokenInfoRepositoryInterface $tokenInfoRepository
      */
-    public function __construct(CartRepositoryInterface $quoteRepository, Random $random, Helper $helper,
-        TokenInfoRepositoryInterface $tokenInfoRepository)
-    {
+    public function __construct(
+        CartRepositoryInterface $quoteRepository,
+        Random $random,
+        Helper $helper,
+        TokenInfoRepositoryInterface $tokenInfoRepository
+    ) {
         $this->quoteRepository = $quoteRepository;
         $this->random = $random;
         $this->helper = $helper;
@@ -69,8 +72,12 @@ class InitializeCommand implements CommandInterface
 
     /**
      * An invoice is created and the transaction updated to match the order and confirmed.
+     *
      * The order state is set to {@link Order::STATE_PENDING_PAYMENT}.
      *
+     * @param array $commandSubject
+     * @return void
+     * @throws \InvalidArgumentException
      * @see CommandInterface::execute()
      */
     public function execute(array $commandSubject)
@@ -97,7 +104,8 @@ class InitializeCommand implements CommandInterface
         if ($order->getWalleeSpaceId() != null ||
             $order->getWalleeTransactionId() != null) {
             throw new \InvalidArgumentException(
-                'The wallee payment transaction has already been set on the order.');
+                'The wallee payment transaction has already been set on the order.'
+            );
         }
 
         $order->setWalleeSpaceId($quote->getWalleeSpaceId());
@@ -116,6 +124,8 @@ class InitializeCommand implements CommandInterface
     }
 
     /**
+     * Retrieve payment token from quote for admin orders.
+     *
      * @param Quote $quote
      * @return void|Token
      * @throws \Magento\Framework\Exception\NoSuchEntityException
