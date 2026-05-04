@@ -67,4 +67,8 @@
 	<event name="wallee_validate_and_restore_quote">
 		<observer name="wallee_validate_and_restore_quote_observer" instance="Wallee\Payment\Observer\ValidateAndRestoreQuote" />
 	</event>
+
+	<event name="controller_action_predispatch_checkout_cart_index">
+		<observer name="wallee_restore_cart_on_cart_page" instance="Wallee\Payment\Observer\RestoreCartOnCartPage" />
+	</event>
 </config>

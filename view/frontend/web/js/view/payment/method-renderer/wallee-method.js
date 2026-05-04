@@ -35,24 +35,24 @@ define([
 		redirectAfterPlaceOrder: false,
 		loadingIframe: false,
 		checkoutHandler: null,
-		
+
 		/**
 		 * @override
 		 */
 		initialize: function(){
 			this._super();
-			
+
 			if (window.checkoutConfig.wallee.integrationMethod == 'iframe') {
 				this.checkoutHandler = checkoutHandler(this.getFormId(), this.isActive.bind(this), this.createIframeHandler.bind(this));
 				var methods = methodList();
-			
+
 				//When there is only 1 active payment method magento's behaviour is not to display the iframe,
 				//until the user selects the payment method by clicking on the icon.
 				//These lines allow to trigger the iframe to show it by default if there is only one payment method active.
 				if (methods !== null && methods.length === 1) {
 					this.checkoutHandler.updateAddresses(this._super.bind(this));
 				}
-				
+
 				//Every time the checkout page is initialised/refreshed
 				//here we are checking if there is at least one chekbox selected,
 				//if the condition is met, then we will update the iframe with the user's billing address,
@@ -64,11 +64,11 @@ define([
 					let checkboxId = this.getCode();
 					let checkoutHandler = this.checkoutHandler;
 					var updateAddressesCallback = function() {
-						checkoutHandler.updateAddresses(_super.bind(_this));	
+						checkoutHandler.updateAddresses(_super.bind(_this));
 					};
 					let intervalId = setInterval(function () {
 						// stop loader when frame will be loaded
-						if ($('#' + checkboxId).length >= 1 && $('#' + checkboxId).is(':checked')) {							
+						if ($('#' + checkboxId).length >= 1 && $('#' + checkboxId).is(':checked')) {
 							clearInterval(intervalId);
 							fullScreenLoader.startLoader();
 							updateAddressesCallback();
@@ -78,35 +78,35 @@ define([
 				}
 			}
 		},
-		
+
 		getFormId: function(){
 			return this.getCode() + '-payment-form';
 		},
-		
+
 		getConfigurationId: function(){
 			return window.checkoutConfig.payment[this.getCode()].configurationId;
 		},
-		
+
 		isActive: function(){
 			return quote.paymentMethod() ? quote.paymentMethod().method == this.getCode() : false;
 		},
-		
+
 		isShowDescription: function(){
 			return window.checkoutConfig.payment[this.getCode()].showDescription;
 		},
-		
+
 		getDescription: function(){
 			return window.checkoutConfig.payment[this.getCode()].description;
 		},
-		
+
 		isShowImage: function(){
 			return window.checkoutConfig.payment[this.getCode()].showImage;
 		},
-		
+
 		getImageUrl: function(){
 			return window.checkoutConfig.payment[this.getCode()].imageUrl;
 		},
-		
+
 		createIframeHandler: function(){
 			if (this.handler) {
 				this.checkoutHandler.selectPaymentMethod();
@@ -114,7 +114,7 @@ define([
 				if (this.checkoutHandler.canReplacePrimaryAction()) {
 					window.IframeCheckoutHandler.configure('replacePrimaryAction', true);
 				}
-				
+
 				this.loadingIframe = true;
 				fullScreenLoader.startLoader();
 				this.handler = window.IframeCheckoutHandler(this.getConfigurationId());
@@ -143,11 +143,11 @@ define([
 				}).bind(this));
 			}
 		},
-		
+
 		getSubmitButton: function(){
 			return $('#' + this.getFormId()).parents('.payment-method-content').find('button.checkout');
 		},
-		
+
 		selectPaymentMethod: function(){
 			if (this.checkoutHandler) {
 				this.checkoutHandler.updateAddresses(this._super.bind(this));
@@ -156,7 +156,7 @@ define([
 				return this._super();
 			}
 		},
-		
+
 		validateWhitelabelmachinename: function(){
 			if (window.checkoutConfig.wallee.integrationMethod == 'iframe') {
 				if (this.loadingIframe) {
@@ -175,7 +175,7 @@ define([
 				this.placeOrder();
 			}
 		},
-		
+
         placeOrder: function (data, event) {
             var self = this;
 
@@ -211,14 +211,54 @@ define([
 
             return false;
         },
-		
+
 		afterPlaceOrder: function(){
 			var self = this;
-			
-			window.history.pushState({}, document.title, window.checkoutConfig.wallee.restoreCartUrl);
-			
+			var restoreCartUrl = window.checkoutConfig.wallee.restoreCartUrl;
+
+			// Mark the session as "payment in flight" via a cookie. If the
+			// customer is bounced back to /checkout/cart by any browser path
+			// (Firefox back-button, wallee fallback redirect, etc.),
+			// the server-side RestoreCartOnCartPage observer reads this cookie
+			// during cart predispatch and reactivates the quote inline — no
+			// extra round-trip, no white-page flash.
+			document.cookie = 'wallee_restore_pending=1; path=/; samesite=lax';
+
+			window.history.pushState({}, document.title, restoreCartUrl);
+
+			// When the user hits Back from the payment screen, the browser may
+			// restore this checkout document from the bfcache (Firefox does this
+			// aggressively; Chrome usually does not for cross-origin returns) and
+			// skip the GET to restoreCartUrl, leaving the cart un-restored. Force
+			// a real navigation in that case so the server-side restore runs.
+			// Covers all integration types: iframe, lightbox, payment_page.
+			// Guard so re-entry (lightbox cancel + retry) doesn't stack listeners.
+			if (!window.walleeRestoreAttached) {
+				window.walleeRestoreAttached = true;
+				var forceRestore = function(){
+					window.removeEventListener('pageshow', onPageShow);
+					window.removeEventListener('popstate', onPopState);
+					// Skip if the in-flight cookie is gone (payment finished or
+					// cart-page observer already restored).
+					if (document.cookie.indexOf('wallee_restore_pending=') === -1) {
+						return;
+					}
+					window.location.replace(restoreCartUrl);
+				};
+				var onPageShow = function(event){
+					if (event.persisted) {
+						forceRestore();
+					}
+				};
+				var onPopState = function(){
+					forceRestore();
+				};
+				window.addEventListener('pageshow', onPageShow);
+				window.addEventListener('popstate', onPopState);
+			}
+
 			fullScreenLoader.startLoader();
-			
+
 			if (window.checkoutConfig.wallee.integrationMethod == 'iframe' && this.handler) {
 				this.handler.submit();
 			} else if (window.checkoutConfig.wallee.integrationMethod == 'lightbox' && typeof window.LightboxCheckoutHandler != 'undefined') {
@@ -229,16 +269,19 @@ define([
 				this.fallbackToPaymentPage();
 			}
 		},
-		
+
 		fallbackToPaymentPage: function(){
 			fullScreenLoader.startLoader();
 			if (window.checkoutConfig.wallee.paymentPageUrl) {
-				window.location.replace(window.checkoutConfig.wallee.paymentPageUrl);
+				// Use assign (not replace) so the pushState entry with restoreCartUrl
+				// from afterPlaceOrder survives in history — pressing Back from the
+				// 3DS page then lands on RestoreCart, which reactivates the quote.
+				window.location.assign(window.checkoutConfig.wallee.paymentPageUrl);
 			} else {
 				window.location.replace(urlBuilder.build("wallee_payment/checkout/failure"));
 			}
 		},
-		
+
 		stripHtml: function(input){
 			return $('<div>' + input + '</div>').text();
 		}

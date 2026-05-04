@@ -15,8 +15,11 @@ use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Checkout\Model\Session\SuccessValidator;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
+use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
+use Wallee\Payment\Observer\RestoreCartOnCartPage;
 use Wallee\Sdk\Model\TransactionState;
 
 /**
@@ -37,20 +40,36 @@ class Success extends \Wallee\Payment\Controller\Transaction
     private $successValidator;
 
     /**
+     * @var CookieManagerInterface
+     */
+    private $cookieManager;
+
+    /**
+     * @var CookieMetadataFactory
+     */
+    private $cookieMetadataFactory;
+
+    /**
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
      * @param CheckoutSession $checkoutSession
      * @param SuccessValidator $successValidator
+     * @param CookieManagerInterface $cookieManager
+     * @param CookieMetadataFactory $cookieMetadataFactory
      */
     public function __construct(
         Context $context,
         OrderRepositoryInterface $orderRepository,
         CheckoutSession $checkoutSession,
-        SuccessValidator $successValidator
+        SuccessValidator $successValidator,
+        CookieManagerInterface $cookieManager,
+        CookieMetadataFactory $cookieMetadataFactory
     ) {
         parent::__construct($context, $orderRepository);
         $this->checkoutSession = $checkoutSession;
         $this->successValidator = $successValidator;
+        $this->cookieManager = $cookieManager;
+        $this->cookieMetadataFactory = $cookieMetadataFactory;
     }
 
     /**
@@ -60,6 +79,12 @@ class Success extends \Wallee\Payment\Controller\Transaction
      */
     public function execute()
     {
+        // Payment completed — clear the in-flight cookie so later cart visits
+        // don't trigger the abandoned-payment restore flow.
+        $metadata = $this->cookieMetadataFactory->createCookieMetadata();
+        $metadata->setPath('/');
+        $this->cookieManager->deleteCookie(RestoreCartOnCartPage::COOKIE_NAME, $metadata);
+
         $order = $this->getOrder();
         if (! $this->successValidator->isValid()) {
             $this->messageManager->addErrorMessage(

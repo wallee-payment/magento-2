@@ -27,6 +27,14 @@ class RestoreCart extends \Wallee\Payment\Controller\Checkout
      */
     public function execute()
     {
+        // Prevent the browser (notably Firefox bfcache) from serving a cached
+        // redirect when the user navigates back from the payment page; without
+        // these headers the server-side quote restore can be skipped.
+        $response = $this->getResponse();
+        $response->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0', true);
+        $response->setHeader('Pragma', 'no-cache', true);
+        $response->setHeader('Expires', '0', true);
+
         try {
             // Triggers event to validate and restore quote.
             $this->_eventManager->dispatch('wallee_validate_and_restore_quote');

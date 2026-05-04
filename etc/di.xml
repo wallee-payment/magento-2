@@ -257,7 +257,7 @@
         </arguments>
     </type>
 
-    <virtualType name="Wallee\Payment\TransactionGateway" type="Wallee\PluginCore\Sdk\SdkV1\TransactionGateway">
+    <virtualType name="Wallee\Payment\TransactionGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\TransactionGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
             <argument name="logger" xsi:type="object">Wallee\PluginCore\Log\LoggerInterface</argument>

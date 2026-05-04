@@ -139,7 +139,7 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
      * @throws \Magento\Framework\Exception\CouldNotSaveException
      * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function synchronize(OutputInterface $output = null)
+    public function synchronize(?OutputInterface $output = null)
     {
         $existingConfigurations = $this->paymentMethodConfigurationRepository->getList(
             $this->searchCriteriaBuilder->addFilter(

@@ -124,7 +124,7 @@ abstract class AbstractLineItemService
         CustomerGroupRegistry $groupRegistry,
         EventManagerInterface $eventManager,
         ProductRepositoryInterface $productRepository,
-        GiftCardAccountWrapper $giftCardAccountManagement = null,
+        ?GiftCardAccountWrapper $giftCardAccountManagement = null,
         LoggerInterface $logger,
     ) {
         $this->helper = $helper;

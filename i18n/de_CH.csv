@@ -138,7 +138,6 @@
 "The associated authorization transaction for the payment could not be found.","Die verknüpfte authorisations-Transaktion konnte für die Zahlung nicht gefunden werden.."
 "Enabled: this can impact certain payment methods and slow down the payment process","Aktiviert: Dies kann sich auf bestimmte Zahlungsarten auswirken und den Zahlungsvorgang verlangsamen."
 "Your cart has already been paid for and cannot be restored.", "Ihr Warenkorb wurde bereits bezahlt und kann nicht wiederhergestellt werden."
-"No cart to restore.", "Kein Warenkorb zum Wiederherstellen."
 "An error occurred while restoring your cart.", "Beim Wiederherstellen Ihres Warenkorbs ist ein Fehler aufgetreten."
 "Payment Page", "Zahlungsseite"
 "There is a line item without a unique ID.", "Es gibt eine Position ohne eindeutige ID."
