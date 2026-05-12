@@ -231,13 +231,7 @@ class TransactionService extends AbstractTransactionService
      */
     public function getPossiblePaymentMethods(Quote $quote)
     {
-        $gdprEnabled = $this->scopeConfig->getValue(
-            'wallee_payment/gdpr/gdpr_enabled',
-            ScopeInterface::SCOPE_STORE,
-            $quote->getStoreId()
-        );
-
-        if ($gdprEnabled != 'enabled') {
+        if (! $this->isGdprEnabled($quote->getStoreId())) {
             $this->updateTransactionByQuote($quote);
         }
 
@@ -489,9 +483,11 @@ class TransactionService extends AbstractTransactionService
         $transaction->setCurrency($quote->getQuoteCurrencyCode());
         $transaction->setBillingAddress($this->convertQuoteBillingAddress($quote));
         $transaction->setShippingAddress($this->convertQuoteShippingAddress($quote));
-        $transaction->setCustomerEmailAddress(
-            $this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId())
-        );
+        if (! $this->isGdprEnabled($quote->getStoreId())) {
+            $transaction->setCustomerEmailAddress(
+                $this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId())
+            );
+        }
         $transaction->setLanguage(
             $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $quote->getStoreId())
         );
@@ -533,9 +529,31 @@ class TransactionService extends AbstractTransactionService
         $emailAddress = parent::getCustomerEmailAddress($customerEmailAddress, $customerId);
         if (! empty($emailAddress)) {
             return $emailAddress;
-        } else {
-            return $this->checkoutSession->getWalleeCheckoutEmailAddress();
         }
+
+        // When GDPR is enabled, do not fall back to the previously cached
+        // checkout session email — it may belong to a prior, unrelated order
+        // and would otherwise be transmitted to the Portal.
+        if ($this->isGdprEnabled()) {
+            return null;
+        }
+
+        return $this->checkoutSession->getWalleeCheckoutEmailAddress();
+    }
+
+    /**
+     * Whether GDPR mode is enabled for the given store (defaults to current scope).
+     *
+     * @param int|null $storeId
+     * @return bool
+     */
+    private function isGdprEnabled($storeId = null)
+    {
+        return $this->scopeConfig->getValue(
+            'wallee_payment/gdpr/gdpr_enabled',
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        ) === 'enabled';
     }
 
     /**
@@ -551,26 +569,40 @@ class TransactionService extends AbstractTransactionService
         }
         $address = $this->convertAddress($quote->getBillingAddress());
 
-        $gdprEnabled = $this->scopeConfig->getValue(
-            'wallee_payment/gdpr/gdpr_enabled',
-            ScopeInterface::SCOPE_STORE,
-            $quote->getStoreId()
-        );
+        $gdprEnabled = $this->isGdprEnabled($quote->getStoreId());
 
-        if ($gdprEnabled == 'enabled') {
-            // removing GDPR sensitive information
+        if ($gdprEnabled) {
+            // Mask every identifying field so that, if the customer ends up
+            // paying with a non-Wallee method, the pending transaction left
+            // on the Portal contains no PII. The Wallee confirmation path
+            // (Order/TransactionService::confirmTransaction) re-sends the full
+            // address, so Wallee customers are unaffected.
+            $address->setCity('');
+            $address->setCommercialRegisterNumber('');
+            $address->setCountry('');
             $address->setDateOfBirth('');
+            $address->setDependentLocality('');
+            $address->setEmailAddress('');
             $address->setFamilyName('');
             $address->setGivenName('');
+            $address->setMobilePhoneNumber('');
+            $address->setOrganizationName('');
+            $address->setPhoneNumber('');
+            $address->setPostalState('');
+            $address->setPostcode('');
+            $address->setSalutation('');
+            $address->setSocialSecurityNumber('');
+            $address->setSortingCode('');
             $address->setStreet('');
+        } else {
+            $address->setEmailAddress(
+                $this->getCustomerEmailAddress(
+                    $quote->getCustomerEmail(),
+                    $quote->getCustomerId()
+                )
+            );
+            $address->setDateOfBirth($this->getDateOfBirth($quote->getCustomerDob(), $quote->getCustomerId()));
         }
-        $address->setDateOfBirth($this->getDateOfBirth($quote->getCustomerDob(), $quote->getCustomerId()));
-        $address->setEmailAddress(
-            $this->getCustomerEmailAddress(
-                $quote->getCustomerEmail(),
-                $quote->getCustomerId()
-            )
-        );
         $address->setGender($this->getGender($quote->getCustomerGender(), $quote->getCustomerId()));
         $address->setSalesTaxNumber($this->getTaxNumber($quote->getCustomerTaxvat(), $quote->getCustomerId()));
         return $address;
@@ -588,22 +620,33 @@ class TransactionService extends AbstractTransactionService
             return null;
         }
         $address = $this->convertAddress($quote->getShippingAddress());
-        $gdprEnabled = $this->scopeConfig->getValue(
-            'wallee_payment/gdpr/gdpr_enabled',
-            ScopeInterface::SCOPE_STORE,
-            $quote->getStoreId()
-        );
+        $gdprEnabled = $this->isGdprEnabled($quote->getStoreId());
 
-        if ($gdprEnabled == 'enabled') {
-            // removing GDPR sensitive information
+        if ($gdprEnabled) {
+            // Mask every identifying field — see convertQuoteBillingAddress
+            // for the rationale.
+            $address->setCity('');
+            $address->setCommercialRegisterNumber('');
+            $address->setCountry('');
             $address->setDateOfBirth('');
+            $address->setDependentLocality('');
+            $address->setEmailAddress('');
             $address->setFamilyName('');
             $address->setGivenName('');
+            $address->setMobilePhoneNumber('');
+            $address->setOrganizationName('');
+            $address->setPhoneNumber('');
+            $address->setPostalState('');
+            $address->setPostcode('');
+            $address->setSalutation('');
+            $address->setSocialSecurityNumber('');
+            $address->setSortingCode('');
             $address->setStreet('');
+        } else {
+            $address->setEmailAddress(
+                $this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId())
+            );
         }
-        $address->setEmailAddress(
-            $this->getCustomerEmailAddress($quote->getCustomerEmail(), $quote->getCustomerId())
-        );
         return $address;
     }
 

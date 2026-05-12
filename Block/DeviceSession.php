@@ -73,7 +73,7 @@ class DeviceSession extends \Magento\Framework\View\Element\Template
         );
 
         if (! empty($spaceId)) {
-            return $baseUrl . '/s/' . $spaceId . '/payment/device.js?sessionIdentifier=';
+            return $baseUrl . '/s/' . $spaceId . '/payment/device.js?sessionIdentifier=' . $this->_storeManager->getStore()->getId();
         }
     }
 }

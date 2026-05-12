@@ -112,8 +112,8 @@ abstract class AbstractLineItemService
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
      * @param ProductRepositoryInterface $productRepository
-     * @param GiftCardAccountWrapper $giftCardAccountManagement
      * @param LoggerInterface $logger
+     * @param GiftCardAccountWrapper $giftCardAccountManagement
      */
     public function __construct(
         Helper $helper,
@@ -124,8 +124,8 @@ abstract class AbstractLineItemService
         CustomerGroupRegistry $groupRegistry,
         EventManagerInterface $eventManager,
         ProductRepositoryInterface $productRepository,
-        ?GiftCardAccountWrapper $giftCardAccountManagement = null,
         LoggerInterface $logger,
+        ?GiftCardAccountWrapper $giftCardAccountManagement = null,
     ) {
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
@@ -135,8 +135,8 @@ abstract class AbstractLineItemService
         $this->groupRegistry = $groupRegistry;
         $this->eventManager = $eventManager;
         $this->productRepository = $productRepository;
-        $this->giftCardAccountManagement = $giftCardAccountManagement;
         $this->logger = $logger;
+        $this->giftCardAccountManagement = $giftCardAccountManagement;
     }
 
     /**

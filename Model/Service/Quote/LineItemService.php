@@ -73,8 +73,8 @@ class LineItemService extends AbstractLineItemService
      * @param EventManagerInterface $eventManager
      * @param ProductRepositoryInterface $productRepository
      * @param ProductConfigurationHelper $productConfigurationHelper
-     * @param GiftCardAccountWrapper $giftCardAccountManagement
      * @param LoggerInterface $logger
+     * @param GiftCardAccountWrapper $giftCardAccountManagement
      */
     public function __construct(
         Helper $helper,
@@ -86,8 +86,8 @@ class LineItemService extends AbstractLineItemService
         EventManagerInterface $eventManager,
         ProductRepositoryInterface $productRepository,
         ProductConfigurationHelper $productConfigurationHelper,
-        GiftCardAccountWrapper $giftCardAccountManagement,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        GiftCardAccountWrapper $giftCardAccountManagement
     ) {
         parent::__construct(
             $helper,
@@ -98,8 +98,8 @@ class LineItemService extends AbstractLineItemService
             $groupRegistry,
             $eventManager,
             $productRepository,
-            $giftCardAccountManagement,
-            $logger
+            $logger,
+            $giftCardAccountManagement
         );
         $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;

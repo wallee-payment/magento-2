@@ -15,8 +15,6 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Model\Order;
 use Wallee\Payment\Api\Data\TransactionInfoInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\Exception\LocalizedException;
 
 /**
  * Abstract handler for order-related webhooks.
@@ -72,10 +70,17 @@ abstract class BaseOrderLifecycleHandler extends DefaultWebhookLifecycleHandler
      * 1. Pre-loads data so we know WHICH order to lock.
      * 2. Calls parent to execute the locking loop and start DB transaction.
      *
+     * Returns false (instead of throwing) when there is no local entity or no
+     * Magento order linked to the webhook. That state is expected when a
+     * Portal transaction is abandoned because the order was placed with a
+     * non-Wallee payment method: the Portal will eventually
+     * fire FAILED/etc., but our DB has nothing to update. The caller treats a
+     * false return as "skip this step", which lets the controller respond 200
+     * and prevents the Portal from retrying indefinitely.
+     *
      * @param WebhookListener $listener
      * @param WebhookContext $context
      * @return bool
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function preProcess(WebhookListener $listener, WebhookContext $context): bool
     {
@@ -84,24 +89,22 @@ abstract class BaseOrderLifecycleHandler extends DefaultWebhookLifecycleHandler
         // Load data FIRST so we can identify the Order ID
         $this->sdkEntity = $this->loadSdkEntity($listener, $context);
         if (!$this->sdkEntity) {
-            throw new NoSuchEntityException(
-                \__(
-                    'Could not load SDK entity for: %1 %2',
-                    $listener->getTechnicalName(),
-                    $context->entityId,
-                )
-            );
+            $this->logger->debug(sprintf(
+                'No SDK entity for %s %d — likely a Portal transaction abandoned because the order was placed with a non-Wallee payment method. Acking webhook.',
+                $listener->getTechnicalName(),
+                $context->entityId
+            ));
+            return false;
         }
 
         $this->order = $this->findOrder($this->sdkEntity);
         if (!$this->order) {
-            throw new NoSuchEntityException(
-                \__(
-                    'Could not load Magento Order for %1 %s2',
-                    $listener->getTechnicalName(),
-                    $context->entityId,
-                )
-            );
+            $this->logger->debug(sprintf(
+                'No Magento order linked to %s %d — likely a Portal transaction abandoned because the order was placed with a non-Wallee payment method. Acking webhook.',
+                $listener->getTechnicalName(),
+                $context->entityId
+            ));
+            return false;
         }
 
         // Call Parent.
@@ -113,34 +116,23 @@ abstract class BaseOrderLifecycleHandler extends DefaultWebhookLifecycleHandler
     /**
      * Adds the Order ID to the list of locks. The parent class handles the actual locking mechanics.
      *
+     * When the order id cannot be resolved (no local TransactionInfo row, e.g.
+     * after a non-Wallee checkout), we return only the base
+     * locks. preProcess() bails out earlier in that case, so business logic
+     * never runs — this method is reached only via onFailure() releasing locks
+     * that were never acquired, which is harmless.
+     *
      * @param WebhookListener $listener
      * @param WebhookContext $context
      * @return array
-     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function getLockableResources(WebhookListener $listener, WebhookContext $context): array
     {
-        // Get the standard entity lock (from Default handler)
         $locks = parent::getLockableResources($listener, $context);
-
-        // Add the Order Lock
-        // Note: $this->order was loaded in preProcess() just before this is called.
         $orderId = $this->getOrderId($context);
         if ($orderId) {
             $locks[] = 'wallee_order_update_' . $orderId;
-        } else {
-            // If we can't find the Order, we MUST NOT proceed, because we can't lock it.
-            // Throwing an exception here forces a retry later, when the Transaction webhook
-            // has likely finished creating the local data.
-            throw new LocalizedException(
-                \__(
-                    "Locking Error: Could not determine Order ID for %1 %2. Cannot acquire Order Lock.",
-                    $listener->getTechnicalName(),
-                    $context->entityId
-                )
-            );
         }
-
         return $locks;
     }
 

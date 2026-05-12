@@ -96,8 +96,8 @@ class LineItemService extends AbstractLineItemService
             $groupRegistry,
             $eventManager,
             $productRepository,
-            null,
-            $logger
+            $logger,
+            null
         );
         $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;
