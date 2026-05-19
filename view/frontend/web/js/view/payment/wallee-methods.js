@@ -19,17 +19,9 @@ define([
 ) {
 	'use strict';
 	
-	// Loads the wallee Javascript File
-	if (window.checkoutConfig.wallee.javascriptUrl) {
-		$.getScript(window.checkoutConfig.wallee.javascriptUrl);
-	}
-	
-	// Loads the wallee Lightbox File
-	if (window.checkoutConfig.wallee.lightboxUrl) {
-		$.getScript(window.checkoutConfig.wallee.lightboxUrl);
-	}
 	
 	// Registers the wallee payment methods
+
 	$.each(window.checkoutConfig.payment, function(code){
 		if (code.indexOf('wallee_payment_') === 0) {
 			rendererList.push({

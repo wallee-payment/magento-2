@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * wallee Magento 2
+ *
+ * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
+ *
+ * @package Wallee_Payment
+ * @author wallee AG (https://www.wallee.com)
+ * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
+
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <script src="Wallee_Payment::js/wallee-sdk-loader.js" />
+        <script src="Wallee_Payment::js/hyva-checkout-component.js" />
+    </head>
+    <body>
+        <referenceBlock name="checkout.payment.methods">
+            <block class="Magento\Framework\View\Element\Template"
+                   name="checkout.payment.method.wallee"
+                   template="Wallee_Payment::hyva/checkout/payment/method.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Wallee\Payment\ViewModel\WhitelabelMachineNameCheckoutViewModel</argument>
+                </arguments>
+            </block>
+        </referenceBlock>
+    </body>
+</page>

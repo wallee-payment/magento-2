@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- 
+<!--
 /**
  * wallee Magento 2
  *
@@ -12,11 +12,35 @@
  */
  -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Register our custom PlaceOrderService for Hyva Checkout to handle our payment methods in the Magewire flow. -->
+    <type name="Hyva\Checkout\Model\Magewire\Payment\PlaceOrderServiceProvider">
+        <arguments>
+            <argument name="placeOrderServiceList" xsi:type="array">
+                <item name="wallee_payment" xsi:type="object">Wallee\Payment\Model\Hyva\Checkout\Payment\PlaceOrderService</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Plugin to filter or modify the available payment methods specifically for the Hyva Checkout view models. -->
+    <type name="Hyva\Checkout\ViewModel\Checkout\Payment\MethodList">
+        <plugin name="wallee_payment_hyva_method_list"
+                type="Wallee\Payment\Plugin\Hyva\Checkout\ViewModel\Payment\MethodListPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Prevent the vendor PostFinance Adapter from hitting the transaction service after order placement. -->
+    <type name="Wallee\Payment\Model\Payment\Method\Adapter">
+        <plugin name="wallee_payment_adapter_inactive_quote"
+                type="Wallee\Payment\Plugin\Payment\Method\MethodAdapter"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Inject our ConfigProvider into the standard Magento checkout to provide essential payment settings to the frontend. -->
     <type name="Magento\Checkout\Model\CompositeConfigProvider">
-	    <arguments>
-	        <argument name="configProviders" xsi:type="array">
-	            <item name="wallee_payment_checkout_config_provider" xsi:type="object">Wallee\Payment\Model\Checkout\ConfigProvider</item>
-	        </argument>
-	    </arguments>
-	</type>
+        <arguments>
+            <argument name="configProviders" xsi:type="array">
+                <item name="wallee_payment_checkout_config_provider" xsi:type="object">Wallee\Payment\Model\Checkout\ConfigProvider</item>
+            </argument>
+        </arguments>
+    </type>
 </config>

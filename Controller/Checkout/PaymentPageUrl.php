@@ -14,7 +14,11 @@ namespace Wallee\Payment\Controller\Checkout;
 use Magento\Framework\App\Action\Context;
 use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
+use Magento\Framework\Stdlib\Cookie\PublicCookieMetadata;
+use Magento\Framework\Stdlib\CookieManagerInterface;
 use Wallee\Payment\Model\Service\Order\TransactionService;
+use Wallee\Payment\Observer\RestoreCartOnCartPage;
 use Magento\Store\Model\ScopeInterface;
 
 /**
@@ -42,22 +46,38 @@ class PaymentPageUrl extends \Wallee\Payment\Controller\Checkout
     private $transactionService;
 
     /**
+     * @var CookieManagerInterface
+     */
+    private $cookieManager;
+
+    /**
+     * @var CookieMetadataFactory
+     */
+    private $cookieMetadataFactory;
+
+    /**
      *
      * @param Context $context
      * @param CheckoutSession $checkoutSession
      * @param ScopeConfigInterface $scopeConfig
      * @param TransactionService $transactionService
+     * @param CookieManagerInterface $cookieManager
+     * @param CookieMetadataFactory $cookieMetadataFactory
      */
     public function __construct(
         Context $context,
         CheckoutSession $checkoutSession,
         ScopeConfigInterface $scopeConfig,
-        TransactionService $transactionService
+        TransactionService $transactionService,
+        CookieManagerInterface $cookieManager,
+        CookieMetadataFactory $cookieMetadataFactory
     ) {
         parent::__construct($context);
         $this->checkoutSession = $checkoutSession;
         $this->scopeConfig = $scopeConfig;
         $this->transactionService = $transactionService;
+        $this->cookieManager = $cookieManager;
+        $this->cookieMetadataFactory = $cookieMetadataFactory;
     }
 
     /**
@@ -86,6 +106,16 @@ class PaymentPageUrl extends \Wallee\Payment\Controller\Checkout
                 ->getMethodInstance()
                 ->getPaymentMethodConfiguration()
                 ->getConfigurationId();
+
+            // Set the restore-pending cookie so that RestoreCartOnCartPage can reactivate the
+            // quote if the customer presses back from the external payment page. This mirrors the
+            // cookie set by the Luma JS renderer; the Hyva server-side redirect bypasses that JS.
+            /** @var PublicCookieMetadata $cookieMeta */
+            $cookieMeta = $this->cookieMetadataFactory->createPublicCookieMetadata()
+                ->setPath('/')
+                ->setSameSite('Lax');
+            $this->cookieManager->setPublicCookie(RestoreCartOnCartPage::COOKIE_NAME, '1', $cookieMeta);
+
             return $redirect->setPath($url . '&paymentMethodConfigurationId=' . (string)$configurationId);
         } catch (\Exception $e) {
             $this->messageManager->addErrorMessage(

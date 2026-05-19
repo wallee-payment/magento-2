@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+    <!-- Customer Checkout Metadata -->
+    <route url="/V1/wallee/checkout/mine/metadata/:methodCode" method="GET">
+        <service class="Wallee\Payment\Api\PaymentMetadataManagementInterface" method="getMetadata"/>
+        <resources>
+            <resource ref="self"/>
+        </resources>
+        <data>
+            <parameter name="cartId" force="true">%cart_id%</parameter>
+        </data>
+    </route>
+
+    <!-- Guest Checkout Metadata -->
+    <route url="/V1/wallee/checkout/guest/:cartId/metadata/:methodCode" method="GET">
+        <service class="Wallee\Payment\Api\GuestPaymentMetadataManagementInterface" method="getMetadata"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+</routes>

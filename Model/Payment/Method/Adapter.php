@@ -225,6 +225,11 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
             return false;
         }
 
+        if ($quote !== null && !$quote->getIsActive()) {
+            $this->logger->debug("ADAPTER::isAvailable - FINISH");
+            return false;
+        }
+
         if (!parent::isAvailable($quote)) {
             $this->logger->debug("ADAPTER::isAvailable - FINISH");
             return false;

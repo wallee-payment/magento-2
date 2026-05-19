@@ -32,6 +32,7 @@
     <preference for="Wallee\PluginCore\Settings\SettingsProviderInterface" type="Wallee\Payment\Model\CoreWebhook\SettingsProvider" />
     <preference for="Wallee\PluginCore\Webhook\StateFetcherInterface" type="Wallee\Payment\Model\CoreWebhook\StateFetcher" />
     <preference for="Wallee\PluginCore\Webhook\WebhookLifecycleHandler" type="Wallee\Payment\Model\CoreWebhook\CompositeWebhookLifecycleHandler" />
+    <preference for="Wallee\PluginCore\Transaction\TransactionGatewayInterface" type="Wallee\Payment\TransactionGateway" />
     <type name="Wallee\Payment\Model\ResourceModel\TokenInfo\Collection\Grid">
         <arguments>
             <argument name="resource" xsi:type="object">Wallee\Payment\Model\ResourceModel\TokenInfo</argument>
@@ -257,7 +258,7 @@
         </arguments>
     </type>
 
-    <virtualType name="Wallee\Payment\TransactionGateway" type="Wallee\PluginCore\Sdk\SdkV1\TransactionGateway">
+    <virtualType name="Wallee\Payment\TransactionGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\TransactionGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
             <argument name="logger" xsi:type="object">Wallee\PluginCore\Log\LoggerInterface</argument>
@@ -356,4 +357,7 @@
             <argument name="logger" xsi:type="object">Wallee\Payment\Logger\WebhookLogger</argument>
         </arguments>
     </type>
+    
+    <preference for="Wallee\Payment\Api\PaymentMetadataManagementInterface" type="Wallee\Payment\Model\PaymentMetadataManagement" />
+    <preference for="Wallee\Payment\Api\GuestPaymentMetadataManagementInterface" type="Wallee\Payment\Model\GuestPaymentMetadataManagement" />
 </config>

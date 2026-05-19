@@ -1,0 +1,39 @@
+<?php
+/**
+ * wallee Magento 2
+ *
+ * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
+ *
+ * @package Wallee_Payment
+ * @author wallee AG (https://www.wallee.com)
+ * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
+
+ */
+/** @var Magento\Framework\View\Element\Template $block */
+/** @var Wallee\Payment\ViewModel\WhitelabelMachineNameCheckoutViewModel $viewModel */
+
+$viewModel = $block->getViewModel();
+$method = $block->getMethod();
+if (!$method) {
+    return;
+}
+$methodCode = $method->getCode();
+
+// Only proceed if it's one of our payment methods.
+if (strpos($methodCode, 'wallee_payment_') !== 0) {
+    return;
+}
+
+$configData = $viewModel->getPaymentIntegrationData($methodCode);
+$configData['methodCode'] = $methodCode;
+?>
+
+<div x-data="hyvaCheckoutWhitelabelPaymentMethod"
+     data-config="<?= $block->escapeHtmlAttr(json_encode($configData)) ?>"
+     class="wallee-payment-method-container mt-4"
+     id="wallee-container-<?= $block->escapeHtmlAttr($methodCode) ?>">
+    
+    <div x-show="isIframeMode" id="wallee-iframe-<?= $block->escapeHtmlAttr($methodCode) ?>" class="wallee-iframe-wrapper border rounded p-2 bg-white shadow-sm" style="display: none;">
+        <!-- Iframe will be mounted here -->
+    </div>
+</div>

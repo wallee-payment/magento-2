@@ -17,6 +17,7 @@ use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Payment\Helper\Data as PaymentHelper;
 use Magento\Store\Model\ScopeInterface;
+use Magento\Csp\Helper\CspNonceProvider;
 use Psr\Log\LoggerInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
@@ -74,6 +75,11 @@ class ConfigProvider implements ConfigProviderInterface
     private $paymentHelper;
 
     /**
+     * @var CspNonceProvider
+     */
+    private $cspNonceProvider;
+
+    /**
      *
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param TransactionService $transactionService
@@ -82,6 +88,7 @@ class ConfigProvider implements ConfigProviderInterface
      * @param ScopeConfigInterface $scopeConfig
      * @param LoggerInterface $logger
      * @param PaymentHelper $paymentHelper
+     * @param CspNonceProvider $cspNonceProvider
      */
     public function __construct(
         PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
@@ -90,7 +97,8 @@ class ConfigProvider implements ConfigProviderInterface
         CheckoutSession $checkoutSession,
         ScopeConfigInterface $scopeConfig,
         LoggerInterface $logger,
-        PaymentHelper $paymentHelper
+        PaymentHelper $paymentHelper,
+        CspNonceProvider $cspNonceProvider
     ) {
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->transactionService = $transactionService;
@@ -99,6 +107,7 @@ class ConfigProvider implements ConfigProviderInterface
         $this->scopeConfig = $scopeConfig;
         $this->logger = $logger;
         $this->paymentHelper = $paymentHelper;
+        $this->cspNonceProvider = $cspNonceProvider;
     }
 
     /**
@@ -124,11 +133,18 @@ class ConfigProvider implements ConfigProviderInterface
             $quote->getStoreId()
         );
         $config['wallee']['integrationMethod'] = $integrationMethod;
+        $config['wallee']['cspNonce'] = $this->cspNonceProvider->generateNonce();
 
         $config['wallee']['restoreCartUrl'] =
         $quote->getStore()->getUrl('wallee_payment/checkout/restoreCart', [
             '_secure' => true
         ]);
+
+        if (!$quote->getIsActive()) {
+            // Quote was deactivated by order placement — skip transaction URL generation
+            // to avoid creating or updating a transaction against a completed order's quote.
+            return $config;
+        }
 
         if ($integrationMethod == IntegrationMethod::IFRAME) {
             try {
