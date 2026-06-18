@@ -53,9 +53,8 @@ class SetOrderPlaceRedirectUrl implements ObserverInterface
      * @param Observer $observer
      * @return void
      */
-    public function execute(
-        Observer $observer,
-    ): void {
+    public function execute(Observer $observer): void
+    {
         /** @var Quote|null $quote */
         $quote = $observer->getEvent()->getQuote();
 
@@ -80,15 +79,11 @@ class SetOrderPlaceRedirectUrl implements ObserverInterface
             );
 
             // Since both standard and Hyva checkouts respect this fallback, we only set it for payment page integration
-            if (
-                $integrationMethod == IntegrationMethod::PAYMENT_PAGE
-            ) {
+            if ($integrationMethod == IntegrationMethod::PAYMENT_PAGE) {
                 // Generate the absolute URL to our redirect controller.
                 $redirectUrl = $quote->getStore()->getUrl(
                     'wallee_payment/checkout/paymentPageUrl',
-                    [
-                        '_secure' => true,
-                    ],
+                    ['_secure' => true,],
                 );
 
                 $payment->setOrderPlaceRedirectUrl(

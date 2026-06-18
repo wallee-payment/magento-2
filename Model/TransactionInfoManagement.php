@@ -151,7 +151,7 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
         Transaction $transaction,
         TransactionInfo $transactionInfo,
         $orderId = null,
-        Order $order = null,
+        ?Order $order = null,
         $successUrl = null,
         $failureUrl = null
     ) {

@@ -153,6 +153,9 @@ class RegistryConfigurer
             PaymentMethodConfigurationState::DELETED->value,
             $this->objectManager->create(SynchronizeListener::class)
         );
+        // Payment method changes do not flow through state transitions; we want to be notified
+        // on every change so the local payment method cache stays in sync with the portal.
+        $registry->setNotifyEveryChange(WebhookListener::PAYMENT_METHOD_CONFIGURATION, true);
 
         $registry->addListener(
             WebhookListener::TOKEN,

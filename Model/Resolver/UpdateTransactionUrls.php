@@ -121,7 +121,7 @@ class UpdateTransactionUrls implements ResolverInterface
      * @throws \Magento\Framework\GraphQl\Exception\GraphQlAuthorizationException
      * @throws \Magento\Framework\GraphQl\Exception\GraphQlNoSuchEntityException
      */
-    public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
+    public function resolve(Field $field, $context, ResolveInfo $info, ?array $value = null, ?array $args = null)
     {
         //only perform validations if the user is anonymous.
         if ($this->checkoutSession->getQuote()->getCustomerId()) {

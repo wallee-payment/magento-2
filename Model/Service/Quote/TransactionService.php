@@ -20,7 +20,6 @@ use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Address;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Framework\Exception\LocalizedException;
-use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\CustomerIdManipulationException;
@@ -99,7 +98,6 @@ class TransactionService extends AbstractTransactionService
      * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
      * @param ApiClient $apiClient
-     * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param CookieManagerInterface $cookieManager
      * @param LineItemService $lineItemService
      * @param CheckoutSession $checkoutSession
@@ -111,7 +109,6 @@ class TransactionService extends AbstractTransactionService
         ScopeConfigInterface $scopeConfig,
         CustomerRegistry $customerRegistry,
         ApiClient $apiClient,
-        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
         CookieManagerInterface $cookieManager,
         LineItemService $lineItemService,
         CheckoutSession $checkoutSession,
@@ -120,7 +117,6 @@ class TransactionService extends AbstractTransactionService
         parent::__construct(
             $resource,
             $customerRegistry,
-            $paymentMethodConfigurationManagement,
             $apiClient,
             $cookieManager
         );
@@ -259,7 +255,6 @@ class TransactionService extends AbstractTransactionService
             }
             throw $e;
         }
-        $this->updatePaymentMethodConfigurations($paymentMethods);
         return $paymentMethods;
     }
 

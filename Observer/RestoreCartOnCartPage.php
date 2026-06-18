@@ -55,6 +55,14 @@ class RestoreCartOnCartPage implements ObserverInterface
      */
     private $logger;
 
+    /**
+     *
+     * @param CookieManagerInterface $cookieManager
+     * @param CookieMetadataFactory $cookieMetadataFactory
+     * @param EventManager $eventManager
+     * @param MessageManager $messageManager
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         CookieManagerInterface $cookieManager,
         CookieMetadataFactory $cookieMetadataFactory,
@@ -69,6 +77,12 @@ class RestoreCartOnCartPage implements ObserverInterface
         $this->logger = $logger;
     }
 
+    /**
+     * Handles post-redirect quote restoration after payment processing.
+     *
+     * @param Observer $observer
+     * @return void
+     */
     public function execute(Observer $observer)
     {
         if (!$this->cookieManager->getCookie(self::COOKIE_NAME)) {

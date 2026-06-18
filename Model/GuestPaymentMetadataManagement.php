@@ -31,7 +31,7 @@ class GuestPaymentMetadataManagement implements GuestPaymentMetadataManagementIn
     }
 
     /**
-     * {@inheritDoc}
+     * @inheritDoc
      */
     public function getMetadata(string $cartId, string $methodCode): string
     {

@@ -140,6 +140,7 @@ class TransactionInvoiceWebhookLifecycleHandler extends BaseOrderLifecycleHandle
      * @param Order $order
      * @return void
      */
+    // phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedFunction
     protected function doSendEmail(Order $order): void
     {
         // Intentionally left blank. Email has been sent already when the order was authorized.

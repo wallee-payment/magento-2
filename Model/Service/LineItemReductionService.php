@@ -252,10 +252,10 @@ class LineItemReductionService
      *
      * @param int $spaceId
      * @param int $transactionId
-     * @param Refund $refund
+     * @param Refund|null $refund
      * @return \Wallee\Sdk\Model\LineItem[]
      */
-    public function getBaseLineItems($spaceId, $transactionId, Refund $refund = null)
+    public function getBaseLineItems($spaceId, $transactionId, ?Refund $refund = null)
     {
         $lastSuccessfulRefund = $this->getLastSuccessfulRefund($spaceId, $transactionId, $refund);
         if ($lastSuccessfulRefund instanceof Refund) {
@@ -303,10 +303,10 @@ class LineItemReductionService
      *
      * @param int $spaceId
      * @param int $transactionId
-     * @param Refund $refund
+     * @param Refund|null $refund
      * @return Refund
      */
-    private function getLastSuccessfulRefund($spaceId, $transactionId, Refund $refund = null)
+    private function getLastSuccessfulRefund($spaceId, $transactionId, ?Refund $refund = null)
     {
         $query = new EntityQuery();
         $filter = new EntityQueryFilter();

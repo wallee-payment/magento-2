@@ -14,11 +14,10 @@ namespace Wallee\Payment\Controller\Transaction;
 use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Framework\DataObject;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\Locale\ResolverInterface as LocaleResolver;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
-use Wallee\Payment\Model\Service\Order\TransactionService;
-use Wallee\Sdk\Model\Transaction;
-use Psr\Log\LoggerInterface;
+use Wallee\PluginCore\Transaction\TransactionService as CoreTransactionService;
 
 /**
  * Frontend controller action to handle failed payments.
@@ -27,41 +26,38 @@ class Failure extends \Wallee\Payment\Controller\Transaction
 {
 
     /**
-     *
-     * @var TransactionService
+     * @var CoreTransactionService
      */
-    private $transactionService;
+    private CoreTransactionService $transactionService;
 
     /**
-     *
      * @var CheckoutSession
      */
     private $checkoutSession;
 
     /**
-     *
-     * @var LoggerInterface
+     * @var LocaleResolver
      */
-    private $logger;
+    private LocaleResolver $localeResolver;
 
     /**
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
-     * @param TransactionService $transactionService
+     * @param CoreTransactionService $transactionService
      * @param CheckoutSession $checkoutSession
-     * @param LoggerInterface $logger
+     * @param LocaleResolver $localeResolver
      */
     public function __construct(
         Context $context,
         OrderRepositoryInterface $orderRepository,
-        TransactionService $transactionService,
+        CoreTransactionService $transactionService,
         CheckoutSession $checkoutSession,
-        LoggerInterface $logger
+        LocaleResolver $localeResolver
     ) {
         parent::__construct($context, $orderRepository);
         $this->transactionService = $transactionService;
         $this->checkoutSession = $checkoutSession;
-        $this->logger = $logger;
+        $this->localeResolver = $localeResolver;
     }
 
     /**
@@ -75,33 +71,15 @@ class Failure extends \Wallee\Payment\Controller\Transaction
 
         $this->checkoutSession->restoreQuote();
 
-        $this->messageManager->addErrorMessage($this->getFailureMessage($order));
-        return $this->_redirect($this->getFailureRedirectionPath($order));
-    }
+        $failureMessage = $this->transactionService->getFailureMessage(
+            (int)$order->getWalleeSpaceId(),
+            (int)$order->getWalleeTransactionId(),
+            (string)$this->localeResolver->getLocale(),
+            (string)\__('The payment process could not have been finished successfully.')
+        );
 
-    /**
-     * Gets the reason for the transaction to fail.
-     *
-     * @param Order $order
-     * @return string
-     */
-    private function getFailureMessage(Order $order)
-    {
-        try {
-            $transaction = $this->transactionService->getTransaction(
-                $order->getWalleeSpaceId(),
-                $order->getWalleeTransactionId()
-            );
-            if ($transaction instanceof Transaction && $transaction->getUserFailureMessage() != null) {
-                return $transaction->getUserFailureMessage();
-            }
-        } catch (\Exception $e) {
-            $this->logger->debug(
-                'There was an issue retrieving the failure message.',
-                ['exception' => $e]
-            );
-        }
-        return \__('The payment process could not have been finished successfully.');
+        $this->messageManager->addErrorMessage($failureMessage);
+        return $this->_redirect($this->getFailureRedirectionPath($order));
     }
 
     /**

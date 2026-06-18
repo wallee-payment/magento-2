@@ -90,7 +90,8 @@ abstract class BaseOrderLifecycleHandler extends DefaultWebhookLifecycleHandler
         $this->sdkEntity = $this->loadSdkEntity($listener, $context);
         if (!$this->sdkEntity) {
             $this->logger->debug(sprintf(
-                'No SDK entity for %s %d — likely a Portal transaction abandoned because the order was placed with a non-Wallee payment method. Acking webhook.',
+                'No SDK entity for %s %d — likely a Portal transaction abandoned because the order was placed '
+                . 'with a non-Wallee payment method. Acking webhook.',
                 $listener->getTechnicalName(),
                 $context->entityId
             ));
@@ -100,7 +101,8 @@ abstract class BaseOrderLifecycleHandler extends DefaultWebhookLifecycleHandler
         $this->order = $this->findOrder($this->sdkEntity);
         if (!$this->order) {
             $this->logger->debug(sprintf(
-                'No Magento order linked to %s %d — likely a Portal transaction abandoned because the order was placed with a non-Wallee payment method. Acking webhook.',
+                'No Magento order linked to %s %d — likely a Portal transaction abandoned because the order was placed '
+                . 'with a non-Wallee payment method. Acking webhook.',
                 $listener->getTechnicalName(),
                 $context->entityId
             ));

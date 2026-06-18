@@ -98,9 +98,9 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
      * @param Helper $helper
      * @param string $code
      * @param int $paymentMethodConfigurationId
-     * @param CommandPoolInterface $commandPool
-     * @param ValidatorPoolInterface $validatorPool
-     * @param CommandManagerInterface $commandExecutor
+     * @param CommandPoolInterface|null $commandPool
+     * @param ValidatorPoolInterface|null $validatorPool
+     * @param CommandManagerInterface|null $commandExecutor
      */
     public function __construct(
         LoggerInterface $logger,
@@ -114,9 +114,9 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
         Helper $helper,
         $code,
         $paymentMethodConfigurationId,
-        CommandPoolInterface $commandPool = null,
-        ValidatorPoolInterface $validatorPool = null,
-        CommandManagerInterface $commandExecutor = null
+        ?CommandPoolInterface $commandPool = null,
+        ?ValidatorPoolInterface $validatorPool = null,
+        ?CommandManagerInterface $commandExecutor = null
     ) {
         parent::__construct(
             $eventManager,
@@ -217,7 +217,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
       * @param CartInterface|null $quote
       * @return bool
       */
-    public function isAvailable(CartInterface $quote = null)
+    public function isAvailable(?CartInterface $quote = null)
     {
         $this->logger->debug("ADAPTER::isAvailable - INIT");
         if ($quote != null && $quote->getGrandTotal() < 0.0001) {

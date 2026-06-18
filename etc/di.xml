@@ -29,9 +29,14 @@
     <preference for="Wallee\Payment\Api\Data\RefundJobInterface" type="Wallee\Payment\Model\RefundJob" />
     <preference for="Wallee\Payment\Api\Data\RefundJobSearchResultsInterface" type="Magento\Framework\Api\SearchResults" />
     <preference for="Wallee\PluginCore\Log\LoggerInterface" type="Wallee\Payment\Logger\PluginCoreLoggerAdapter" />
-    <preference for="Wallee\PluginCore\Settings\SettingsProviderInterface" type="Wallee\Payment\Model\CoreWebhook\SettingsProvider" />
+    <preference for="Wallee\PluginCore\Settings\SettingsProviderInterface" type="Wallee\Payment\Model\Settings\SettingsProvider" />
     <preference for="Wallee\PluginCore\Webhook\StateFetcherInterface" type="Wallee\Payment\Model\CoreWebhook\StateFetcher" />
     <preference for="Wallee\PluginCore\Webhook\WebhookLifecycleHandler" type="Wallee\Payment\Model\CoreWebhook\CompositeWebhookLifecycleHandler" />
+    <preference for="Wallee\PluginCore\Transaction\TransactionGatewayInterface" type="Wallee\Payment\TransactionGateway" />
+    <preference for="Wallee\PluginCore\Webhook\WebhookManagementGatewayInterface" type="Wallee\Payment\WebhookManagementGateway" />
+    <preference for="Wallee\PluginCore\Webhook\WebhookSignatureGatewayInterface" type="Wallee\Payment\WebhookSignatureGateway" />
+    <preference for="Wallee\PluginCore\PaymentMethod\PaymentMethodGatewayInterface" type="Wallee\Payment\PaymentMethodGateway" />
+    <preference for="Wallee\PluginCore\PaymentMethod\PaymentMethodRepositoryInterface" type="Wallee\Payment\Model\PluginCore\PaymentMethodRepository" />
     <preference for="Wallee\PluginCore\Transaction\TransactionGatewayInterface" type="Wallee\Payment\TransactionGateway" />
     <type name="Wallee\Payment\Model\ResourceModel\TokenInfo\Collection\Grid">
         <arguments>
@@ -42,13 +47,6 @@
     <type name="Wallee\Payment\Model\Config\Structure\Reader">
         <arguments>
             <argument name="compiler" xsi:type="object">Magento\Framework\View\TemplateEngine\Xhtml\ConfigCompiler</argument>
-        </arguments>
-    </type>
-
-    <type name="Wallee\Payment\Model\Service\WebhookService">
-        <arguments>
-            <argument name="webhookListenerPool" xsi:type="object">WalleeWebhookListenerPool</argument>
-            <argument name="urlBuilder" xsi:type="object">Magento\Framework\Url</argument>
         </arguments>
     </type>
 
@@ -127,22 +125,6 @@
         </arguments>
     </type>
 
-    <!-- Webhook Listener Pools -->
-    <virtualType name="WalleeWebhookListenerPool" type="Wallee\Payment\Model\Webhook\ListenerPool">
-        <arguments>
-            <argument name="listeners" xsi:type="array">
-                <item name="transaction" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionListener</item>
-                <item name="transactioninvoice" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionInvoiceListener</item>
-                <item name="deliveryindication" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\DeliveryIndicationListener</item>
-                <item name="transactioncompletion" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TransactionCompletionListener</item>
-                <item name="refund" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\RefundListener</item>
-                <item name="paymentmethodconfiguration" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\PaymentMethodConfigurationListener</item>
-                <item name="manualtask" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\ManualTaskListener</item>
-                <item name="token" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TokenListener</item>
-                <item name="tokenversion" xsi:type="string">Wallee\Payment\Model\Webhook\Listener\TokenVersionListener</item>
-            </argument>
-        </arguments>
-    </virtualType>
     <virtualType name="WalleeTransactionWebhookCommandPool" type="Wallee\Payment\Model\Webhook\Listener\CommandPool">
         <arguments>
             <argument name="commands" xsi:type="array">
@@ -244,14 +226,6 @@
         </arguments>
     </type>
 
-    <type name="Wallee\PluginCore\Settings\Settings">
-        <arguments>
-            <argument name="spaceId" xsi:type="number">12345</argument>
-            <argument name="userId" xsi:type="number">67890</argument>
-            <argument name="apiKey" xsi:type="string">dummy-key</argument>
-        </arguments>
-    </type>
-
     <type name="Wallee\PluginCore\Sdk\SdkProvider">
         <arguments>
             <argument name="settings" xsi:type="object">Wallee\PluginCore\Settings\Settings</argument>
@@ -310,6 +284,53 @@
         </arguments>
     </type>
 
+    <virtualType name="Wallee\Payment\WebhookManagementGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\WebhookManagementGateway">
+        <arguments>
+            <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
+            <argument name="logger" xsi:type="object">Wallee\PluginCore\Log\LoggerInterface</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Wallee\Payment\WebhookSignatureGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\WebhookSignatureGateway">
+        <arguments>
+            <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
+            <argument name="logger" xsi:type="object">Wallee\PluginCore\Log\LoggerInterface</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Wallee\PluginCore\Webhook\WebhookService">
+        <arguments>
+            <argument name="logger" xsi:type="object">Wallee\Payment\Logger\PluginCoreLoggerAdapter</argument>
+        </arguments>
+    </type>
+
+    <virtualType name="Wallee\Payment\PaymentMethodGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\PaymentMethodGateway">
+        <arguments>
+            <argument name="provider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
+            <argument name="logger" xsi:type="object">Wallee\PluginCore\Log\LoggerInterface</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Wallee\PluginCore\PaymentMethod\PaymentMethodService">
+        <arguments>
+            <argument name="logger" xsi:type="object">Wallee\Payment\Logger\PluginCoreLoggerAdapter</argument>
+        </arguments>
+    </type>
+
+    <type name="Wallee\PluginCore\Transaction\TransactionService">
+        <arguments>
+            <argument name="gateway" xsi:type="object">Wallee\Payment\TransactionGateway</argument>
+            <argument name="logger" xsi:type="object">Wallee\PluginCore\Log\LoggerInterface</argument>
+        </arguments>
+    </type>
+
+    <type name="Wallee\PluginCore\LineItem\LineItemConsistencyService">
+        <arguments>
+            <argument name="settings" xsi:type="object">Wallee\PluginCore\Settings\Settings</argument>
+            <argument name="logger" xsi:type="object">Wallee\PluginCore\Log\LoggerInterface</argument>
+        </arguments>
+    </type>
+
     <type name="Wallee\Payment\Model\CoreWebhook\CompositeWebhookLifecycleHandler">
         <arguments>
             <argument name="handlers" xsi:type="array">
@@ -357,7 +378,7 @@
             <argument name="logger" xsi:type="object">Wallee\Payment\Logger\WebhookLogger</argument>
         </arguments>
     </type>
-    
+
     <preference for="Wallee\Payment\Api\PaymentMetadataManagementInterface" type="Wallee\Payment\Model\PaymentMetadataManagement" />
     <preference for="Wallee\Payment\Api\GuestPaymentMetadataManagementInterface" type="Wallee\Payment\Model\GuestPaymentMetadataManagement" />
 </config>

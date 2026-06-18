@@ -221,13 +221,11 @@ class SuccessfulCommand extends WebhookCommand
         }
 
         $baseLineItems = [];
-        foreach (
-            $this->lineItemReductionService->getBaseLineItems(
-                $order->getWalleeSpaceId(),
-                $refund->getTransaction()->getId(),
-                $refund
-            ) as $lineItem
-        ) {
+        foreach ($this->lineItemReductionService->getBaseLineItems(
+            $order->getWalleeSpaceId(),
+            $refund->getTransaction()->getId(),
+            $refund
+        ) as $lineItem) {
             $baseLineItems[$lineItem->getUniqueId()] = $lineItem;
         }
 

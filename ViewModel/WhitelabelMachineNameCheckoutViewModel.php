@@ -24,6 +24,7 @@ use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Model\Service\Quote\TransactionService;
 use Wallee\PluginCore\Render\IntegratedPaymentRenderService;
 use Wallee\PluginCore\Settings\IntegrationMode;
+use Psr\Log\LoggerInterface;
 
 /**
  * ViewModel to provide Wallee payment configuration to the checkout.
@@ -34,33 +35,51 @@ class WhitelabelMachineNameCheckoutViewModel implements ArgumentInterface
 {
     /**
      * Magento checkout session to access the current quote.
+     *
+     * @var CheckoutSession
      */
     private CheckoutSession $checkoutSession;
 
     /**
      * Provider to facilitate CSP nonce generation for script integrity.
+     *
+     * @var CspNonceProvider
      */
     private CspNonceProvider $cspNonceProvider;
 
     /**
      * Repository to resolve internal configuration IDs from method codes.
+     *
+     * @var PaymentMethodConfigurationRepositoryInterface
      */
     private PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository;
 
     /**
      * Service to retrieve standardized rendering metadata for the gateway.
+     *
+     * @var IntegratedPaymentRenderService
      */
     private IntegratedPaymentRenderService $renderService;
 
     /**
      * Configuration service to retrieve plugin settings.
+     *
+     * @var ScopeConfigInterface
      */
     private ScopeConfigInterface $scopeConfig;
 
     /**
      * Service to generate SDK URLs for transaction processing.
+     *
+     * @var TransactionService
      */
     private TransactionService $transactionService;
+
+    /**
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
 
     /**
      * Initialize the ViewModel with its required dependencies.
@@ -71,6 +90,7 @@ class WhitelabelMachineNameCheckoutViewModel implements ArgumentInterface
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param IntegratedPaymentRenderService $renderService
      * @param CspNonceProvider $cspNonceProvider
+     * @param LoggerInterface $logger
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig,
@@ -79,6 +99,7 @@ class WhitelabelMachineNameCheckoutViewModel implements ArgumentInterface
         PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
         IntegratedPaymentRenderService $renderService,
         CspNonceProvider $cspNonceProvider,
+        LoggerInterface $logger,
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->checkoutSession = $checkoutSession;
@@ -86,10 +107,12 @@ class WhitelabelMachineNameCheckoutViewModel implements ArgumentInterface
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->renderService = $renderService;
         $this->cspNonceProvider = $cspNonceProvider;
+        $this->logger = $logger;
     }
 
     /**
      * Returns the payment integration metadata for reactive frontends (e.g., Hyvä).
+     *
      * This provides the necessary URLs and IDs for the frontend SDK to initialize.
      *
      * @param string $methodCode The Magento payment method code (vendor prefix included).
@@ -118,7 +141,8 @@ class WhitelabelMachineNameCheckoutViewModel implements ArgumentInterface
             return [];
         }
 
-        // We choose the SDK URL based on whether we are performing an inline (iframe) or overlay (lightbox) integration.
+        // We choose the SDK URL based on whether we are performing an inline (iframe)
+        // or overlay (lightbox) integration.
         $sdkUrl = ($integrationMode === IntegrationMode::IFRAME->value)
             ? $this->transactionService->getJavaScriptUrl($quote)
             : $this->transactionService->getLightboxUrl($quote);
@@ -136,6 +160,7 @@ class WhitelabelMachineNameCheckoutViewModel implements ArgumentInterface
 
     /**
      * Extracts the gateway configuration ID from the Magento payment method code.
+     *
      * This maps the internal Magento entity back to the provider's configuration.
      *
      * @param string $methodCode
@@ -151,6 +176,9 @@ class WhitelabelMachineNameCheckoutViewModel implements ArgumentInterface
             }
         } catch (\Exception $e) {
             // Silently fail if the configuration cannot be resolved.
+            $this->logger->debug(
+                "Gateway configuration ID extraction from the Magento payment method failed:  " . $e->getMessage()
+            );
         }
 
         return null;

@@ -22,6 +22,8 @@ use Magento\Quote\Api\Data\CartInterface;
 class MethodAdapter
 {
     /**
+     * Skips availability check for inactive quotes to prevent redundant transaction updates.
+     *
      * @param \Wallee\Payment\Model\Payment\Method\Adapter $subject
      * @param callable $proceed
      * @param CartInterface|null $quote
@@ -30,7 +32,7 @@ class MethodAdapter
     public function aroundIsAvailable(
         \Wallee\Payment\Model\Payment\Method\Adapter $subject,
         callable $proceed,
-        CartInterface $quote = null
+        ?CartInterface $quote = null
     ): bool {
         if ($quote !== null && !$quote->getIsActive()) {
             return false;

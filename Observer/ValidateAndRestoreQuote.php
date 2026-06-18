@@ -18,6 +18,7 @@ use Magento\Checkout\Model\Session as CheckoutSession;
 use Wallee\Payment\Model\Service\Order\TransactionService;
 use Wallee\Sdk\Model\Transaction;
 use Wallee\Sdk\Model\TransactionState;
+use Psr\Log\LoggerInterface;
 
 /**
  * Observer to validate and control quote restoration.
@@ -36,15 +37,24 @@ class ValidateAndRestoreQuote implements ObserverInterface
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param CheckoutSession $checkoutSession
      * @param TransactionService $transactionService
+     * @param LoggerInterface $logger
      */
     public function __construct(
         CheckoutSession $checkoutSession,
-        TransactionService $transactionService
+        TransactionService $transactionService,
+        LoggerInterface $logger
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->transactionService = $transactionService;
+        $this->logger = $logger;
     }
 
     /**
@@ -93,6 +103,9 @@ class ValidateAndRestoreQuote implements ObserverInterface
             } catch (\Exception $e) {
                 // If the wallee API is unreachable, fail open and let
                 // the restore proceed — better than stranding the customer.
+                $this->logger->debug(
+                    "Failed to retrieve the transaction:  " . $e->getMessage()
+                );
             }
         }
 

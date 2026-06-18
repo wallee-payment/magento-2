@@ -27,7 +27,6 @@ use Magento\Sales\Model\Order\Address;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Store\Model\ScopeInterface;
 use Psr\Log\LoggerInterface;
-use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
@@ -129,7 +128,6 @@ class TransactionService extends AbstractTransactionService
      * @param ManagerInterface $eventManager
      * @param CustomerRegistry $customerRegistry
      * @param OrderRepositoryInterface $orderRepository
-     * @param PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement
      * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
      * @param LoggerInterface $logger
@@ -144,7 +142,6 @@ class TransactionService extends AbstractTransactionService
         ManagerInterface $eventManager,
         CustomerRegistry $customerRegistry,
         OrderRepositoryInterface $orderRepository,
-        PaymentMethodConfigurationManagementInterface $paymentMethodConfigurationManagement,
         ApiClient $apiClient,
         CookieManagerInterface $cookieManager,
         LoggerInterface $logger,
@@ -155,7 +152,6 @@ class TransactionService extends AbstractTransactionService
         parent::__construct(
             $resource,
             $customerRegistry,
-            $paymentMethodConfigurationManagement,
             $apiClient,
             $cookieManager
         );
@@ -177,7 +173,7 @@ class TransactionService extends AbstractTransactionService
      * @param Order $order
      * @param Invoice $invoice
      * @param boolean $chargeFlow
-     * @param Token $token
+     * @param Token|null $token
      * @return Transaction
      * @throws LocalizedException
      * @throws CustomerIdManipulationException
@@ -188,7 +184,7 @@ class TransactionService extends AbstractTransactionService
         Order $order,
         Invoice $invoice,
         $chargeFlow = false,
-        Token $token = null
+        ?Token $token = null
     ) {
         if ($transaction->getState() == TransactionState::CONFIRMED) {
             return $transaction;
@@ -263,7 +259,7 @@ class TransactionService extends AbstractTransactionService
      * @param Order $order
      * @param Invoice $invoice
      * @param boolean $chargeFlow
-     * @param Token $token
+     * @param Token|null $token
      * @return void
      */
     protected function assembleTransactionDataFromOrder(
@@ -271,7 +267,7 @@ class TransactionService extends AbstractTransactionService
         Order $order,
         Invoice $invoice,
         $chargeFlow = false,
-        Token $token = null
+        ?Token $token = null
     ) {
         $transaction->setCurrency($order->getOrderCurrencyCode());
         $transaction->setBillingAddress($this->convertOrderBillingAddress($order));

@@ -114,7 +114,7 @@ class RestoreQuote implements ResolverInterface
     /**
      * @inheritDoc
      */
-    public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
+    public function resolve(Field $field, $context, ResolveInfo $info, ?array $value = null, ?array $args = null)
     {
         try {
             $cartIdMasked = $args['input']['cart_id'];
@@ -286,7 +286,7 @@ class RestoreQuote implements ResolverInterface
      * @param OrderInterface|null $order
      * @return array<mixed>
      */
-    public function restoreQuote(string $cartIdMasked, Quote $quote, OrderInterface $order = null)
+    public function restoreQuote(string $cartIdMasked, Quote $quote, ?OrderInterface $order = null)
     {
         $quote->setIsActive(1)->setReservedOrderId(null);
 

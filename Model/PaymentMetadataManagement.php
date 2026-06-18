@@ -10,6 +10,7 @@ use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Model\Service\Quote\TransactionService;
 use Wallee\PluginCore\Render\IntegratedPaymentRenderService;
 use Wallee\PluginCore\Settings\IntegrationMode;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service to manage and retrieve payment metadata for the frontend.
@@ -19,28 +20,44 @@ class PaymentMetadataManagement implements PaymentMetadataManagementInterface
 {
     /**
      * Repository to manage quote/cart persistence.
+     *
+     * @var CartRepositoryInterface
      */
     private CartRepositoryInterface $cartRepository;
 
     /**
      * Repository to access payment method configuration details.
+     *
+     * @var PaymentMethodConfigurationRepositoryInterface
      */
     private PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository;
 
     /**
      * Service to generate standardized payment rendering metadata.
+     *
+     * @var IntegratedPaymentRenderService
      */
     private IntegratedPaymentRenderService $renderService;
 
     /**
      * Magento configuration service for store-specific settings.
+     *
+     * @var ScopeConfigInterface
      */
     private ScopeConfigInterface $scopeConfig;
 
     /**
      * Service to retrieve SDK URLs from the transaction data.
+     *
+     * @var TransactionService
      */
     private TransactionService $transactionService;
+
+    /**
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
 
     /**
      * Initialize the metadata management service with required dependencies.
@@ -50,6 +67,7 @@ class PaymentMetadataManagement implements PaymentMetadataManagementInterface
      * @param IntegratedPaymentRenderService $renderService
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
      * @param ScopeConfigInterface $scopeConfig
+     * @param LoggerInterface $logger
      */
     public function __construct(
         CartRepositoryInterface $cartRepository,
@@ -57,16 +75,19 @@ class PaymentMetadataManagement implements PaymentMetadataManagementInterface
         IntegratedPaymentRenderService $renderService,
         PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
         ScopeConfigInterface $scopeConfig,
+        LoggerInterface $logger,
     ) {
         $this->cartRepository = $cartRepository;
         $this->transactionService = $transactionService;
         $this->renderService = $renderService;
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
         $this->scopeConfig = $scopeConfig;
+        $this->logger = $logger;
     }
 
     /**
      * Retrieve the payment metadata for a specific cart and payment method.
+     *
      * This metadata includes the SDK URL and integration parameters required by the frontend.
      *
      * @param string $cartId The quote mask or ID.
@@ -93,6 +114,9 @@ class PaymentMetadataManagement implements PaymentMetadataManagementInterface
             }
         } catch (\Exception $e) {
             // Silence repository exceptions if the configuration cannot be resolved.
+            $this->logger->debug(
+                "Gateway configuration ID extraction from the Magento payment method failed:  " . $e->getMessage()
+            );
         }
 
         if (!$configurationId) {

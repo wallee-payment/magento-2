@@ -2,20 +2,18 @@
 
 namespace Wallee\Payment\Model\Service\Quote;
 
+use \Wallee\Payment\Compat\GiftCardAccountBase;
+
 /**
- * Defines the class GiftCardAccountWrapper.
+ * Wrapper around GiftCardAccountManagement from Magento_GiftCardAccount.
  *
- * This class extends the GiftCardAccountManagement class if it exists. It is and
- * empty class in other case.
+ * This class extends GiftCardAccountBase, which is aliased during registration.php
+ * to GiftCardAccountManagement when Magento_GiftCardAccount is installed, and to an empty stub
+ * (GiftCardAccountFallback) otherwise.
  *
  * The class GiftCardAccountManagement is provided by giftcardaccount module, which is present
  * in cloud versions of Magento, but not in the community version.
  */
-if (class_exists(\Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement::class)) {
-    class GiftCardAccountWrapper extends \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement
-    {
-    }
-} else {
-    // @codingStandardsIgnoreStart
-    class GiftCardAccountWrapper {}
+class GiftCardAccountWrapper extends GiftCardAccountBase
+{
 }

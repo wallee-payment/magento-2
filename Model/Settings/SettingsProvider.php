@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Wallee\Payment\Model\CoreWebhook;
+namespace Wallee\Payment\Model\Settings;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
@@ -112,6 +112,25 @@ class SettingsProvider extends DefaultSettingsProvider implements SettingsProvid
             );
         }
 
+        return $value === null ? null : (int)$value;
+    }
+
+    /**
+     * Returns the Space ID configured for a specific website.
+     *
+     * Used by multi-website operations such as webhook installation, where each website
+     * may be wired to a different space and the current store context is not available.
+     *
+     * @param int $websiteId
+     * @return int|null
+     */
+    public function getSpaceIdForWebsite(int $websiteId): ?int
+    {
+        $value = $this->scopeConfig->getValue(
+            self::XML_PATH_SPACE_ID,
+            ScopeInterface::SCOPE_WEBSITE,
+            $websiteId
+        );
         return $value === null ? null : (int)$value;
     }
 

@@ -67,9 +67,7 @@ class FailedCommand extends WebhookCommand
         $this->orderResourceModel->load($freshOrder, $order->getId());
 
         // If the order was shipped or closed by another process, STOP.
-        if (
-            $freshOrder->getState() === Order::STATE_COMPLETE || $freshOrder->getState() === Order::STATE_CLOSED
-        ) {
+        if ($freshOrder->getState() === Order::STATE_COMPLETE || $freshOrder->getState() === Order::STATE_CLOSED) {
             $this->logger->debug("FailedCommand: Skipping. Order is already Complete/Closed.");
             return null;
         }

@@ -142,9 +142,7 @@ class TransactionWebhookLifecycleHandler extends BaseOrderLifecycleHandler
         }
 
         // Allowed & Duplicate Check
-        if (
-            !$order->getStore()->getConfig('wallee_payment/email/order') || $order->getEmailSent()
-        ) {
+        if (!$order->getStore()->getConfig('wallee_payment/email/order') || $order->getEmailSent()) {
             return;
         }
 
@@ -158,7 +156,6 @@ class TransactionWebhookLifecycleHandler extends BaseOrderLifecycleHandler
             Order::STATE_PAYMENT_REVIEW,
             Order::STATE_HOLDED,
         ];
-
 
         if (in_array($order->getState(), $blockedStates, true)) {
             $this->logger->debug(
