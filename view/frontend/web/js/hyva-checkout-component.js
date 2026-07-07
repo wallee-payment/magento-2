@@ -102,7 +102,16 @@ window.addEventListener('alpine:init', () => {
         createIframe() {
             if (this.handler && this.isIframeMode) {
                 let containerId = 'wallee-iframe-' + this.methodCode;
-                
+
+                // Clear any previously mounted iframe before creating a new one. On a
+                // Magewire/Alpine re-render the component can re-run init() against a
+                // container that already holds an iframe; without this the SDK would
+                // append a second one (same reason refreshIframe() empties it first).
+                let container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = '';
+                }
+
                 this.handler.create(containerId, (validationResult) => {
                     if (this.validationResolver) {
                         if (validationResult.success) {
