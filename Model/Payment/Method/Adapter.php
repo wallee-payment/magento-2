@@ -12,6 +12,7 @@
 namespace Wallee\Payment\Model\Payment\Method;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\App\State as AppState;
 use Magento\Framework\Event\ManagerInterface;
 use Magento\Payment\Gateway\Command\CommandManagerInterface;
 use Magento\Payment\Gateway\Command\CommandPoolInterface;
@@ -75,6 +76,12 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
 
     /**
      *
+     * @var AppState
+     */
+    private $appState;
+
+    /**
+     *
      * @var int
      */
     private $paymentMethodConfigurationId;
@@ -96,6 +103,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
      * @param ApiClient $apiClient
      * @param TransactionService $transactionService
      * @param Helper $helper
+     * @param AppState $appState
      * @param string $code
      * @param int $paymentMethodConfigurationId
      * @param CommandPoolInterface|null $commandPool
@@ -112,6 +120,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
         ApiClient $apiClient,
         TransactionService $transactionService,
         Helper $helper,
+        AppState $appState,
         $code,
         $paymentMethodConfigurationId,
         ?CommandPoolInterface $commandPool = null,
@@ -137,6 +146,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
         $this->transactionService = $transactionService;
         $this->helper = $helper;
         $this->paymentMethodConfigurationId = $paymentMethodConfigurationId;
+        $this->appState = $appState;
     }
 
     /**
@@ -225,7 +235,13 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
             return false;
         }
 
-        if ($quote !== null && !$quote->getIsActive()) {
+        try {
+            $isAdminArea = $this->appState->getAreaCode() === \Magento\Framework\App\Area::AREA_ADMINHTML;
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $isAdminArea = false;
+        }
+        
+        if (!$isAdminArea && $quote !== null && !$quote->getIsActive()) {
             $this->logger->debug("ADAPTER::isAvailable - FINISH");
             return false;
         }
