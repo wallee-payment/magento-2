@@ -8,12 +8,12 @@ use Wallee\Payment\Model\CoreWebhook\BaseOrderLifecycleHandler;
 use Wallee\PluginCore\Webhook\Enum\WebhookListener;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Sdk\SdkProvider;
-use Wallee\Sdk\Model\TransactionCompletion;
-use Wallee\Sdk\Service\TransactionCompletionService;
+use Wallee\PluginCore\Transaction\Completion\TransactionCompletion;
+use Wallee\PluginCore\Transaction\Completion\TransactionCompletionGatewayInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Lock\LockManagerInterface;
-use Psr\Log\LoggerInterface;
+use Wallee\PluginCore\Log\LoggerInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
@@ -30,6 +30,7 @@ class TransactionCompletionWebhookLifecycleHandler extends BaseOrderLifecycleHan
      * @param ResourceConnection $resource
      * @param SdkProvider $sdkProvider
      * @param LoggerInterface $logger
+     * @param TransactionCompletionGatewayInterface $completionGateway
      */
     public function __construct(
         TransactionInfoRepositoryInterface $transactionInfoRepository,
@@ -38,7 +39,8 @@ class TransactionCompletionWebhookLifecycleHandler extends BaseOrderLifecycleHan
         LockManagerInterface $lockManager,
         ResourceConnection $resource,
         SdkProvider $sdkProvider,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        private readonly TransactionCompletionGatewayInterface $completionGateway
     ) {
         parent::__construct(
             $resource,
@@ -61,11 +63,9 @@ class TransactionCompletionWebhookLifecycleHandler extends BaseOrderLifecycleHan
     protected function loadSdkEntity(WebhookListener $listener, WebhookContext $context): ?object
     {
         try {
-            /** @var TransactionCompletionService $service */
-            $service = $this->sdkProvider->getService(TransactionCompletionService::class);
-            return $service->read($context->spaceId, $context->entityId);
+            return $this->completionGateway->find($context->spaceId, $context->entityId);
         } catch (\Exception $e) {
-            $this->logger->error("Failed to load SDK TransactionCompletion {$context->entityId}: " . $e->getMessage());
+            $this->logger->error("Failed to load TransactionCompletion {$context->entityId}: " . $e->getMessage());
         }
         return null;
     }
@@ -82,13 +82,12 @@ class TransactionCompletionWebhookLifecycleHandler extends BaseOrderLifecycleHan
             return null;
         }
 
-        $transaction = $entity->getLineItemVersion()->getTransaction();
-        if (!$transaction) {
+        if (!$entity->linkedTransactionId) {
             return null;
         }
 
         // Use inherited helper
-        $transactionInfo = $this->findTransactionInfoByTransactionId($transaction->getId());
+        $transactionInfo = $this->findTransactionInfoByTransactionId($entity->linkedTransactionId);
 
         if ($transactionInfo) {
             return $this->orderRepository->get($transactionInfo->getOrderId());

@@ -16,10 +16,11 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Controller\Result\ForwardFactory;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
-use Wallee\Payment\Helper\Locale as LocaleHelper;
-use Wallee\Payment\Model\ApiClient;
-use Wallee\Sdk\Model\RefundState;
-use Wallee\Sdk\Service\RefundService;
+use Wallee\PluginCore\Refund\Exception\InvalidRefundException;
+use Wallee\PluginCore\Refund\Exception\RefundException;
+use Wallee\PluginCore\Refund\RefundService;
+use Wallee\PluginCore\Refund\State as CoreState;
+use Wallee\PluginCore\Transaction\Exception\TransactionException;
 
 /**
  * Backend controller action to send a refund request to wallee.
@@ -42,21 +43,15 @@ class Refund extends \Wallee\Payment\Controller\Adminhtml\Order
 
     /**
      *
-     * @var LocaleHelper
-     */
-    private $localeHelper;
-
-    /**
-     *
      * @var RefundJobRepositoryInterface
      */
     private $refundJobRepository;
 
     /**
      *
-     * @var ApiClient
+     * @var RefundService
      */
-    private $apiClient;
+    private $refundService;
 
     /**
      *
@@ -68,24 +63,21 @@ class Refund extends \Wallee\Payment\Controller\Adminhtml\Order
      *
      * @param Context $context
      * @param ForwardFactory $resultForwardFactory
-     * @param LocaleHelper $localeHelper
      * @param RefundJobRepositoryInterface $refundJobRepository
-     * @param ApiClient $apiClient
+     * @param RefundService $refundService
      * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         Context $context,
         ForwardFactory $resultForwardFactory,
-        LocaleHelper $localeHelper,
         RefundJobRepositoryInterface $refundJobRepository,
-        ApiClient $apiClient,
+        RefundService $refundService,
         ScopeConfigInterface $scopeConfig
     ) {
         parent::__construct($context);
         $this->resultForwardFactory = $resultForwardFactory;
-        $this->localeHelper = $localeHelper;
         $this->refundJobRepository = $refundJobRepository;
-        $this->apiClient = $apiClient;
+        $this->refundService = $refundService;
         $this->scopeConfig = $scopeConfig;
     }
 
@@ -105,34 +97,27 @@ class Refund extends \Wallee\Payment\Controller\Adminhtml\Order
                 $refundJob = $this->refundJobRepository->getByOrderId($orderId);
 
                 try {
-                    $refund = $this->apiClient->getService(RefundService::class)->refund(
-                        $refundJob->getSpaceId(),
+                    $refund = $this->refundService->createRefund(
+                        (int) $refundJob->getSpaceId(),
                         $refundJob->getRefund()
                     );
 
-                    if ($refund->getState() == RefundState::FAILED) {
+                    if ($refund->state == CoreState::FAILED) {
                         $this->messageManager->addErrorMessage(
-                            $this->localeHelper->translate($refund->getFailureReason()
-                            ->getDescription())
+                            $refund->failureReason?->getDefault()
+                            ?? \__('The refund could not be processed on the gateway.')
                         );
                     } elseif (! $isIgnorePendingRefundStatusEnabled &&
-                        ( $refund->getState() == RefundState::PENDING ||
-                        $refund->getState() == RefundState::MANUAL_CHECK )) {
+                        ( $refund->state == CoreState::PENDING ||
+                        $refund->state == CoreState::MANUAL_CHECK )) {
                         $this->messageManager->addErrorMessage(
                             \__('The refund was requested successfully, but is still pending on the gateway.')
                         );
                     } else {
                         $this->messageManager->addSuccessMessage(\__('Successfully refunded.'));
                     }
-                } catch (\Wallee\Sdk\ApiException $e) {
-                    if ($e->getResponseObject() instanceof \Wallee\Sdk\Model\ClientError) {
-                        $this->messageManager->addErrorMessage($e->getResponseObject()
-                            ->getMessage());
-                    } else {
-                        $this->messageManager->addErrorMessage(
-                            \__('There has been an error while sending the refund to the gateway.')
-                        );
-                    }
+                } catch (InvalidRefundException|RefundException|TransactionException $e) {
+                    $this->messageManager->addErrorMessage(\__($e->getLocalizedMessage()->getDefault()));
                 } catch (\Exception $e) {
                     $this->messageManager->addErrorMessage(
                         \__('There has been an error while sending the refund to the gateway.')

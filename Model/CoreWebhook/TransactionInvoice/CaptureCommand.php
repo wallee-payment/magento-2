@@ -10,11 +10,12 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Model\CoreWebhook\OrderInvoiceTrait;
 use Wallee\PluginCore\Log\LoggerInterface;
-use Wallee\PluginCore\Sdk\SdkProvider;
+use Wallee\PluginCore\Transaction\Invoice\InvoiceGatewayInterface;
+use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
 use Wallee\PluginCore\Webhook\Exception\CommandException;
 use Wallee\PluginCore\Webhook\WebhookContext;
@@ -34,7 +35,8 @@ class CaptureCommand extends WebhookCommand
      * @param OrderEmailSender $orderEmailSender
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param SdkProvider $sdkProvider
+     * @param InvoiceGatewayInterface $invoiceGateway
+     * @param TransactionGatewayInterface $transactionGateway
      * @param OrderResourceModel $orderResourceModel
      * @param OrderFactory $orderFactory
      */
@@ -45,7 +47,8 @@ class CaptureCommand extends WebhookCommand
         private readonly OrderEmailSender $orderEmailSender,
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly SdkProvider $sdkProvider,
+        private readonly InvoiceGatewayInterface $invoiceGateway,
+        private readonly TransactionGatewayInterface $transactionGateway,
         private readonly OrderResourceModel $orderResourceModel,
         private readonly OrderFactory $orderFactory
     ) {
@@ -64,7 +67,7 @@ class CaptureCommand extends WebhookCommand
         $invoiceEntity = $this->loadTransactionInvoice();
         if (!$invoiceEntity) {
             $this->logger->warning(
-                "TransactionInvoice/CaptureCommand: Could not load SDK Invoice entity for ID " .
+                "TransactionInvoice/CaptureCommand: Could not load Invoice entity for ID " .
                 $this->context->entityId
             );
             return null;
@@ -98,11 +101,18 @@ class CaptureCommand extends WebhookCommand
         // Detect if we are currently in Payment Review (e.g. set by DeliveryIndication)
         $isPaymentReview = ($freshOrder->getState() === Order::STATE_PAYMENT_REVIEW);
 
-        $transaction = $invoiceEntity->getCompletion()->getLineItemVersion()->getTransaction();
-        $txState = $transaction->getState();
+        $transaction = $this->transactionGateway->find($this->context->spaceId, $invoiceEntity->linkedTransactionId);
+        if ($transaction === null) {
+            $this->logger->warning(
+                "TransactionInvoice/CaptureCommand: Could not load Transaction " .
+                "{$invoiceEntity->linkedTransactionId} for Invoice {$invoiceEntity->id}"
+            );
+            return null;
+        }
+        $txState = $transaction->state;
 
         // Set payment review state if needed (Legacy logic for async payments)
-        if (!in_array($txState, [TransactionState::FULFILL, TransactionState::COMPLETED], true)) {
+        if (!in_array($txState, [CoreTransactionState::FULFILL, CoreTransactionState::COMPLETED], true)) {
             if ($order->getState() !== Order::STATE_PAYMENT_REVIEW) {
                 $order->setState(Order::STATE_PAYMENT_REVIEW);
                 $order->addStatusToHistory(true, __('Payment is under review.')->render());
@@ -112,8 +122,8 @@ class CaptureCommand extends WebhookCommand
 
         // 2. Find existing invoice
         $existingInvoice = $this->getInvoiceForTransaction(
-            $transaction->getId(),
-            $transaction->getLinkedSpaceId(),
+            $transaction->id,
+            $transaction->spaceId,
             $order
         );
 
@@ -126,7 +136,7 @@ class CaptureCommand extends WebhookCommand
 
         if ($needsCapture) {
             // WARNING: captureInvoice() implicitly sets Order State to PROCESSING in memory!
-            $finalInvoice = $this->captureInvoice($order, $invoiceEntity->getAmount(), $existingInvoice);
+            $finalInvoice = $this->captureInvoice($order, $invoiceEntity->amount, $existingInvoice);
 
             // 4. The Revert Fix
             // If we were in Payment Review, we must force it back immediately because
@@ -140,14 +150,14 @@ class CaptureCommand extends WebhookCommand
 
         if (!$finalInvoice) {
             $this->logger->warning(
-                "No invoice could be found or created for TransactionInvoice {$invoiceEntity->getId()}."
+                "No invoice could be found or created for TransactionInvoice {$invoiceEntity->id}."
             );
             return $order;
         }
 
         // 5. Final State Update Logic
         // If the transaction is DONE, we ensure the order is PROCESSING.
-        if ($transaction->getState() == TransactionState::FULFILL) {
+        if ($transaction->state === CoreTransactionState::FULFILL) {
 
             // We use canHold() to check if the order is "Editable".
             // It returns FALSE if order is Canceled, Closed, Complete, or Payment Review.
@@ -178,6 +188,13 @@ class CaptureCommand extends WebhookCommand
         }
 
         $this->orderRepository->save($order);
+
+        $this->logger->debug(
+            sprintf(
+                'Command Capture for entity TransactionInvoice/%d completed.',
+                $this->context->entityId
+            )
+        );
 
         return $order;
     }

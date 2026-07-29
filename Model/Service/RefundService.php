@@ -16,11 +16,17 @@ use Magento\Sales\Model\Order\Invoice;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Api\Data\RefundJobInterface;
 use Wallee\Payment\Model\RefundJobFactory;
-use Wallee\Sdk\Model\RefundCreate;
-use Wallee\Sdk\Model\RefundType;
+use Wallee\PluginCore\Refund\LineItem\RefundLineItem;
+use Wallee\PluginCore\Refund\LineItem\RefundLineItemCollection;
+use Wallee\PluginCore\Refund\RefundContext;
+use Wallee\PluginCore\Refund\Type as CoreType;
 
 /**
- * Service to handle creditmemos.
+ * Service to build refund payloads for creditmemos.
+ *
+ * This is strictly a payload builder: it does not call the Wallee API.
+ * The actual submission happens in Gateway\Command\RefundCommand and Cron\Refund, which
+ * execute the RefundContext built here via PluginCore\Refund\RefundService::createRefund().
  */
 class RefundService
 {
@@ -60,45 +66,63 @@ class RefundService
     }
 
     /**
-     * Creates a new refund job for the given invoice and refund.
+     * Creates a new refund job for the given invoice and refund context.
+     *
+     * The job persists the not-yet-submitted RefundContext so that the actual submission
+     * (in RefundCommand or the Cron\Refund retry worker) can be retried without redoing the
+     * creditmemo-to-line-item mapping.
      *
      * @param Invoice $invoice
-     * @param RefundCreate $refund
+     * @param RefundContext $refund
      * @return \Wallee\Payment\Model\RefundJob
      */
-    public function createRefundJob(Invoice $invoice, RefundCreate $refund)
+    public function createRefundJob(Invoice $invoice, RefundContext $refund)
     {
         $entity = $this->refundJobFactory->create();
         $entity->setData(RefundJobInterface::ORDER_ID, $invoice->getOrderId());
         $entity->setData(RefundJobInterface::INVOICE_ID, $invoice->getId());
         $entity->setData(RefundJobInterface::SPACE_ID, $invoice->getOrder()
             ->getWalleeSpaceId());
-        $entity->setData(RefundJobInterface::EXTERNAL_ID, $refund->getExternalId());
+        $entity->setData(RefundJobInterface::EXTERNAL_ID, $refund->externalId ?? '');
         $entity->setData(RefundJobInterface::REFUND, $refund);
         return $this->refundJobRepository->save($entity);
     }
 
     /**
-     * Creates a refund creation model for the given creditmemo.
+     * Builds the refund context for the given creditmemo.
+     *
+     * This only builds the payload; it does not call the Wallee API.
      *
      * @param Creditmemo $creditmemo
-     * @return RefundCreate
+     * @return RefundContext
      */
-    public function createRefund(Creditmemo $creditmemo)
+    public function createRefund(Creditmemo $creditmemo): RefundContext
     {
-        $refund = new RefundCreate();
-        $refund->setExternalId(\uniqid($creditmemo->getOrderId() . '-'));
+        $order = $creditmemo->getOrder();
 
         try {
             $reductions = $this->lineItemReductionService->convertCreditmemo($creditmemo);
-            $refund->setReductions($reductions);
         } catch (LineItemReductionException $e) {
-            $refund->setAmount($creditmemo->getGrandTotal());
+            $reductions = [];
         }
 
-        $refund->setTransaction($creditmemo->getOrder()
-            ->getWalleeTransactionId());
-        $refund->setType(RefundType::MERCHANT_INITIATED_ONLINE);
-        return $refund;
+        $lineItems = new RefundLineItemCollection(
+            ...array_map(
+                static fn (array $reduction): RefundLineItem => new RefundLineItem(
+                    uniqueId: (string) $reduction['uniqueId'],
+                    returnedQuantity: (float) $reduction['quantity'],
+                    unitPriceReduction: (float) $reduction['amount'],
+                ),
+                $reductions
+            )
+        );
+
+        return new RefundContext(
+            transactionId: (int) $order->getWalleeTransactionId(),
+            amount: (float) $creditmemo->getGrandTotal(),
+            merchantReference: (string) $order->getIncrementId(),
+            type: CoreType::MERCHANT_INITIATED_ONLINE,
+            lineItems: $lineItems,
+        );
     }
 }

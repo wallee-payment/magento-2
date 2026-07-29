@@ -16,7 +16,7 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Module\Manager as ModuleManager;
 use Magento\Sales\Model\Order\Creditmemo;
 use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Sdk\Model\LineItemReductionCreate;
+use Wallee\PluginCore\Currency\CurrencyRoundingService;
 
 /**
  * Observer to collect the line item reductions for the fooman surcharges.
@@ -57,7 +57,7 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
     {
         /* @var Creditmemo $creditmemo */
         $creditmemo = $observer->getCreditmemo();
-        /* @var \Wallee\Sdk\Model\LineItem[] $baseLineItems */
+        /* @var \Wallee\PluginCore\LineItem\LineItem[] $baseLineItems */
         $baseLineItems = $observer->getData('baseLineItems');
         $transport = $observer->getTransport();
 
@@ -73,8 +73,8 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
      * Converts the fooman surcharge lines to line item reductions.
      *
      * @param Creditmemo $creditmemo
-     * @param \Wallee\Sdk\Model\LineItem[] $baseLineItems
-     * @return LineItemReductionCreate[]
+     * @param \Wallee\PluginCore\LineItem\LineItem[] $baseLineItems
+     * @return list<array{uniqueId: ?string, quantityReduction: float, unitPriceReduction: float}>
      */
     protected function convertFoomanSurcharges(Creditmemo $creditmemo, $baseLineItems)
     {
@@ -88,7 +88,7 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
 
         $baseLineItemMap = [];
         foreach ($baseLineItems as $lineItem) {
-            $baseLineItemMap[$lineItem->getUniqueId()] = $lineItem;
+            $baseLineItemMap[$lineItem->uniqueId] = $lineItem;
         }
 
         $items = [];
@@ -117,19 +117,26 @@ class CollectFoomanSurchargeLineItemReductions implements ObserverInterface
      * @param string $code
      * @param float $amount
      * @param mixed $baseLineItem
-     * @return LineItemReductionCreate[]
+     * @return array{uniqueId: ?string, quantityReduction: float, unitPriceReduction: float}
      */
     private function createSurchargeReduction(Creditmemo $creditmemo, $code, $amount, $baseLineItem)
     {
-        $reduction = new LineItemReductionCreate();
-        $reduction->setLineItemUniqueId('fooman_surcharge_' . $code);
-        if ($baseLineItem != null && $baseLineItem->getAmountIncludingTax() == $amount) {
-            $reduction->setQuantityReduction(1);
-            $reduction->setUnitPriceReduction(0);
-        } else {
-            $reduction->setQuantityReduction(0);
-            $reduction->setUnitPriceReduction($this->helper->roundAmount($amount, $creditmemo->getOrderCurrencyCode()));
+        if ($baseLineItem != null && CurrencyRoundingService::areAmountsEqual(
+            $baseLineItem->amountIncludingTax,
+            $amount,
+            $creditmemo->getOrderCurrencyCode()
+        )) {
+            return [
+                'uniqueId' => 'fooman_surcharge_' . $code,
+                'quantityReduction' => 1.0,
+                'unitPriceReduction' => 0.0,
+            ];
         }
-        return $reduction;
+
+        return [
+            'uniqueId' => 'fooman_surcharge_' . $code,
+            'quantityReduction' => 0.0,
+            'unitPriceReduction' => $this->helper->roundAmount($amount, $creditmemo->getOrderCurrencyCode()),
+        ];
     }
 }

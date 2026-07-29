@@ -15,7 +15,7 @@ use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Store\Model\ScopeInterface;
 use Wallee\Payment\Model\TransactionInfo;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 
 /**
  * Helper to provide document related functionality.
@@ -47,29 +47,16 @@ class Document extends AbstractHelper
      * @param int $storeId
      * @return boolean
      */
-    public function isInvoiceDownloadAllowed(TransactionInfo $transaction, $storeId = null)
+    public function isInvoiceDownloadAllowed(TransactionInfo $transaction, $storeId = null): bool
     {
-        if (! \in_array(
-            $transaction->getState(),
-            [
-                TransactionState::COMPLETED,
-                TransactionState::FULFILL,
-                TransactionState::DECLINE
-            ]
-        )) {
+        if (! (CoreTransactionState::tryFrom($transaction->getState())?->isInvoiceDownloadAllowed() ?? false)) {
             return false;
         }
 
-        if (! $this->helper->isAdminArea() && ! $this->scopeConfig->getValue(
+        return $this->isCustomerDownloadAllowed(
             'wallee_payment/document/customer_download_invoice',
-            ScopeInterface::SCOPE_STORE,
             $storeId
-        )
-        ) {
-            return false;
-        }
-
-        return true;
+        );
     }
 
     /**
@@ -79,21 +66,16 @@ class Document extends AbstractHelper
      * @param int $storeId
      * @return boolean
      */
-    public function isPackingSlipDownloadAllowed(TransactionInfo $transaction, $storeId = null)
+    public function isPackingSlipDownloadAllowed(TransactionInfo $transaction, $storeId = null): bool
     {
-        if ($transaction->getState() != TransactionState::FULFILL) {
+        if (! (CoreTransactionState::tryFrom($transaction->getState())?->isPackingSlipDownloadAllowed() ?? false)) {
             return false;
         }
 
-        if (! $this->helper->isAdminArea() && ! $this->scopeConfig->getValue(
+        return $this->isCustomerDownloadAllowed(
             'wallee_payment/document/customer_download_packing_slip',
-            ScopeInterface::SCOPE_STORE,
             $storeId
-        )) {
-            return false;
-        }
-
-        return true;
+        );
     }
 
     /**
@@ -103,16 +85,28 @@ class Document extends AbstractHelper
      * @param int $storeId
      * @return boolean
      */
-    public function isRefundDownloadAllowed(TransactionInfo $transaction, $storeId = null)
+    public function isRefundDownloadAllowed(TransactionInfo $transaction, $storeId = null): bool
     {
-        if (! $this->helper->isAdminArea() && ! $this->scopeConfig->getValue(
+        return $this->isCustomerDownloadAllowed(
             'wallee_payment/document/customer_download_refund',
-            ScopeInterface::SCOPE_STORE,
             $storeId
-        )) {
-            return false;
-        }
+        );
+    }
 
-        return true;
+    /**
+     * Checks whether user is admin or if document's download is allowed.
+     *
+     * @param string $configPath
+     * @param int $storeId
+     * @return boolean
+     */
+    private function isCustomerDownloadAllowed(string $configPath, $storeId = null): bool
+    {
+        if ($this->helper->isAdminArea()
+            || $this->scopeConfig->getValue($configPath, ScopeInterface::SCOPE_STORE, $storeId)
+        ) {
+            return true;
+        }
+        return false;
     }
 }

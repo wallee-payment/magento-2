@@ -20,7 +20,10 @@ use Magento\Payment\Model\MethodInterface;
 class MethodListPlugin
 {
     /**
-     * Fallback to the generic wallee payment block if the specific dynamically generated method block isn't found.
+     * WhitelabelMachineName payment block fallback.
+     *
+     * This is a fallback to the generic wallee payment block if
+     * the specific dynamically generated method block isn't found.
      *
      * @param MethodList $subject
      * @param \Magento\Framework\View\Element\AbstractBlock|false $result

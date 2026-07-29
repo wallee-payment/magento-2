@@ -19,7 +19,7 @@
 			<resource>Wallee_Payment::config</resource>
 			<group id="information" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 				<label>Information</label>
-				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2/3.2.2/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
+				<comment><![CDATA[If you need help setting up the wallee extension, check out the <a href="https://plugin-documentation.wallee.com/wallee-payment/magento-2/3.3.0/docs/en/documentation.html" target="_blank">documentation</a>.]]></comment>
 				<field id="version" translate="label" type="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
 					<label>Module Version</label>
 				</field>
@@ -71,6 +71,14 @@
 					<comment>Activate this feature to dynamically verify the availability of payment methods before displaying them at checkout.
 						This ensures customers only see payment options that are currently operational and relevant to their purchase, enhancing the user experience
 						and reducing potential transaction errors. Note: Enabling this may slightly increase page load time but significantly improves checkout reliability.</comment>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+				<field id="validate_transaction_on_checkout" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+					<label>Validate Transaction on Checkout</label>
+					<comment>When enabled, re-checks that the payment transaction is still valid when checkout loads and when the payment method changes.
+						Prevents customers from completing checkout on an expired transaction and being redirected back to the cart at order submission.
+						Note: Enabling this may add a small delay to checkout.
+					</comment>
 					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
 				</field>
 			</group>

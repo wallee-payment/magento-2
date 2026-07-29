@@ -19,7 +19,7 @@ use Magento\Sales\Model\Order\Invoice;
 use Wallee\Payment\Model\Payment\Method\Adapter;
 use Wallee\Payment\Model\Service\Invoice\TransactionService as InvoiceTransactionService;
 use Wallee\Payment\Model\Service\Order\TransactionService as OrderTransactionService;
-use Wallee\Sdk\Model\TransactionInvoiceState;
+use Wallee\PluginCore\Log\LoggerInterface;
 
 /**
  * Payment gateway command to capture a payment.
@@ -47,18 +47,27 @@ class CaptureCommand implements CommandInterface
 
     /**
      *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param Registry $registry
      * @param InvoiceTransactionService $invoiceTransactionService
      * @param OrderTransactionService $orderTransactionService
+     * @param LoggerInterface $logger
      */
     public function __construct(
         Registry $registry,
         InvoiceTransactionService $invoiceTransactionService,
-        OrderTransactionService $orderTransactionService
+        OrderTransactionService $orderTransactionService,
+        LoggerInterface $logger
     ) {
         $this->registry = $registry;
         $this->invoiceTransactionService = $invoiceTransactionService;
         $this->orderTransactionService = $orderTransactionService;
+        $this->logger = $logger;
     }
 
     /**
@@ -77,6 +86,7 @@ class CaptureCommand implements CommandInterface
 
         /** @var Invoice $invoice */
         $invoice = $this->registry->registry(Adapter::CAPTURE_INVOICE_REGISTRY_KEY);
+        $order = $invoice->getOrder();
 
         if ($invoice->getWalleeCapturePending() || $this->isTransactionInvoiceOpen($invoice)) {
             throw new \Magento\Framework\Exception\LocalizedException(
@@ -85,12 +95,26 @@ class CaptureCommand implements CommandInterface
             );
         }
 
-        $this->invoiceTransactionService->complete($payment, $invoice, $amount);
+        try {
+            $this->invoiceTransactionService->complete($payment, $invoice, $amount);
+        } catch (\Exception $e) {
+            $this->logger->error('Capture failed on the gateway.', [
+                'orderId' => $order->getIncrementId(),
+                'exception' => $e,
+            ]);
+            throw $e;
+        }
+
         if (! $invoice->getId()) {
             throw new \Magento\Framework\Exception\LocalizedException(
                 \__('The capture has been registered. The invoice will be created, as soon as the capture is done.')
             );
         }
+
+        $this->logger->info('Capture completed.', [
+            'orderId' => $order->getIncrementId(),
+            'invoiceId' => $invoice->getId(),
+        ]);
     }
 
     /**
@@ -102,10 +126,12 @@ class CaptureCommand implements CommandInterface
     private function isTransactionInvoiceOpen(Invoice $invoice)
     {
         try {
-            $invoice = $this->orderTransactionService->getTransactionInvoice($invoice->getOrder());
-            return $invoice->getState() == TransactionInvoiceState::OPEN ||
-                $invoice->getState() == TransactionInvoiceState::OVERDUE;
+            $transactionInvoice = $this->orderTransactionService->getTransactionInvoice($invoice->getOrder());
+            return $transactionInvoice->state->blocksCapture();
         } catch (NoSuchEntityException $e) {
+            $this->logger->debug('No transaction invoice found; treating as not open.', [
+                'orderId' => $invoice->getOrder()->getIncrementId(),
+            ]);
             return false;
         }
     }

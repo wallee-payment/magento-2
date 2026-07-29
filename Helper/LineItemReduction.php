@@ -14,6 +14,8 @@ namespace Wallee\Payment\Helper;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Framework\Exception\LocalizedException;
+use Wallee\PluginCore\Refund\LineItem\RefundLineItem;
+use Wallee\PluginCore\Refund\RefundCalculator;
 
 /**
  * Helper to provide line item reduction related functionality.
@@ -41,8 +43,8 @@ class LineItemReduction extends AbstractHelper
     /**
      * Gets the amount of the line item's reductions.
      *
-     * @param \Wallee\Sdk\Model\LineItem[] $lineItems
-     * @param \Wallee\Sdk\Model\LineItemReduction[] $reductions
+     * @param \Wallee\PluginCore\LineItem\LineItem[] $lineItems
+     * @param array $reductions Each entry: ['uniqueId'=>?string,'quantityReduction'=>float,'unitPriceReduction'=>float]
      * @param string $currency
      * @return float
      */
@@ -50,24 +52,26 @@ class LineItemReduction extends AbstractHelper
     {
         $lineItemMap = [];
         foreach ($lineItems as $lineItem) {
-            $lineItemMap[$lineItem->getUniqueId()] = $lineItem;
+            $lineItemMap[$lineItem->uniqueId] = $lineItem;
         }
 
         $amount = 0;
         foreach ($reductions as $reduction) {
-            if (! isset($lineItemMap[$reduction->getLineItemUniqueId()])) {
+            if (! isset($lineItemMap[$reduction['uniqueId']])) {
                 throw new LocalizedException(
                     \__("The refund cannot be executed as the transaction's line items do not match the order's.")
                 );
             }
 
-            $lineItem = $lineItemMap[$reduction->getLineItemUniqueId()];
-            if ($lineItem->getQuantity() != 0) {
-                $unitPrice = $lineItem->getAmountIncludingTax() / $lineItem->getQuantity();
-                $amount += $unitPrice * $reduction->getQuantityReduction();
-                $amount += $reduction->getUnitPriceReduction() *
-                    ($lineItem->getQuantity() - $reduction->getQuantityReduction());
-            }
+            $lineItem = $lineItemMap[$reduction['uniqueId']];
+            $amount += RefundCalculator::calculateReduction(
+                $lineItem,
+                new RefundLineItem(
+                    (string) $reduction['uniqueId'],
+                    (float) $reduction['quantityReduction'],
+                    (float) $reduction['unitPriceReduction']
+                )
+            );
         }
 
         return $this->helper->roundAmount($amount, $currency);

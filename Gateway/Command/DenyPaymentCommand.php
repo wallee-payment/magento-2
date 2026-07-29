@@ -14,6 +14,7 @@ namespace Wallee\Payment\Gateway\Command;
 use Magento\Payment\Gateway\CommandInterface;
 use Magento\Payment\Gateway\Helper\SubjectReader;
 use Wallee\Payment\Model\Service\Order\TransactionService;
+use Wallee\PluginCore\Log\LoggerInterface;
 
 /**
  * Payment gateway command to deny a payment.
@@ -29,11 +30,19 @@ class DenyPaymentCommand implements CommandInterface
 
     /**
      *
-     * @param TransactionService $orderTransactionService
+     * @var LoggerInterface
      */
-    public function __construct(TransactionService $orderTransactionService)
+    private $logger;
+
+    /**
+     *
+     * @param TransactionService $orderTransactionService
+     * @param LoggerInterface $logger
+     */
+    public function __construct(TransactionService $orderTransactionService, LoggerInterface $logger)
     {
         $this->orderTransactionService = $orderTransactionService;
+        $this->logger = $logger;
     }
 
     /**
@@ -46,8 +55,20 @@ class DenyPaymentCommand implements CommandInterface
     {
         /** @var \Magento\Sales\Model\Order\Payment $payment */
         $payment = SubjectReader::readPayment($commandSubject)->getPayment();
+        $order = $payment->getOrder();
 
-        $this->orderTransactionService->deny($payment->getOrder());
-        $payment->getOrder()->setWalleeInvoiceAllowManipulation(true);
+        try {
+            $this->orderTransactionService->deny($order);
+        } catch (\Exception $e) {
+            $this->logger->error('Deny payment failed on the gateway.', [
+                'orderId' => $order->getIncrementId(),
+                'exception' => $e,
+            ]);
+            throw $e;
+        }
+
+        $order->setWalleeInvoiceAllowManipulation(true);
+
+        $this->logger->info('Deny payment completed.', ['orderId' => $order->getIncrementId()]);
     }
 }

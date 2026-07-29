@@ -19,8 +19,7 @@ use Magento\Quote\Model\Quote;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
 use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Sdk\Model\LineItemCreate;
-use Wallee\Sdk\Model\LineItemType;
+use Wallee\PluginCore\LineItem\LineItem as CoreLineItem;
 use Magento\Framework\Module\ModuleListInterface;
 
 /**
@@ -96,7 +95,7 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
      * Convert Amasty checkout items into line items.
      *
      * @param Quote|Order|Invoice $entity
-     * @return LineItemCreate[]
+     * @return CoreLineItem[]
      */
     protected function convertAmastyCheckoutLineItems($entity)
     {
@@ -112,7 +111,7 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
      * Create a gift wrap line item from Amasty fee data.
      *
      * @param Quote|Order|Invoice $entity
-     * @return LineItemCreate
+     * @return CoreLineItem|null
      */
     protected function convertGiftWrapLineItem($entity)
     {
@@ -147,18 +146,19 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
      *
      * @param float $amount
      * @param string $currency
-     * @return LineItemCreate
+     * @return CoreLineItem
      */
     private function createGiftWrapLineItem($amount, $currency)
     {
-        $surcharge = new LineItemCreate();
-        $surcharge->setType(LineItemType::FEE);
-        $surcharge->setAmountIncludingTax($this->helper->roundAmount($amount, $currency));
-        $surcharge->setSku('gift-wrap');
-        $surcharge->setUniqueId('amasty_gift_wrap');
-        $surcharge->setName((string) \__('Gift Wrap'));
-        $surcharge->setQuantity(1);
-        $surcharge->setShippingRequired(false);
+        $surcharge = new CoreLineItem();
+        $surcharge->type = CoreLineItem::TYPE_FEE;
+        $surcharge->amountIncludingTax = (float) $this->helper->roundAmount($amount, $currency);
+        $surcharge->unitPriceIncludingTax = $surcharge->amountIncludingTax;
+        $surcharge->sku = 'gift-wrap';
+        $surcharge->uniqueId = 'amasty_gift_wrap';
+        $surcharge->name = (string) \__('Gift Wrap');
+        $surcharge->quantity = 1.0;
+        $surcharge->shippingRequired = false;
         return $surcharge;
     }
 }

@@ -14,28 +14,18 @@ namespace Wallee\Payment\Controller\Adminhtml\Order;
 use Magento\Backend\App\Action\Context;
 use Magento\Backend\App\Response\Http\FileFactory;
 use Magento\Framework\Controller\Result\ForwardFactory;
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Sales\Model\Order\CreditmemoRepository;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Controller\DocumentDownloadResponseTrait;
 use Wallee\PluginCore\Document\DocumentService;
+use Wallee\PluginCore\Document\RenderedDocument;
 use Wallee\PluginCore\Log\LoggerInterface;
-use Wallee\PluginCore\Refund\Refund as CoreRefund;
-use Wallee\PluginCore\Refund\RefundService;
 
 /**
- * Backend controller action to download a refund document.
+ * Base backend controller that resolves the document for download.
  */
-class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
+abstract class AbstractDownloadDocument extends \Wallee\Payment\Controller\Adminhtml\Order
 {
     use DocumentDownloadResponseTrait;
-
-    /**
-     * Authorization level of a basic admin session
-     *
-     * @see _isAllowed()
-     */
-    public const ADMIN_RESOURCE = 'Magento_Sales::sales_creditmemo';
 
     /**
      *
@@ -57,21 +47,9 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
 
     /**
      *
-     * @var CreditmemoRepository
-     */
-    private $creditmemoRepository;
-
-    /**
-     *
-     * @var RefundService
-     */
-    private $pluginCoreRefundService;
-
-    /**
-     *
      * @var DocumentService
      */
-    private $documentService;
+    protected $documentService;
 
     /**
      *
@@ -85,8 +63,6 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
      * @param ForwardFactory $resultForwardFactory
      * @param FileFactory $fileFactory
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
-     * @param CreditmemoRepository $creditmemoRepository
-     * @param RefundService $pluginCoreRefundService
      * @param DocumentService $documentService
      * @param LoggerInterface $logger
      */
@@ -95,8 +71,6 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
         ForwardFactory $resultForwardFactory,
         FileFactory $fileFactory,
         TransactionInfoRepositoryInterface $transactionInfoRepository,
-        CreditmemoRepository $creditmemoRepository,
-        RefundService $pluginCoreRefundService,
         DocumentService $documentService,
         LoggerInterface $logger
     ) {
@@ -104,49 +78,39 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
         $this->resultForwardFactory = $resultForwardFactory;
         $this->fileFactory = $fileFactory;
         $this->transactionInfoRepository = $transactionInfoRepository;
-        $this->creditmemoRepository = $creditmemoRepository;
-        $this->pluginCoreRefundService = $pluginCoreRefundService;
         $this->documentService = $documentService;
         $this->logger = $logger;
     }
 
     /**
-     * Download refund document for the given credit memo.
+     * Download the transaction document if allowed.
      *
      * @return \Magento\Framework\App\ResponseInterface|\Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
-        $creditmemoId = $this->getRequest()->getParam('creditmemo_id');
-        if (!$creditmemoId) {
+        $orderId = $this->getRequest()->getParam('order_id');
+        if (!$orderId) {
             return $this->resultForwardFactory->create()->forward('noroute');
         }
 
-        $creditmemo = $this->creditmemoRepository->get($creditmemoId);
-        if ($creditmemo->getData('wallee_external_id') == null) {
-            return $this->resultForwardFactory->create()->forward('noroute');
-        }
-
-        $transaction = $this->transactionInfoRepository->getByOrderId($creditmemo->getOrderId());
-        $spaceId = (int) $transaction->getSpaceId();
+        $transaction = $this->transactionInfoRepository->getByOrderId($orderId);
 
         try {
-            $refund = $this->getRefundByExternalId(
-                $spaceId,
-                (int) $transaction->getTransactionId(),
-                $creditmemo->getData('wallee_external_id')
+            $document = $this->getDocument(
+                (int) $transaction->getSpaceId(),
+                (int) $transaction->getTransactionId()
             );
-            $document = $this->documentService->getRefundDocument($spaceId, $refund->id);
         } catch (\Exception $e) {
             $this->logger->error('Document download failed.', [
-                'creditmemoId' => $creditmemoId,
+                'orderId' => $orderId,
                 'exception' => $e,
             ]);
             throw $e;
         }
 
         $this->logger->info('Document downloaded.', [
-            'creditmemoId' => $creditmemoId,
+            'orderId' => $orderId,
             'document' => $document->title,
         ]);
 
@@ -154,21 +118,11 @@ class DownloadRefund extends \Wallee\Payment\Controller\Adminhtml\Order
     }
 
     /**
-     * Finds the refund matching the given external ID among the transaction's refunds.
+     * Fetches the specific document for the given transaction.
      *
      * @param int $spaceId
      * @param int $transactionId
-     * @param string $externalId
-     * @throws LocalizedException
-     * @return CoreRefund
+     * @return RenderedDocument
      */
-    private function getRefundByExternalId(int $spaceId, int $transactionId, string $externalId): CoreRefund
-    {
-        foreach ($this->pluginCoreRefundService->getRefunds($spaceId, $transactionId) as $refund) {
-            if ($refund->externalId === $externalId) {
-                return $refund;
-            }
-        }
-        throw new LocalizedException(\__('The refund could not be found.'));
-    }
+    abstract protected function getDocument(int $spaceId, int $transactionId): RenderedDocument;
 }

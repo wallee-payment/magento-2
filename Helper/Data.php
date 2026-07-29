@@ -15,6 +15,7 @@ use Magento\Framework\App\Area as AppArea;
 use Magento\Framework\App\State as AppState;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
+use Wallee\PluginCore\Currency\CurrencyRoundingService;
 use Wallee\Sdk\Model\CriteriaOperator;
 use Wallee\Sdk\Model\EntityQueryFilter;
 use Wallee\Sdk\Model\EntityQueryFilterType;
@@ -56,7 +57,8 @@ class Data extends AbstractHelper
     }
 
     /**
-     * Rounds the given amount to the currency's format.
+     * Rounds the given amount to the currency's actual decimal precision
+     * (e.g. 0 for JPY, 3 for KWD, 2 for most others).
      *
      * @param float $amount
      * @param string $currencyCode
@@ -64,21 +66,7 @@ class Data extends AbstractHelper
      */
     public function roundAmount($amount, $currencyCode)
     {
-        $roundedAmount = round($amount, 2);
-        return $roundedAmount;
-    }
-
-    /**
-     * Compares the given amounts.`
-     *
-     * @param float $amount1
-     * @param float $amount2
-     * @param string $currencyCode
-     * @return float
-     */
-    public function compareAmounts($amount1, $amount2, $currencyCode)
-    {
-        return $this->roundAmount($amount1, $currencyCode) - $this->roundAmount($amount2, $currencyCode);
+        return CurrencyRoundingService::round((float) $amount, (string) $currencyCode);
     }
 
     /**

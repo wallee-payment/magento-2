@@ -16,10 +16,8 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Config\Storage\WriterInterface as StorageWriter;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Payment\Model\ApiClient;
-use Wallee\Sdk\Model\ManualTaskState;
-use Wallee\Sdk\Service\ManualTaskService as ManualTaskApiService;
+use Wallee\PluginCore\ManualTask\ManualTaskGatewayInterface;
+use Wallee\PluginCore\ManualTask\State as ManualTaskState;
 
 /**
  * Service to handle manual tasks.
@@ -55,15 +53,9 @@ class ManualTaskService
 
     /**
      *
-     * @var Helper
+     * @var ManualTaskGatewayInterface
      */
-    private $helper;
-
-    /**
-     *
-     * @var ApiClient
-     */
-    private $apiClient;
+    private $manualTaskGateway;
 
     /**
      *
@@ -71,23 +63,20 @@ class ManualTaskService
      * @param ScopeConfigInterface $scopeConfig
      * @param CollectionFactory $configCollectionFactory
      * @param StorageWriter $configWriter
-     * @param Helper $helper
-     * @param ApiClient $apiClient
+     * @param ManualTaskGatewayInterface $manualTaskGateway
      */
     public function __construct(
         StoreManagerInterface $storeManager,
         ScopeConfigInterface $scopeConfig,
         CollectionFactory $configCollectionFactory,
         StorageWriter $configWriter,
-        Helper $helper,
-        ApiClient $apiClient
+        ManualTaskGatewayInterface $manualTaskGateway
     ) {
         $this->storeManager = $storeManager;
         $this->scopeConfig = $scopeConfig;
         $this->configCollectionFactory = $configCollectionFactory;
         $this->configWriter = $configWriter;
-        $this->helper = $helper;
-        $this->apiClient = $apiClient;
+        $this->manualTaskGateway = $manualTaskGateway;
     }
 
     /**
@@ -128,9 +117,9 @@ class ManualTaskService
                 $website->getId()
             );
             if ($spaceId && ! \in_array($spaceId, $spaceIds)) {
-                $websiteNumberOfManualTasks = $this->apiClient->getService(ManualTaskApiService::class)->count(
-                    $spaceId,
-                    $this->helper->createEntityFilter('state', ManualTaskState::OPEN)
+                $websiteNumberOfManualTasks = $this->manualTaskGateway->countByState(
+                    (int)$spaceId,
+                    ManualTaskState::OPEN
                 );
                 $this->configWriter->save(
                     self::CONFIG_KEY,

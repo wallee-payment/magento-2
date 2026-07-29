@@ -10,7 +10,10 @@ use Magento\Sales\Model\Order;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Model\CoreWebhook\OrderInvoiceTrait;
 use Wallee\PluginCore\Log\LoggerInterface;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
+use Wallee\PluginCore\Webhook\Enum\LifecycleAction;
+use Wallee\PluginCore\Webhook\TransactionActionResolver;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Magento\Sales\Model\OrderFactory;
@@ -29,6 +32,7 @@ class FailedCommand extends WebhookCommand
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param OrderResourceModel $orderResourceModel
      * @param OrderFactory $orderFactory
+     * @param TransactionActionResolver $transactionActionResolver
      */
     public function __construct(
         WebhookContext $context,
@@ -37,7 +41,8 @@ class FailedCommand extends WebhookCommand
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly OrderResourceModel $orderResourceModel,
-        private readonly OrderFactory $orderFactory
+        private readonly OrderFactory $orderFactory,
+        private readonly TransactionActionResolver $transactionActionResolver
     ) {
         parent::__construct($context, $logger);
     }
@@ -62,6 +67,18 @@ class FailedCommand extends WebhookCommand
             return null;
         }
 
+        $remoteState = CoreTransactionState::tryFrom($this->context->remoteState);
+        $action = $remoteState !== null ? $this->transactionActionResolver->resolve($remoteState) : null;
+
+        if ($action !== LifecycleAction::CANCEL_ORDER) {
+            $this->logger->warning(sprintf(
+                'FailedCommand: Resolved action %s does not imply cancellation; skipping order %s.',
+                $action !== null ? $action->name : 'UNKNOWN',
+                $order->getIncrementId()
+            ));
+            return null;
+        }
+
         // Load fresh state to check for PROTECTED states only
         $freshOrder = $this->orderFactory->create();
         $this->orderResourceModel->load($freshOrder, $order->getId());
@@ -74,6 +91,12 @@ class FailedCommand extends WebhookCommand
 
         $transactionInfo = $this->findTransactionInfo();
         if (!$transactionInfo) {
+            $this->logger->warning(
+                sprintf(
+                    'FailedCommand: No TransactionInfo found for entity ID: %d',
+                    $this->context->entityId
+                )
+            );
             return null;
         }
 
@@ -103,6 +126,11 @@ class FailedCommand extends WebhookCommand
         }
 
         $this->orderRepository->save($order);
+
+        $this->logger->info('FailedCommand: Completed.', [
+            'orderId' => $order->getIncrementId(),
+            'state' => $order->getState(),
+        ]);
 
         return $order;
     }

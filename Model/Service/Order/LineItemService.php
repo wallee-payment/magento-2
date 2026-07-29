@@ -16,14 +16,12 @@ use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Sales\Model\Order;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
-use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\Service\AbstractLineItemService;
-use Wallee\Sdk\Model\LineItemAttributeCreate;
+use Wallee\PluginCore\LineItem\LineItemAttribute as CoreLineItemAttribute;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -31,12 +29,6 @@ use Psr\Log\LoggerInterface;
  */
 class LineItemService extends AbstractLineItemService
 {
-
-    /**
-     *
-     * @var ScopeConfigInterface
-     */
-    private $scopeConfig;
 
     /**
      *
@@ -52,12 +44,6 @@ class LineItemService extends AbstractLineItemService
 
     /**
      *
-     * @var TaxHelper
-     */
-    private $taxHelper;
-
-    /**
-     *
      * @var LoggerInterface
      */
     private $logger;
@@ -68,7 +54,6 @@ class LineItemService extends AbstractLineItemService
      * @param LineItemHelper $lineItemHelper
      * @param ScopeConfigInterface $scopeConfig
      * @param TaxClassRepositoryInterface $taxClassRepository
-     * @param TaxHelper $taxHelper
      * @param TaxCalculation $taxCalculation
      * @param CustomerGroupRegistry $groupRegistry
      * @param EventManagerInterface $eventManager
@@ -80,7 +65,6 @@ class LineItemService extends AbstractLineItemService
         LineItemHelper $lineItemHelper,
         ScopeConfigInterface $scopeConfig,
         TaxClassRepositoryInterface $taxClassRepository,
-        TaxHelper $taxHelper,
         TaxCalculation $taxCalculation,
         CustomerGroupRegistry $groupRegistry,
         EventManagerInterface $eventManager,
@@ -99,10 +83,8 @@ class LineItemService extends AbstractLineItemService
             $logger,
             null
         );
-        $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
-        $this->taxHelper = $taxHelper;
         $this->logger = $logger;
     }
 
@@ -110,20 +92,14 @@ class LineItemService extends AbstractLineItemService
      * Convers the order's items to line items.
      *
      * @param Order $order
-     * @return \Wallee\Sdk\Model\LineItemCreate[]
+     * @return \Wallee\PluginCore\LineItem\LineItem[]
      */
     public function convertOrderLineItems(Order $order)
     {
         return $this->lineItemHelper->correctLineItems(
             $this->convertLineItems($order),
             $order->getGrandTotal(),
-            $this->getCurrencyCode($order),
-            $this->scopeConfig->getValue(
-                'wallee_payment/line_items/enforce_consistency',
-                ScopeInterface::SCOPE_STORE,
-                $order->getStoreId()
-            ),
-            $this->taxHelper->getCalculatedTaxes($order)
+            $this->getCurrencyCode($order)
         );
     }
 
@@ -131,7 +107,7 @@ class LineItemService extends AbstractLineItemService
      * Gets the attributes for the given order item.
      *
      * @param Order\Item $entityItem
-     * @return LineItemAttributeCreate[]
+     * @return CoreLineItemAttribute[]
      */
     protected function getAttributes($entityItem)
     {
@@ -142,10 +118,12 @@ class LineItemService extends AbstractLineItemService
                 $value = \current($value);
             }
 
-            $attribute = new LineItemAttributeCreate();
-            $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($option['label']), 512));
-            $attribute->setValue(strip_tags($this->helper->fixLength($this->helper->getFirstLine($value), 512)));
-            $attributes[$this->getAttributeKey($option)] = $attribute;
+            $key = $this->getAttributeKey($option);
+            $attributes[$key] = new CoreLineItemAttribute(
+                $key,
+                $this->helper->fixLength($this->helper->getFirstLine($option['label']), 512),
+                strip_tags($this->helper->getFirstLine($value))
+            );
         }
 
         return \array_merge(

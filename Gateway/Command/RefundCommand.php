@@ -15,13 +15,14 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Payment\Gateway\CommandInterface;
 use Magento\Payment\Gateway\Helper\SubjectReader;
-use Psr\Log\LoggerInterface;
+use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
-use Wallee\Payment\Helper\Locale as LocaleHelper;
-use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\RefundService;
-use Wallee\Sdk\Model\RefundState;
-use Wallee\Sdk\Service\RefundService as ApiRefundService;
+use Wallee\PluginCore\Refund\Exception\InvalidRefundException;
+use Wallee\PluginCore\Refund\Exception\RefundException;
+use Wallee\PluginCore\Refund\RefundService as CoreRefundService;
+use Wallee\PluginCore\Refund\State as CoreState;
+use Wallee\PluginCore\Transaction\Exception\TransactionException;
 
 /**
  * Payment gateway command to refund a payment.
@@ -37,12 +38,6 @@ class RefundCommand implements CommandInterface
 
     /**
      *
-     * @var LocaleHelper
-     */
-    private $localeHelper;
-
-    /**
-     *
      * @var RefundJobRepositoryInterface
      */
     private $refundJobRepository;
@@ -55,9 +50,9 @@ class RefundCommand implements CommandInterface
 
     /**
      *
-     * @var ApiClient
+     * @var CoreRefundService
      */
-    private $apiClient;
+    private $pluginCoreRefundService;
 
     /**
      *
@@ -68,25 +63,22 @@ class RefundCommand implements CommandInterface
     /**
      *
      * @param LoggerInterface $logger
-     * @param LocaleHelper $localeHelper
      * @param RefundJobRepositoryInterface $refundJobRepository
      * @param RefundService $refundService
-     * @param ApiClient $apiClient
+     * @param CoreRefundService $pluginCoreRefundService
      * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         LoggerInterface $logger,
-        LocaleHelper $localeHelper,
         RefundJobRepositoryInterface $refundJobRepository,
         RefundService $refundService,
-        ApiClient $apiClient,
+        CoreRefundService $pluginCoreRefundService,
         ScopeConfigInterface $scopeConfig
     ) {
         $this->logger = $logger;
-        $this->localeHelper = $localeHelper;
         $this->refundJobRepository = $refundJobRepository;
         $this->refundService = $refundService;
-        $this->apiClient = $apiClient;
+        $this->pluginCoreRefundService = $pluginCoreRefundService;
         $this->scopeConfig = $scopeConfig;
     }
 
@@ -106,57 +98,66 @@ class RefundCommand implements CommandInterface
             'wallee_payment/pending_refund_status/pending_refund_status_enabled'
         );
 
-        if ($creditmemo->getWalleeExternalId() == null) {
+        if ($creditmemo->getData('wallee_external_id') == null) {
+            $spaceId = (int) $creditmemo->getOrder()->getWalleeSpaceId();
+
             try {
                 $refundJob = $this->refundJobRepository->getByOrderId($payment->getOrder()
                     ->getId());
             } catch (NoSuchEntityException $e) {
-                $refund = $this->refundService->createRefund($creditmemo);
-                $refundJob = $this->refundService->createRefundJob($creditmemo->getInvoice(), $refund);
+                $context = $this->refundService->createRefund($creditmemo);
+                $refundJob = $this->refundService->createRefundJob($creditmemo->getInvoice(), $context);
             }
 
             try {
-                $refund = $this->apiClient->getService(ApiRefundService::class)->refund(
-                    $creditmemo->getOrder()
-                    ->getWalleeSpaceId(),
-                    $refundJob->getRefund()
-                );
-            } catch (\Wallee\Sdk\ApiException $e) {
-                if ($e->getResponseObject() instanceof \Wallee\Sdk\Model\ClientError) {
-                    $this->refundJobRepository->delete($refundJob);
-                    throw new \Magento\Framework\Exception\LocalizedException(
-                        \__($e->getResponseObject()->getMessage())
-                    );
+                $refund = $this->pluginCoreRefundService->createRefund($spaceId, $refundJob->getRefund());
+            } catch (InvalidRefundException|RefundException|TransactionException $e) {
+                if ($e->isRetryable()) {
+                    // Transient failure: keep the job for the CRON to retry.
+                    $creditmemo->setData('wallee_keep_refund_job', true);
+                    $this->logger->critical('Refund request failed; keeping the job for a retry.', [
+                        'refundJobId' => $refundJob->getId(),
+                        'orderId' => $creditmemo->getOrder()->getIncrementId(),
+                        'exception' => $e,
+                    ]);
                 } else {
-                    $creditmemo->setWalleeKeepRefundJob(true);
-                    $this->logger->critical($e);
-                    throw new \Magento\Framework\Exception\LocalizedException(
-                        \__('There has been an error while sending the refund to the gateway.')
-                    );
+                    // Terminal failure: leave the job to be deleted by CreditmemoService::aroundRefund().
+                    $this->logger->critical('Refund rejected by the gateway.', [
+                        'refundJobId' => $refundJob->getId(),
+                        'orderId' => $creditmemo->getOrder()->getIncrementId(),
+                        'exception' => $e,
+                    ]);
                 }
+                throw new \Magento\Framework\Exception\LocalizedException(
+                    \__($e->getLocalizedMessage()->getDefault())
+                );
             } catch (\Exception $e) {
-                $creditmemo->setWalleeKeepRefundJob(true);
-                $this->logger->critical($e);
+                $creditmemo->setData('wallee_keep_refund_job', true);
+                $this->logger->critical('Unexpected error while sending the refund to the gateway.', [
+                    'refundJobId' => $refundJob->getId(),
+                    'orderId' => $creditmemo->getOrder()->getIncrementId(),
+                    'exception' => $e,
+                ]);
                 throw new \Magento\Framework\Exception\LocalizedException(
                     \__('There has been an error while sending the refund to the gateway.')
                 );
             }
 
-            if ($refund->getState() == RefundState::FAILED) {
+            if ($refund->state == CoreState::FAILED) {
                 throw new \Magento\Framework\Exception\LocalizedException(
-                    \__($this->localeHelper->translate($refund->getFailureReason()
-                    ->getDescription()))
+                    \__($refund->failureReason?->getDefault()
+                    ?? 'The refund could not be processed on the gateway.')
                 );
             } elseif (! $isIgnorePendingRefundStatusEnabled &&
-                ( $refund->getState() == RefundState::PENDING ||
-                $refund->getState() == RefundState::MANUAL_CHECK )) {
-                $creditmemo->setWalleeKeepRefundJob(true);
+                ( $refund->state == CoreState::PENDING ||
+                $refund->state == CoreState::MANUAL_CHECK )) {
+                $creditmemo->setData('wallee_keep_refund_job', true);
                 throw new \Magento\Framework\Exception\LocalizedException(
                     \__('The refund was requested successfully, but is still pending on the gateway.')
                 );
             }
 
-            $creditmemo->setWalleeExternalId($refund->getExternalId());
+            $creditmemo->setData('wallee_external_id', $refund->externalId);
             $this->refundJobRepository->delete($refundJob);
         }
     }

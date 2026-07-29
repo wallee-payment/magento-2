@@ -21,20 +21,19 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Payment\Model\Service\LineItemReductionService;
 use Wallee\Payment\Model\Service\Order\TransactionService;
 use Wallee\Payment\Model\CoreWebhook\OrderInvoiceTrait;
 
 // PluginCore Dependencies
 use Wallee\PluginCore\Log\LoggerInterface;
+use Wallee\PluginCore\LineItem\LineItem as CoreLineItem;
+use Wallee\PluginCore\Refund\Refund as CoreRefund;
+use Wallee\PluginCore\Refund\RefundGatewayInterface;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
 use Wallee\PluginCore\Webhook\WebhookContext;
-use Wallee\PluginCore\Sdk\SdkProvider;
 
 // SDK Dependencies
-use Wallee\Sdk\Model\LineItemType;
-use Wallee\Sdk\Model\Refund;
-use Wallee\Sdk\Model\TransactionInvoiceState;
+use Wallee\PluginCore\Transaction\Invoice\State as CoreTransactionInvoiceState;
 
 class SuccessfulCommand extends WebhookCommand
 {
@@ -50,14 +49,13 @@ class SuccessfulCommand extends WebhookCommand
      * @param CreditmemoManagementInterface $creditmemoManagement
      * @param InvoiceRepositoryInterface $invoiceRepository
      * @param StockConfigurationInterface $stockConfiguration
-     * @param LineItemReductionService $lineItemReductionService
      * @param TransactionService $transactionService
      * @param Helper $helper
      * @param OrderRepositoryInterface $orderRepository
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param SdkProvider $sdkProvider
      * @param RefundJobRepositoryInterface $refundJobRepository
+     * @param RefundGatewayInterface $pluginCoreRefundGateway
      */
     public function __construct(
         WebhookContext $context,
@@ -67,14 +65,13 @@ class SuccessfulCommand extends WebhookCommand
         private readonly CreditmemoManagementInterface $creditmemoManagement,
         private readonly InvoiceRepositoryInterface $invoiceRepository,
         private readonly StockConfigurationInterface $stockConfiguration,
-        private readonly LineItemReductionService $lineItemReductionService,
         private readonly TransactionService $transactionService,
         private readonly Helper $helper,
         private readonly OrderRepositoryInterface $orderRepository,
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly SdkProvider $sdkProvider,
-        private readonly RefundJobRepositoryInterface $refundJobRepository
+        private readonly RefundJobRepositoryInterface $refundJobRepository,
+        private readonly RefundGatewayInterface $pluginCoreRefundGateway
     ) {
         parent::__construct($context, $logger);
     }
@@ -117,10 +114,9 @@ class SuccessfulCommand extends WebhookCommand
 
         // --- Ported Business Logic ---
         if ($this->isDerecognizedInvoice($order)) {
-            $transaction = $refund->getTransaction();
             $invoice = $this->getInvoiceForTransaction(
-                $transaction->getId(),
-                $transaction->getLinkedSpaceId(),
+                $refund->transactionId,
+                $this->context->spaceId,
                 $order
             );
             if (!($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
@@ -131,7 +127,7 @@ class SuccessfulCommand extends WebhookCommand
 
                 if (!($invoice instanceof InvoiceInterface) || $invoice->getState() == Invoice::STATE_OPEN) {
                     $payment = $order->getPayment();
-                    $payment->registerCaptureNotification($refund->getAmount());
+                    $payment->registerCaptureNotification($refund->amount);
                     if (! ($invoice instanceof InvoiceInterface)) {
                         $invoice = $payment->getCreatedInvoice();
                         $order->addRelatedObject($invoice);
@@ -143,14 +139,25 @@ class SuccessfulCommand extends WebhookCommand
 
         /** @var \Magento\Sales\Model\Order\Creditmemo $creditmemo */
         $creditmemo = $this->creditmemoRepository->create()->load(
-            $refund->getExternalId(),
+            $refund->externalId,
             'wallee_external_id'
         );
+        $this->logger->debug(
+            sprintf(
+                'Looked up existing creditmemo for external ID "%s": %s',
+                $refund->externalId,
+                $creditmemo->getId() ? "found (creditmemo #{$creditmemo->getId()})" : 'not found'
+            )
+        );
         if (!$creditmemo->getId()) {
-            $this->registerRefund($refund, $order);
+            $creditmemo = $this->registerRefund($refund, $order);
         }
 
-        $this->logger->debug(sprintf('Command Successful for entity Refund/%d completed.', $this->context->entityId));
+        $this->logger->info('SuccessfulCommand: Completed.', [
+            'orderId' => $order->getIncrementId(),
+            'creditmemoId' => $creditmemo->getIncrementId(),
+            'refundAmount' => $refund->amount,
+        ]);
         // Return the objects needed by the postProcess hook
         return ['refund' => $refund, 'order' => $order];
     }
@@ -164,17 +171,17 @@ class SuccessfulCommand extends WebhookCommand
     private function isDerecognizedInvoice(Order $order): bool
     {
         $transactionInvoice = $this->transactionService->getTransactionInvoice($order);
-        return $transactionInvoice->getState() == TransactionInvoiceState::DERECOGNIZED;
+        return $transactionInvoice->state === CoreTransactionInvoiceState::DERECOGNIZED;
     }
 
     /**
      * Create and refund a credit memo for the given refund.
      *
-     * @param Refund $refund
+     * @param CoreRefund $refund
      * @param Order $order
-     * @return void
+     * @return \Magento\Sales\Model\Order\Creditmemo
      */
-    private function registerRefund(Refund $refund, Order $order): void
+    private function registerRefund(CoreRefund $refund, Order $order)
     {
         $creditmemoData = $this->collectCreditmemoData($refund, $order);
         try {
@@ -189,44 +196,34 @@ class SuccessfulCommand extends WebhookCommand
                 $creditmemo = $this->creditmemoFactory->createByOrder($order, $creditmemoData);
             }
         }
-        $creditmemo->setPaymentRefundDisallowed(false);
+        // This credit memo mirrors a refund the portal already processed — it must
+        // never trigger a second, live refund request against the gateway.
+        $creditmemo->setPaymentRefundDisallowed(true);
         $creditmemo->setAutomaticallyCreated(true);
         $creditmemo->addComment(\__('The credit memo has been created automatically.')->render());
-        $creditmemo->setData('wallee_external_id', $refund->getExternalId());
+        $creditmemo->setData('wallee_external_id', $refund->externalId);
 
         foreach ($creditmemo->getAllItems() as $creditmemoItem) {
             $creditmemoItem->setBackToStock($this->stockConfiguration->isAutoReturnEnabled());
         }
 
-        $this->creditmemoManagement->refund($creditmemo);
+        $this->creditmemoManagement->refund($creditmemo, true);
+
+        return $creditmemo;
     }
 
     /**
      * Build credit memo data from refund reductions.
      *
-     * @param Refund $refund
+     * @param CoreRefund $refund
      * @param Order $order
      * @return array
      */
-    private function collectCreditmemoData(Refund $refund, Order $order): array
+    private function collectCreditmemoData(CoreRefund $refund, Order $order): array
     {
         $orderItemMap = [];
         foreach ($order->getAllItems() as $orderItem) {
             $orderItemMap[$orderItem->getQuoteItemId()] = $orderItem;
-        }
-
-        $lineItems = [];
-        foreach ($refund->getTransaction()->getLineItems() as $lineItem) {
-            $lineItems[$lineItem->getUniqueId()] = $lineItem;
-        }
-
-        $baseLineItems = [];
-        foreach ($this->lineItemReductionService->getBaseLineItems(
-            $order->getWalleeSpaceId(),
-            $refund->getTransaction()->getId(),
-            $refund
-        ) as $lineItem) {
-            $baseLineItems[$lineItem->getUniqueId()] = $lineItem;
         }
 
         $refundQuantities = [];
@@ -236,29 +233,34 @@ class SuccessfulCommand extends WebhookCommand
 
         $creditmemoAmount = 0;
         $shippingAmount = 0;
-        foreach ($refund->getReductions() as $reduction) {
-            $lineItem = $lineItems[$reduction->getLineItemUniqueId()];
-            switch ($lineItem->getType()) {
-                case LineItemType::PRODUCT:
-                    if ($reduction->getQuantityReduction() > 0) {
-                        $orderItem = $orderItemMap[$reduction->getLineItemUniqueId()];
-                        $refundQuantities[$orderItem->getId()] = $reduction->getQuantityReduction();
-                        $creditmemoAmount += $reduction->getQuantityReduction() *
-                            ($orderItem->getRowTotal() + $orderItem->getTaxAmount() - $orderItem->getDiscountAmount() +
-                                $orderItem->getDiscountTaxCompensationAmount()) / $orderItem->getQtyOrdered();
+        foreach ($refund->lineItems ?? [] as $item) {
+            switch ($item->type) {
+                case CoreLineItem::TYPE_PRODUCT:
+                    if ($item->quantity > 0) {
+                        // WhitelabelMachineName reports the resulting line items of a refund tagged by
+                        // reduction type (e.g. "36__qty"), not the plain uniqueId we sent
+                        // when creating the transaction (e.g. "36"). Strip the tag to
+                        // recover the original quote item id.
+                        $baseUniqueId = strstr((string)$item->uniqueId, '__', true) ?: $item->uniqueId;
+                        $orderItem = $orderItemMap[$baseUniqueId] ?? null;
+                        if ($orderItem === null) {
+                            $this->logger->warning(
+                                sprintf(
+                                    'SuccessfulCommand: No matching order item found for refund line item uniqueId "%s".',
+                                    $item->uniqueId
+                                )
+                            );
+                            break;
+                        }
+                        $refundQuantities[$orderItem->getId()] = $item->quantity;
+                        $creditmemoAmount += $item->amountIncludingTax;
                     }
                     break;
-                case LineItemType::FEE:
-                case LineItemType::DISCOUNT:
+                case CoreLineItem::TYPE_FEE:
+                case CoreLineItem::TYPE_DISCOUNT:
                     break;
-                case LineItemType::SHIPPING:
-                    if ($reduction->getQuantityReduction() > 0) {
-                        $shippingAmount = $baseLineItems[$reduction->getLineItemUniqueId()]->getAmountIncludingTax();
-                    } elseif ($reduction->getUnitPriceReduction() > 0) {
-                        $shippingAmount = $reduction->getUnitPriceReduction();
-                    } else {
-                        $shippingAmount = 0;
-                    }
+                case CoreLineItem::TYPE_SHIPPING:
+                    $shippingAmount = $item->amountIncludingTax;
 
                     if ($shippingAmount == $order->getShippingInclTax()) {
                         $creditmemoAmount += $shippingAmount;
@@ -278,15 +280,15 @@ class SuccessfulCommand extends WebhookCommand
 
         $roundedCreditmemoAmount = $this->helper->roundAmount(
             $creditmemoAmount,
-            $refund->getTransaction()->getCurrency()
+            $order->getOrderCurrencyCode()
         );
 
         $positiveAdjustment = 0;
         $negativeAdjustment = 0;
-        if ($roundedCreditmemoAmount > $refund->getAmount()) {
-            $negativeAdjustment = $roundedCreditmemoAmount - $refund->getAmount();
-        } elseif ($roundedCreditmemoAmount < $refund->getAmount()) {
-            $positiveAdjustment = $refund->getAmount() - $roundedCreditmemoAmount;
+        if ($roundedCreditmemoAmount > $refund->amount) {
+            $negativeAdjustment = $roundedCreditmemoAmount - $refund->amount;
+        } elseif ($roundedCreditmemoAmount < $refund->amount) {
+            $positiveAdjustment = $refund->amount - $roundedCreditmemoAmount;
         }
 
         return [

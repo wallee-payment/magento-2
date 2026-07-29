@@ -8,7 +8,7 @@ use Wallee\PluginCore\Webhook\Enum\WebhookListener;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Lock\LockManagerInterface;
-use Psr\Log\LoggerInterface;
+use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Sdk\SdkProvider;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;

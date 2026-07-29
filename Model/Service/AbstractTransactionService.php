@@ -12,12 +12,9 @@
 namespace Wallee\Payment\Model\Service;
 
 use Magento\Customer\Model\CustomerRegistry;
-use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Stdlib\CookieManagerInterface;
-use Magento\Quote\Model\Quote;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Sdk\Model\Gender;
-use Wallee\Sdk\Model\Transaction;
 use Wallee\Sdk\Service\TransactionService;
 
 /**
@@ -25,12 +22,6 @@ use Wallee\Sdk\Service\TransactionService;
  */
 abstract class AbstractTransactionService
 {
-
-    /**
-     *
-     * @var ResourceConnection
-     */
-    private $resource;
 
     /**
      *
@@ -52,18 +43,15 @@ abstract class AbstractTransactionService
 
     /**
      *
-     * @param ResourceConnection $resource
      * @param CustomerRegistry $customerRegistry
      * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
      */
     public function __construct(
-        ResourceConnection $resource,
         CustomerRegistry $customerRegistry,
         ApiClient $apiClient,
         CookieManagerInterface $cookieManager
     ) {
-        $this->resource = $resource;
         $this->customerRegistry = $customerRegistry;
         $this->apiClient = $apiClient;
         $this->cookieManager = $cookieManager;
@@ -79,27 +67,6 @@ abstract class AbstractTransactionService
     public function getTransaction($spaceId, $transactionId)
     {
         return $this->apiClient->getService(TransactionService::class)->read($spaceId, $transactionId);
-    }
-
-    /**
-     * Updates the transaction information on the quote.
-     *
-     * @param Quote $quote
-     * @param Transaction $transaction
-     * @return void
-     */
-    protected function updateQuote(Quote $quote, Transaction $transaction)
-    {
-        $this->resource->getConnection()->update(
-            $this->resource->getTableName('quote'),
-            [
-                'wallee_space_id' => $transaction->getLinkedSpaceId(),
-                'wallee_transaction_id' => $transaction->getId()
-            ],
-            [
-                'entity_id = ?' => $quote->getId()
-            ]
-        );
     }
 
     /**
@@ -131,25 +98,46 @@ abstract class AbstractTransactionService
     }
 
     /**
-     * Gets the customer's gender.
+     * Gets the customer's gender as a Magento numeric code (1 = male, 2 = female),
+     * falling back to the customer registry when the quote/order does not carry
+     * a value of its own.
      *
-     * @param string $gender
-     * @param int $customerId
-     * @return string
+     * @param string|int|null $gender
+     * @param int|null $customerId
+     * @return int|null
      */
-    protected function getGender($gender, $customerId)
+    protected function getRawGender($gender, $customerId)
     {
-        if ($gender == null && ! empty($customerId)) {
+        if ($gender === null && !empty($customerId)) {
             $gender = $this->customerRegistry->retrieve($customerId)->getGender();
         }
 
-        if ($gender == 2) {
-            return Gender::FEMALE;
-        } elseif ($gender == 1) {
-            return Gender::MALE;
-        } else {
-            return null;
+        if ((int) $gender === 1) {
+            return 1;
         }
+        if ((int) $gender === 2) {
+            return 2;
+        }
+        return null;
+    }
+
+    /**
+     * Gets the customer's gender as an SDK Gender constant.
+     *
+     * @param string|int|null $gender
+     * @param int|null $customerId
+     * @return string|null
+     */
+    protected function getGender($gender, $customerId)
+    {
+        $raw = $this->getRawGender($gender, $customerId);
+        if ($raw === 1) {
+            return Gender::MALE;
+        }
+        if ($raw === 2) {
+            return Gender::FEMALE;
+        }
+        return null;
     }
 
     /**

@@ -9,9 +9,11 @@ use Magento\Sales\Model\Order;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
+use Wallee\PluginCore\Webhook\Enum\LifecycleAction;
+use Wallee\PluginCore\Webhook\TransactionActionResolver;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Log\LoggerInterface;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Magento\Sales\Model\OrderFactory;
 
@@ -28,6 +30,7 @@ class AuthorizedCommand extends WebhookCommand
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param OrderResourceModel $orderResourceModel
      * @param OrderFactory $orderFactory
+     * @param TransactionActionResolver $transactionActionResolver
      */
     public function __construct(
         WebhookContext $context,
@@ -37,6 +40,7 @@ class AuthorizedCommand extends WebhookCommand
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly OrderResourceModel $orderResourceModel,
         private readonly OrderFactory $orderFactory,
+        private readonly TransactionActionResolver $transactionActionResolver,
     ) {
         parent::__construct($context, $logger);
     }
@@ -65,6 +69,9 @@ class AuthorizedCommand extends WebhookCommand
             );
             return null;
         }
+
+        $remoteState = CoreTransactionState::tryFrom($this->context->remoteState);
+        $action = $remoteState !== null ? $this->transactionActionResolver->resolve($remoteState) : null;
 
         // 1. Check the FRESH database state (bypassing cache)
         $freshOrder = $this->orderFactory->create();
@@ -116,7 +123,10 @@ class AuthorizedCommand extends WebhookCommand
 
         } else {
             // CASE B: Safe to update.
-            if ($this->context->remoteState != TransactionState::FULFILL) {
+            // Only apply the "not yet fulfilled" pending status while the resolved
+            // action is still AUTHORIZE; a FULFILL-level state means payment has
+            // progressed past authorization and this order should not be held back.
+            if ($action === LifecycleAction::AUTHORIZE) {
                 $order->setState(Order::STATE_PROCESSING);
                 $order->setStatus('pending'); // Status set to pending as per legacy logic
 
@@ -133,12 +143,10 @@ class AuthorizedCommand extends WebhookCommand
 
         $this->orderRepository->save($order);
 
-        $this->logger->debug(
-            sprintf(
-                'Command Authorized for entity Transaction/%d completed.',
-                $this->context->entityId
-            )
-        );
+        $this->logger->info('AuthorizedCommand: Completed.', [
+            'orderId' => $order->getIncrementId(),
+            'state' => $order->getState(),
+        ]);
 
         return $order;
     }

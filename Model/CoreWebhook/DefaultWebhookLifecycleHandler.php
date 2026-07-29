@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Wallee\Payment\Model\CoreWebhook;
 
-use Wallee\PluginCore\Webhook\DefaultWebhookLifecycleHandler as PluginCoreDefaultHandler;
+use Wallee\PluginCore\Webhook\DefaultWebhookLifecycleHandler as CoreDefaultWebhookLifecycleHandler;
 use Wallee\PluginCore\Webhook\Enum\WebhookListener;
 use Wallee\PluginCore\Webhook\Exception\SkippedStepException;
+use Wallee\PluginCore\Webhook\Exception\TransientWebhookException;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Webhook\StateValidator;
 use Magento\Framework\App\ResourceConnection;
-use Psr\Log\LoggerInterface;
+use Wallee\PluginCore\Log\LoggerInterface;
 use Magento\Framework\Lock\LockManagerInterface;
-use Magento\Framework\Exception\LocalizedException;
 
 /**
  * The base lifecycle handler for Magento.
  * It implements the platform-specifics for locking and DB persistence.
  */
-class DefaultWebhookLifecycleHandler extends PluginCoreDefaultHandler
+class DefaultWebhookLifecycleHandler extends CoreDefaultWebhookLifecycleHandler
 {
     protected const WEBHOOK_PROGRESS_TABLE = 'wallee_webhook_progress';
     private const MAX_LOCK_ATTEMPTS = 5;
@@ -212,16 +212,13 @@ class DefaultWebhookLifecycleHandler extends PluginCoreDefaultHandler
      * @param string $lockId
      * @param int $attempt
      * @return void
-     * @throws \Magento\Framework\Exception\LocalizedException
+     * @throws TransientWebhookException
      */
     private function acquireLockWithRetry(string $lockId, int $attempt): void
     {
         if ($attempt >= self::MAX_LOCK_ATTEMPTS) {
-            throw new LocalizedException(
-                \__(
-                    'Wallee Webhook: Max lock wait attempts reached for lock ID: %1',
-                    $lockId
-                )
+            throw new TransientWebhookException(
+                "Max lock wait attempts reached for lock ID: {$lockId}"
             );
         }
 

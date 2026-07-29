@@ -12,49 +12,45 @@
 namespace Wallee\Payment\Model\Service\Order;
 
 use Magento\Customer\Model\CustomerRegistry;
-use Magento\Framework\DataObject;
-use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\Event\ManagerInterface;
+use Magento\Framework\DataObject;
+use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\CookieManagerInterface;
-use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Address;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Store\Model\ScopeInterface;
-use Psr\Log\LoggerInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Config\Source\IntegrationMethod;
 use Wallee\Payment\Model\CustomerIdManipulationException;
+use Wallee\Payment\Model\Payment\Method\Adapter as PaymentMethodAdapter;
 use Wallee\Payment\Model\Service\AbstractTransactionService;
-use Wallee\Sdk\VersioningException;
-use Wallee\Sdk\Model\AbstractTransactionPending;
-use Wallee\Sdk\Model\AddressCreate;
-use Wallee\Sdk\Model\CriteriaOperator;
+use Wallee\PluginCore\Address\Address as CoreAddress;
+use Wallee\PluginCore\Customer\CompanyDetails;
+use Wallee\PluginCore\Customer\Gender;
+use Wallee\PluginCore\Customer\PersonalDetails;
+use Wallee\PluginCore\LineItem\LineItemCollection;
+use Wallee\PluginCore\Log\LoggerInterface;
+use Wallee\PluginCore\Transaction\Exception\TransactionException;
+use Wallee\PluginCore\Transaction\Invoice\Invoice as CoreInvoice;
+use Wallee\PluginCore\Transaction\Invoice\InvoiceGatewayInterface;
+use Wallee\PluginCore\Transaction\Invoice\InvoiceSearchCriteria;
+use Wallee\PluginCore\Transaction\Invoice\State as CoreTransactionInvoiceState;
+use Wallee\PluginCore\SharedKernel\Url;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
+use Wallee\PluginCore\Transaction\TransactionContext;
+use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
+use Wallee\PluginCore\Token\Token as CoreToken;
 use Wallee\Sdk\Model\EntityQuery;
-use Wallee\Sdk\Model\EntityQueryFilter;
-use Wallee\Sdk\Model\EntityQueryFilterType;
-use Wallee\Sdk\Model\Token;
 use Wallee\Sdk\Model\Transaction;
-use Wallee\Sdk\Model\TransactionCreate;
-use Wallee\Sdk\Model\TransactionInvoiceState;
-use Wallee\Sdk\Model\TransactionPending;
-use Wallee\Sdk\Model\TransactionState;
 use Wallee\Sdk\Service\DeliveryIndicationService;
-use Wallee\Sdk\Service\TransactionCompletionService;
-use Wallee\Sdk\Service\TransactionInvoiceService;
-use Wallee\Sdk\Service\TransactionIframeService;
-use Wallee\Sdk\Service\TransactionLightboxService;
-use Wallee\Sdk\Service\TransactionPaymentPageService;
-use Wallee\Sdk\Service\TransactionService as TransactionApiService;
-use Wallee\Sdk\Service\TransactionVoidService;
 
 /**
  * Service to handle transactions in order context.
@@ -83,12 +79,6 @@ class TransactionService extends AbstractTransactionService
      * @var ScopeConfigInterface
      */
     private $scopeConfig;
-
-    /**
-     *
-     * @var ManagerInterface
-     */
-    private $eventManager;
 
     /**
      *
@@ -121,11 +111,35 @@ class TransactionService extends AbstractTransactionService
     private $apiClient;
 
     /**
+     * Gateway for the two-step update/confirm flow that replaced the legacy
+     * SDK confirm() call.
      *
-     * @param ResourceConnection $resource
+     * @var TransactionGatewayInterface
+     */
+    private TransactionGatewayInterface $transactionGateway;
+
+    /**
+     *
+     * @var InvoiceGatewayInterface
+     */
+    private $invoiceGateway;
+
+    /**
+     *
+     * @var EventManagerInterface
+     */
+    private $eventManager;
+
+    /**
+     *
+     * @var CartRepositoryInterface
+     */
+    private $quoteRepository;
+
+    /**
+     *
      * @param Helper $helper
      * @param ScopeConfigInterface $scopeConfig
-     * @param ManagerInterface $eventManager
      * @param CustomerRegistry $customerRegistry
      * @param OrderRepositoryInterface $orderRepository
      * @param ApiClient $apiClient
@@ -134,12 +148,14 @@ class TransactionService extends AbstractTransactionService
      * @param LineItemService $lineItemService
      * @param LineItemHelper $lineItemHelper
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
+     * @param InvoiceGatewayInterface $invoiceGateway
+     * @param TransactionGatewayInterface $transactionGateway
+     * @param EventManagerInterface $eventManager
+     * @param CartRepositoryInterface $quoteRepository
      */
     public function __construct(
-        ResourceConnection $resource,
         Helper $helper,
         ScopeConfigInterface $scopeConfig,
-        ManagerInterface $eventManager,
         CustomerRegistry $customerRegistry,
         OrderRepositoryInterface $orderRepository,
         ApiClient $apiClient,
@@ -147,65 +163,82 @@ class TransactionService extends AbstractTransactionService
         LoggerInterface $logger,
         LineItemService $lineItemService,
         LineItemHelper $lineItemHelper,
-        TransactionInfoRepositoryInterface $transactionInfoRepository
+        TransactionInfoRepositoryInterface $transactionInfoRepository,
+        InvoiceGatewayInterface $invoiceGateway,
+        TransactionGatewayInterface $transactionGateway,
+        EventManagerInterface $eventManager,
+        CartRepositoryInterface $quoteRepository,
     ) {
         parent::__construct(
-            $resource,
             $customerRegistry,
             $apiClient,
             $cookieManager
         );
         $this->helper = $helper;
         $this->scopeConfig = $scopeConfig;
-        $this->eventManager = $eventManager;
         $this->orderRepository = $orderRepository;
         $this->logger = $logger;
         $this->lineItemService = $lineItemService;
+        $this->eventManager = $eventManager;
         $this->lineItemHelper = $lineItemHelper;
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->apiClient = $apiClient;
+        $this->invoiceGateway = $invoiceGateway;
+        $this->transactionGateway = $transactionGateway;
+        $this->quoteRepository = $quoteRepository;
     }
 
     /**
-     * Updates the transaction with the given order's data and confirms it.
+     * Updates the transaction with the given order's data and confirms it
+     * through the PluginCore two-step gateway flow.
+     *
+     * The method builds a TransactionContext from the order, pushes it via
+     * TransactionGatewayInterface::update(), then locks the transaction via
+     * TransactionGatewayInterface::confirm(). The retry loop handles
+     * versioning conflicts surfacing as TransactionException.
+     *
+     * The SDK Transaction return type is preserved because the caller
+     * (SubmitQuote) forwards it to TransactionInfoManagement::update(),
+     * which still requires the SDK model.
      *
      * @param Transaction $transaction
      * @param Order $order
      * @param Invoice $invoice
-     * @param boolean $chargeFlow
-     * @param Token|null $token
+     * @param bool $chargeFlow
+     * @param \Wallee\Sdk\Model\Token|null $token
      * @return Transaction
      * @throws LocalizedException
      * @throws CustomerIdManipulationException
-     * @throws VersioningException
      */
     public function confirmTransaction(
         Transaction $transaction,
         Order $order,
         Invoice $invoice,
-        $chargeFlow = false,
-        ?Token $token = null
+        bool $chargeFlow = false,
+        ?\Wallee\Sdk\Model\Token $token = null,
     ) {
-        if ($transaction->getState() == TransactionState::CONFIRMED) {
+        if ($transaction->getState() == CoreTransactionState::CONFIRMED->value) {
             return $transaction;
-        } elseif ($transaction->getState() != TransactionState::PENDING) {
+        } elseif ($transaction->getState() != CoreTransactionState::PENDING->value) {
             $this->cancelOrder($order, $invoice);
             throw new LocalizedException(\__('wallee_checkout_failure'));
         }
 
-        $spaceId = $order->getWalleeSpaceId();
-        $transactionId = $order->getWalleeTransactionId();
+        $spaceId = (int) $order->getWalleeSpaceId();
+        $transactionId = (int) $order->getWalleeTransactionId();
 
-        for ($i = 0; $i < self::NUMBER_OF_ATTEMPTS; $i ++) {
+        for ($i = 0; $i < self::NUMBER_OF_ATTEMPTS; $i++) {
             try {
+                // On retries, re-read the transaction to get the current version and state.
                 if ($i > 0) {
                     $transaction = $this->getTransaction($spaceId, $transactionId);
                     if ($transaction instanceof Transaction
-                        && $transaction->getState() == TransactionState::CONFIRMED
+                        && $transaction->getState() == CoreTransactionState::CONFIRMED->value
                     ) {
                         return $transaction;
-                    } elseif (! ($transaction instanceof Transaction) ||
-                        $transaction->getState() != TransactionState::PENDING) {
+                    } elseif (!($transaction instanceof Transaction)
+                        || $transaction->getState() != CoreTransactionState::PENDING->value
+                    ) {
                         $this->cancelOrder($order, $invoice);
                         throw new LocalizedException(\__('wallee_checkout_failure'));
                     }
@@ -217,31 +250,62 @@ class TransactionService extends AbstractTransactionService
                     throw new CustomerIdManipulationException();
                 }
 
-                $pendingTransaction = new TransactionPending();
-                $pendingTransaction->setId($transaction->getId());
-                $pendingTransaction->setVersion($transaction->getVersion());
-                $this->assembleTransactionDataFromOrder($pendingTransaction, $order, $invoice, $chargeFlow, $token);
-                return $this->apiClient->getService(TransactionApiService::class)
-                ->confirm($spaceId, $pendingTransaction);
-            } catch (VersioningException $e) {
-                // Try to update the transaction again, if a versioning exception occurred.
+                // Build the PluginCore context from the order data.
+                $context = $this->buildConfirmationContext(
+                    $order,
+                    $spaceId,
+                    $chargeFlow,
+                    $token,
+                );
+
+                // Step 1: push the order data onto the existing transaction.
+                $this->transactionGateway->update(
+                    $transactionId,
+                    (int) $transaction->getVersion(),
+                    $context,
+                );
+
+                // Step 2: lock the transaction to finalize checkout.
+                $this->transactionGateway->confirm($spaceId, $transactionId);
+
+                // Re-read via the SDK API to return the full SDK Transaction
+                // the caller (SubmitQuote → TransactionInfoManagement) expects.
+                return $this->getTransaction($spaceId, $transactionId);
+            } catch (TransactionException $e) {
+                // isRetryable() is true for an optimistic-locking version conflict or a
+                // transient connection error; any other failure is permanent, so surface
+                // it immediately with its root cause preserved instead of burning the
+                // remaining attempts on it.
+                if (!$e->isRetryable()) {
+                    throw new LocalizedException(\__('wallee_checkout_failure'), $e);
+                }
                 $this->logger->debug(
-                    'There was an issue confirming the transaction.',
-                    ['exception' => $e]
+                    'Transient failure during transaction confirmation; retrying.',
+                    ['exception' => $e, 'attempt' => $i + 1],
                 );
             }
         }
-        throw new VersioningException(__FUNCTION__);
+
+        throw new LocalizedException(
+            \__('wallee_checkout_failure'),
+        );
     }
 
     /**
      * Cancels the given order and invoice linked to the transaction.
      *
+     * Also clears the transaction id from the order's quote — the transaction
+     * being cancelled is no longer PENDING (e.g. it expired while the customer
+     * was idle on checkout), so leaving the stale id on the quote would make
+     * the very next retry reuse the same dead transaction, mirroring
+     * {@see \Wallee\Payment\Observer\UpdateDeclinedOrderTransaction}'s
+     * handling of the same situation on the `restore_quote` path.
+     *
      * @param Order $order
      * @param Invoice $invoice
      * @return void
      */
-    private function cancelOrder(Order $order, Invoice $invoice)
+    private function cancelOrder(Order $order, Invoice $invoice): void
     {
         if ($invoice) {
             $order->setWalleeInvoiceAllowManipulation(true);
@@ -250,165 +314,228 @@ class TransactionService extends AbstractTransactionService
         }
         $order->registerCancellation(null, false);
         $this->orderRepository->save($order);
+        $this->clearQuoteTransactionReference($order);
     }
 
     /**
-     * Assembles the transaction data from the given order and invoice.
+     * Clears the stale transaction id from the order's quote, if it still exists.
      *
-     * @param AbstractTransactionPending $transaction
      * @param Order $order
-     * @param Invoice $invoice
-     * @param boolean $chargeFlow
-     * @param Token|null $token
      * @return void
      */
-    protected function assembleTransactionDataFromOrder(
-        AbstractTransactionPending $transaction,
+    private function clearQuoteTransactionReference(Order $order): void
+    {
+        try {
+            $quote = $this->quoteRepository->get($order->getQuoteId());
+            $quote->setWalleeTransactionId(null);
+            $this->quoteRepository->save($quote);
+        } catch (\Exception $e) {
+            $this->logger->debug("Failed to clear the transaction id from the order's quote.", [
+                'orderId' => $order->getIncrementId(),
+                'exception' => $e,
+            ]);
+        }
+    }
+
+    /**
+     * Builds a PluginCore TransactionContext from the Magento order data for
+     * the confirmation step.
+     *
+     * Replaces the legacy assembleTransactionDataFromOrder() that populated
+     * an SDK TransactionPending object.
+     *
+     * @param Order $order
+     * @param int $spaceId
+     * @param bool $chargeFlow
+     * @param \Wallee\Sdk\Model\Token|null $token
+     * @return TransactionContext
+     */
+    private function buildConfirmationContext(
         Order $order,
-        Invoice $invoice,
-        $chargeFlow = false,
-        ?Token $token = null
-    ) {
-        $transaction->setCurrency($order->getOrderCurrencyCode());
-        $transaction->setBillingAddress($this->convertOrderBillingAddress($order));
-        $transaction->setShippingAddress($this->convertOrderShippingAddress($order));
-        $transaction->setCustomerEmailAddress(
-            $this->getCustomerEmailAddress($order->getCustomerEmail(), $order->getCustomerId())
+        int $spaceId,
+        bool $chargeFlow,
+        ?\Wallee\Sdk\Model\Token $token,
+    ): TransactionContext {
+        $context = new TransactionContext();
+        $context->spaceId = $spaceId;
+        $context->currencyCode = (string) $order->getOrderCurrencyCode();
+        $context->language = (string) $this->scopeConfig->getValue(
+            'general/locale/code',
+            ScopeInterface::SCOPE_STORE,
+            $order->getStoreId(),
         );
-        $transaction->setLanguage(
-            $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $order->getStoreId())
-        );
-        $transaction->setLineItems($this->lineItemService->convertOrderLineItems($order));
-        $this->logAdjustmentLineItemInfo($order, $transaction);
-        $transaction->setMerchantReference($order->getIncrementId());
-        $transaction->setInvoiceMerchantReference($invoice->getIncrementId());
-        if (! empty($order->getCustomerId())) {
-            $transaction->setCustomerId($order->getCustomerId());
+        $context->merchantReference = (string) $order->getIncrementId();
+        $context->invoiceMerchantReference = (string) $order->getIncrementId();
+        $context->customerId = (string) ($order->getCustomerId() ?? '');
+
+        $context->metaData = $this->collectMetaData($order);
+
+        $methodInstance = $order->getPayment()?->getMethodInstance();
+        if ($methodInstance instanceof PaymentMethodAdapter) {
+            $context->allowedPaymentMethodConfigurations = [$methodInstance->getPaymentMethodConfigurationId()];
         }
+
+        // Map billing and shipping addresses using the PluginCore address DTO.
+        // TransactionContext::$billingAddress is non-nullable and $shippingAddress
+        // defaults to null, so only assign when the conversion yields an address.
+        $billingAddress = $this->convertOrderBillingAddress($order);
+        if ($billingAddress !== null) {
+            $context->billingAddress = $billingAddress;
+        }
+        $shippingAddress = $this->convertOrderShippingAddress($order);
+        if ($shippingAddress !== null) {
+            $context->shippingAddress = $shippingAddress;
+        }
+
+        // Personal and company identity live on the context alongside the
+        // address for the gateway's mapAddress() to merge into the SDK payload.
+        $context->personalDetails = $this->buildPersonalDetails($order);
+        $context->companyDetails = $this->buildCompanyDetails($order);
+
+        $lineItems = $this->lineItemService->convertOrderLineItems($order);
+        $context->lineItems = new LineItemCollection(...$lineItems);
+        $this->logAdjustmentLineItemInfo($order, $lineItems);
+
+        $context->expectedGrandTotal = (float) $order->getGrandTotal();
+
         if ($order->getShippingAddress()) {
-            $transaction->setShippingMethod(
-                $this->helper->fixLength(
-                    $this->helper->getFirstLine($order->getShippingAddress()
-                    ->getShippingDescription()),
-                    200
-                )
+            $context->shippingMethod = $this->helper->fixLength(
+                $this->helper->getFirstLine(
+                    $order->getShippingAddress()->getShippingDescription(),
+                ),
+                200,
             );
         }
-        if ($transaction instanceof TransactionCreate) {
-            $transaction->setSpaceViewId(
-                $this->scopeConfig->getValue(
-                    'wallee_payment/general/space_view_id',
-                    ScopeInterface::SCOPE_STORE,
-                    $order->getStoreId()
-                )
-            );
-            $transaction->setDeviceSessionIdentifier($this->getDeviceSessionIdentifier());
-        }
-        if ($chargeFlow) {
-            $transaction->setAllowedPaymentMethodConfigurations(
-                [
-                    $order->getPayment()
-                        ->getMethodInstance()
-                        ->getPaymentMethodConfiguration()
-                        ->getConfigurationId()
-                ]
-            );
-        } else {
-            //default behaviour
-            $successUrl = $this->buildUrl('wallee_payment/transaction/success', $order);
-            $failureUrl = $this->buildUrl('wallee_payment/transaction/failure', $order);
 
-            try {
-                $transactionInfo = $this->transactionInfoRepository->getByTransactionId(
-                    $order->getWalleeSpaceId(),
-                    $order->getWalleeTransactionId()
+        $context->autoConfirmationEnabled = false;
+        $context->chargeRetryEnabled = false;
+
+        $spaceViewId = $this->scopeConfig->getValue(
+            'wallee_payment/general/space_view_id',
+            ScopeInterface::SCOPE_STORE,
+            $order->getStoreId(),
+        );
+        if ($spaceViewId !== null && $spaceViewId !== '') {
+            $context->spaceViewId = (int) $spaceViewId;
+        }
+
+        $context->deviceSessionIdentifier = $this->getDeviceSessionIdentifier();
+
+        // Resolve the success/failure return URLs.
+        if (!$chargeFlow) {
+            $this->applyReturnUrls($context, $order);
+        }
+
+        // Map the SDK token to a PluginCore token if provided.
+        if ($token !== null) {
+            $coreToken = new CoreToken();
+            $coreToken->id = (int) $token->getId();
+            $context->token = $coreToken;
+        }
+
+        return $context;
+    }
+
+    /**
+     * Collects the arbitrary shop-defined key/value data to attach to the transaction
+     * via TransactionContext::$metaData, by dispatching an event that observers
+     * (e.g. Amasty order attributes, customer attributes) populate.
+     *
+     * @param Order $order
+     * @return array<string, mixed>
+     */
+    private function collectMetaData(Order $order): array
+    {
+        $transport = new DataObject(['metaData' => []]);
+        $this->eventManager->dispatch(
+            'wallee_payment_collect_meta_data',
+            [
+                'order' => $order,
+                'transport' => $transport,
+            ]
+        );
+        return $transport->getData('metaData');
+    }
+
+    /**
+     * Resolves success/failure return URLs from the shop or external PWA
+     * configuration and sets them on the transaction context.
+     *
+     * @param TransactionContext $context
+     * @param Order $order
+     * @return void
+     */
+    private function applyReturnUrls(TransactionContext $context, Order $order): void
+    {
+        $successUrl = $this->buildUrl(
+            'wallee_payment/transaction/success',
+            $order,
+        );
+        $failureUrl = $this->buildUrl(
+            'wallee_payment/transaction/failure',
+            $order,
+        );
+
+        try {
+            $transactionInfo = $this->transactionInfoRepository->getByTransactionId(
+                $order->getWalleeSpaceId(),
+                $order->getWalleeTransactionId(),
+            );
+
+            // External return URL to the shop, such as PWA storefronts.
+            if ($transactionInfo !== null && $transactionInfo->isExternalPaymentUrl()) {
+                $successUrl = $this->buildUrl(
+                    $transactionInfo->getSuccessUrl(),
+                    $order,
+                    true,
                 );
-
-                //external return url to the shop, such as pwa
-                if ($transactionInfo !== null && $transactionInfo->isExternalPaymentUrl()) {
-                    $successUrl = $this->buildUrl($transactionInfo->getSuccessUrl(), $order, true);
-                    $failureUrl = $this->buildUrl($transactionInfo->getFailureUrl(), $order, true);
-
-                    //force a particular payment method
-                    $transaction->setAllowedPaymentMethodConfigurations(
-                        [
-                            $order->getPayment()
-                            ->getMethodInstance()
-                            ->getPaymentMethodConfiguration()
-                            ->getConfigurationId()
-                        ]
-                    );
-                }
-            } catch (\Exception $e) {
-                $this->logger->debug(
-                    "ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder error: " . $e->getMessage()
+                $failureUrl = $this->buildUrl(
+                    $transactionInfo->getFailureUrl(),
+                    $order,
+                    true,
                 );
             }
+        } catch (\Exception $e) {
+            $this->logger->debug(
+                "Could not resolve external payment return URLs; falling back to the shop's own. " .
+                $e->getMessage(),
+            );
+        }
 
-            $this->logger->debug(
-                "ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder url: " .
-                $successUrl . '?utm_nooverride=1'
-            );
-            $this->logger->debug(
-                "ORDER-TRANSACTION-SERVICE::assembleTransactionDataFromOrder url: " .
-                $failureUrl . '?utm_nooverride=1'
-            );
-            $transaction->setSuccessUrl(sprintf('%s?utm_nooverride=1', $successUrl));
-            $transaction->setFailedUrl(sprintf('%s?utm_nooverride=1', $failureUrl));
-        }
-        if ($token != null) {
-            $transaction->setToken($token->getId());
-        }
-        $metaData = $this->collectMetaData($order);
-        if (! empty($metaData) && is_array($metaData)) {
-            $transaction->setMetaData($metaData);
-        }
+        $this->logger->debug('Success return URL: ' . $successUrl . '?utm_nooverride=1');
+        $this->logger->debug('Failure return URL: ' . $failureUrl . '?utm_nooverride=1');
+
+        $context->successUrl = new Url(sprintf('%s?utm_nooverride=1', $successUrl));
+        $context->failedUrl = new Url(sprintf('%s?utm_nooverride=1', $failureUrl));
     }
 
     /**
-     * Checks whether an adjustment line item has been added to the transaction and adds a log message if so.
+     * Checks whether an adjustment line item is present and logs a warning
+     * about the total mismatch that caused it.
      *
      * @param Order $order
-     * @param TransactionPending $transaction
+     * @param \Wallee\PluginCore\LineItem\LineItem[] $lineItems
      * @return void
      */
-    protected function logAdjustmentLineItemInfo(Order $order, TransactionPending $transaction)
+    protected function logAdjustmentLineItemInfo(Order $order, array $lineItems): void
     {
-        foreach ($transaction->getLineItems() as $lineItem) {
-            if ($lineItem->getUniqueId() == 'adjustment') {
-                $expectedSum = $this->lineItemHelper->getTotalAmountIncludingTax($transaction->getLineItems()) -
-                    $lineItem->getAmountIncludingTax();
+        foreach ($lineItems as $lineItem) {
+            if ($lineItem->uniqueId === 'adjustment') {
+                $totalAmount = 0.0;
+                foreach ($lineItems as $item) {
+                    $totalAmount += $item->amountIncludingTax;
+                }
+                $expectedSum = $totalAmount - $lineItem->amountIncludingTax;
                 $this->logger->warning(
-                    'An adjustment line item has been added to the transaction ' . $transaction->getId() .
-                    ', because the line item total amount of ' .
+                    'An adjustment line item has been added to the transaction, ' .
+                    'because the line item total amount of ' .
                     $this->helper->roundAmount($order->getGrandTotal(), $order->getOrderCurrencyCode()) .
                     ' did not match the invoice amount of ' . $expectedSum .
-                    ' of the order ' . $order->getId() . '.'
+                    ' of the order ' . $order->getId() . '.',
                 );
                 return;
             }
         }
-    }
-
-    /**
-     * Collect additional metadata for the given order.
-     *
-     * @param Order $order
-     * @return array<mixed>|mixed|null
-     */
-    protected function collectMetaData(Order $order)
-    {
-        $transport = new DataObject([
-            'metaData' => []
-        ]);
-        $this->eventManager->dispatch(
-            'wallee_payment_collect_meta_data',
-            [
-                'transport' => $transport,
-                'order' => $order
-            ]
-        );
-        return $transport->getData('metaData');
     }
 
     /**
@@ -453,131 +580,166 @@ class TransactionService extends AbstractTransactionService
      */
     public function getTransactionPaymentUrl(Order $order, string $integrationType)
     {
-        $transaction = $this->getTransaction(
-            $order->getWalleeSpaceId(),
-            $order->getWalleeTransactionId()
-        );
+        $spaceId = (int) $order->getWalleeSpaceId();
+        $transactionId = (int) $order->getWalleeTransactionId();
 
-        switch ($integrationType) {
-            case IntegrationMethod::IFRAME:
-                $serviceClass = TransactionIframeService::class;
-                break;
-            case IntegrationMethod::LIGHTBOX:
-                $serviceClass = TransactionLightboxService::class;
-                break;
-            case IntegrationMethod::PAYMENT_PAGE:
-                $serviceClass = TransactionPaymentPageService::class;
-                break;
-            default:
-                $serviceClass = TransactionPaymentPageService::class;
-        }
+        // The unified PluginCore gateway resolves the correct payment URL format
+        // (iframe / lightbox / payment page) internally from the settings,
+        // so the explicit integration type is no longer needed but accepted
+        // for signature compatibility.
+        $url = (string) $this->transactionGateway->getPaymentUrl($spaceId, $transactionId);
 
-            $url = $this->apiClient->getService($serviceClass)->paymentPageUrl(
-                $transaction->getLinkedSpaceId(),
-                $transaction->getId()
-            );
-
-        $this->logger->debug("ORDER-TRANSACTION-SERVICE::getTransactionPaymentUrl URL: " . $url);
+        $this->logger->debug('Generated payment page URL: ' . $url);
         return $url;
     }
 
     /**
-     * Converts the billing address of the given order.
+     * Converts the billing address of the given order into a geography-only
+     * PluginCore address. Person/company identity is now mapped separately
+     * onto PersonalDetails/CompanyDetails on the TransactionContext.
      *
      * @param Order $order
-     * @return \Wallee\Sdk\Model\AddressCreate
+     * @return CoreAddress|null
      */
-    protected function convertOrderBillingAddress(Order $order)
+    private function convertOrderBillingAddress(Order $order): ?CoreAddress
     {
-        if (! $order->getBillingAddress()) {
+        if (!$order->getBillingAddress()) {
             return null;
         }
-
-        $address = $this->convertAddress($order->getBillingAddress());
-        $address->setDateOfBirth($this->getDateOfBirth($order->getCustomerDob(), $order->getCustomerId()));
-        $address->setEmailAddress($this->getCustomerEmailAddress($order->getCustomerEmail(), $order->getCustomerId()));
-        $address->setGender($this->getGender($order->getCustomerGender(), $order->getCustomerId()));
-        return $address;
+        return $this->convertAddress($order->getBillingAddress());
     }
 
     /**
-     * Converts the shipping address of the given order.
+     * Converts the shipping address of the given order into a geography-only
+     * PluginCore address.
      *
      * @param Order $order
-     * @return \Wallee\Sdk\Model\AddressCreate
+     * @return CoreAddress|null
      */
-    protected function convertOrderShippingAddress(Order $order)
+    private function convertOrderShippingAddress(Order $order): ?CoreAddress
     {
-        if (! $order->getShippingAddress()) {
+        if (!$order->getShippingAddress()) {
             return null;
         }
-
-        $address = $this->convertAddress($order->getShippingAddress());
-        $address->setEmailAddress($this->getCustomerEmailAddress($order->getCustomerEmail(), $order->getCustomerId()));
-        return $address;
+        return $this->convertAddress($order->getShippingAddress());
     }
 
     /**
-     * Converts the given address.
+     * Converts a Magento order address into a geography-only PluginCore address
+     * DTO, applying length and line-break sanitisation expected by the portal.
      *
      * @param Address $customerAddress
-     * @return AddressCreate
+     * @return CoreAddress
      */
-    protected function convertAddress(Address $customerAddress)
+    private function convertAddress(Address $customerAddress): CoreAddress
     {
-        $address = new AddressCreate();
-        $address->setSalutation(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPrefix()), 20)
-        );
-        $address->setCity($this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCity()), 100));
-        $address->setCountry($customerAddress->getCountryId());
-        $address->setFamilyName(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getLastname()), 100)
-        );
-        $address->setGivenName(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getFirstname()), 100)
-        );
-        $address->setOrganizationName(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getCompany()), 100)
-        );
-        $address->setPhoneNumber($customerAddress->getTelephone());
-        if (! empty($customerAddress->getCountryId()) && ! empty($customerAddress->getRegionCode())) {
-            $address->setPostalState($customerAddress->getCountryId() . '-' . $customerAddress->getRegionCode());
+        $address = new CoreAddress();
+        $address->city = $customerAddress->getCity();
+        $address->country = (string) $customerAddress->getCountryId();
+        $address->phoneNumber = $customerAddress->getTelephone();
+        if (!empty($customerAddress->getCountryId()) && !empty($customerAddress->getRegionCode())) {
+            $address->postalState = $customerAddress->getCountryId() . '-' . $customerAddress->getRegionCode();
         }
-        $address->setPostCode(
-            $this->helper->fixLength($this->helper->removeLinebreaks($customerAddress->getPostcode()), 40)
-        );
+        $address->postcode = $customerAddress->getPostcode();
         $street = $customerAddress->getStreet();
-        $address->setStreet($this->helper->fixLength(\is_array($street) ? \implode("\n", $street) : $street, 300));
+        $address->street = \is_array($street) ? \implode("\n", $street) : $street;
         return $address;
     }
 
     /**
-     * Completes the transaction linked to the given order.
+     * Builds the customer's personal identity details from the order.
+     *
+     * These are kept separate from the address; the gateway merges them into
+     * the SDK AddressCreate payload.
      *
      * @param Order $order
-     * @return \Wallee\Sdk\Model\TransactionCompletion
+     * @return PersonalDetails|null
      */
-    public function complete(Order $order)
+    private function buildPersonalDetails(Order $order): ?PersonalDetails
     {
-        return $this->apiClient->getService(TransactionCompletionService::class)->completeOnline(
-            $order->getWalleeSpaceId(),
-            $order->getWalleeTransactionId()
+        $billingAddress = $order->getBillingAddress();
+
+        return new PersonalDetails(
+            dateOfBirth: $this->parseDateOfBirth(
+                $this->getDateOfBirth($order->getCustomerDob(), $order->getCustomerId()),
+            ),
+            emailAddress: $this->getCustomerEmailAddress(
+                $order->getCustomerEmail(),
+                $order->getCustomerId(),
+            ),
+            familyName: $billingAddress
+                ? $this->helper->removeLinebreaks($billingAddress->getLastname())
+                : null,
+            gender: $this->resolveGender($order->getCustomerGender(), $order->getCustomerId()),
+            givenName: $billingAddress
+                ? $this->helper->removeLinebreaks($billingAddress->getFirstname())
+                : null,
+            salutation: $billingAddress
+                ? $this->helper->removeLinebreaks($billingAddress->getPrefix())
+                : null,
         );
     }
 
     /**
-     * Voids the transaction linked to the given order.
+     * Builds the customer's company identity details from the order.
      *
      * @param Order $order
-     * @return \Wallee\Sdk\Model\TransactionVoid
+     * @return CompanyDetails|null
      */
-    public function void(Order $order)
+    private function buildCompanyDetails(Order $order): ?CompanyDetails
     {
-        return $this->apiClient->getService(TransactionVoidService::class)->voidOnline(
-            $order->getWalleeSpaceId(),
-            $order->getWalleeTransactionId()
+        $salesTaxNumber = $this->getTaxNumber(
+            $order->getCustomerTaxvat(),
+            $order->getCustomerId(),
         );
+        $billingAddress = $order->getBillingAddress();
+        $organizationName = $billingAddress
+            ? $this->helper->removeLinebreaks($billingAddress->getCompany())
+            : null;
+
+        return new CompanyDetails(
+            organizationName: $organizationName,
+            salesTaxNumber: $salesTaxNumber,
+        );
+    }
+
+    /**
+     * Resolves the customer's gender as a PluginCore enum value, reading from
+     * the customer registry when the order does not carry a value.
+     *
+     * @param string|int|null $gender
+     * @param int|null $customerId
+     * @return Gender|null
+     */
+    private function resolveGender($gender, $customerId): ?Gender
+    {
+        $raw = $this->getRawGender($gender, $customerId);
+        if ($raw === 1) {
+            return Gender::MALE;
+        }
+        if ($raw === 2) {
+            return Gender::FEMALE;
+        }
+        return null;
+    }
+
+    /**
+     * Parses a date-of-birth string into a DateTimeImmutable, returning null
+     * for empty input or unparsable values.
+     *
+     * @param string|null $dateOfBirth
+     * @return \DateTimeImmutable|null
+     */
+    private function parseDateOfBirth(?string $dateOfBirth): ?\DateTimeImmutable
+    {
+        if ($dateOfBirth === null || $dateOfBirth === '') {
+            return null;
+        }
+        try {
+            return new \DateTimeImmutable($dateOfBirth);
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**
@@ -640,37 +802,31 @@ class TransactionService extends AbstractTransactionService
      *
      * @param Order $order
      * @throws NoSuchEntityException
-     * @return \Wallee\Sdk\Model\TransactionInvoice
+     * @return CoreInvoice
      */
-    public function getTransactionInvoice(Order $order)
+    public function getTransactionInvoice(Order $order): CoreInvoice
     {
-        $query = new EntityQuery();
-        $filter = new EntityQueryFilter();
-        $filter->setType(EntityQueryFilterType::_AND);
-        $filter->setChildren(
-            [
-                $this->helper->createEntityFilter(
-                    'state',
-                    TransactionInvoiceState::CANCELED,
-                    CriteriaOperator::NOT_EQUALS
-                ),
-                $this->helper->createEntityFilter(
-                    'completion.lineItemVersion.transaction.id',
-                    $order->getWalleeTransactionId()
-                )
+        $criteria = new InvoiceSearchCriteria(
+            filters: [
+                'completion.lineItemVersion.transaction.id' => $order->getWalleeTransactionId(),
             ]
         );
-        $query->setFilter($filter);
-        $query->setNumberOfEntities(1);
-        $result = $this->apiClient->getService(TransactionInvoiceService::class)->search(
-            $order->getWalleeSpaceId(),
-            $query
+        $invoices = $this->invoiceGateway->search(
+            (int) $order->getWalleeSpaceId(),
+            $criteria
         );
-        if (! empty($result)) {
-            return $result[0];
-        } else {
+
+        // InvoiceSearchCriteria only supports EQUALS filters, so canceled invoices are excluded here.
+        $active = array_filter(
+            iterator_to_array($invoices),
+            static fn (CoreInvoice $invoice): bool => $invoice->state !== CoreTransactionInvoiceState::CANCELED
+        );
+
+        $invoice = array_shift($active);
+        if ($invoice === null) {
             throw new NoSuchEntityException();
         }
+        return $invoice;
     }
 
     /**
@@ -693,7 +849,7 @@ class TransactionService extends AbstractTransactionService
             if (\in_array($transactionInfo->getState(), $states)) {
                 return true;
             }
-            
+
             usleep(2000000);
         }
     }

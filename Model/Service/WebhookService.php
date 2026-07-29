@@ -16,8 +16,9 @@ use Magento\Store\Api\Data\WebsiteInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Wallee\Payment\Model\CoreWebhook\RegistryConfigurer;
 use Wallee\Payment\Model\Settings\SettingsProvider;
+use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Webhook\WebhookProcessor;
-use Wallee\PluginCore\Webhook\WebhookService as PluginCoreWebhookService;
+use Wallee\PluginCore\Webhook\WebhookService as CoreWebhookService;
 
 /**
  * Service to handle webhooks.
@@ -31,7 +32,7 @@ class WebhookService
     private $storeManager;
 
     /**
-     * @var PluginCoreWebhookService
+     * @var CoreWebhookService
      */
     private $pluginCoreWebhookService;
 
@@ -51,24 +52,32 @@ class WebhookService
     private $settingsProvider;
 
     /**
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
      * @param StoreManagerInterface $storeManager
-     * @param PluginCoreWebhookService $pluginCoreWebhookService
+     * @param CoreWebhookService $pluginCoreWebhookService
      * @param RegistryConfigurer $registryConfigurer
      * @param WebhookProcessor $webhookProcessor
      * @param SettingsProvider $settingsProvider
+     * @param LoggerInterface $logger
      */
     public function __construct(
         StoreManagerInterface $storeManager,
-        PluginCoreWebhookService $pluginCoreWebhookService,
+        CoreWebhookService $pluginCoreWebhookService,
         RegistryConfigurer $registryConfigurer,
         WebhookProcessor $webhookProcessor,
-        SettingsProvider $settingsProvider
+        SettingsProvider $settingsProvider,
+        LoggerInterface $logger
     ) {
         $this->storeManager = $storeManager;
         $this->pluginCoreWebhookService = $pluginCoreWebhookService;
         $this->registryConfigurer = $registryConfigurer;
         $this->webhookProcessor = $webhookProcessor;
         $this->settingsProvider = $settingsProvider;
+        $this->logger = $logger;
     }
 
     /**
@@ -84,13 +93,30 @@ class WebhookService
         $this->registryConfigurer->configure();
         $registry = $this->webhookProcessor->getListenerRegistry();
 
-        foreach ($this->getWebhookTargets() as $target) {
-            $this->pluginCoreWebhookService->synchronizeWebhooks(
-                $target['spaceId'],
-                $target['url'],
-                'Magento 2',
-                $registry
-            );
+        $targets = $this->getWebhookTargets();
+        $this->logger->debug('Installing webhooks.', ['targetCount' => count($targets)]);
+
+        foreach ($targets as $target) {
+            try {
+                $this->pluginCoreWebhookService->synchronizeWebhooks(
+                    $target['spaceId'],
+                    $target['url'],
+                    'Magento 2',
+                    $registry
+                );
+            } catch (\Exception $e) {
+                $this->logger->error('Webhook sync failed.', [
+                    'spaceId' => $target['spaceId'],
+                    'url' => $target['url'],
+                    'exception' => $e,
+                ]);
+                throw $e;
+            }
+
+            $this->logger->info('Webhook sync completed.', [
+                'spaceId' => $target['spaceId'],
+                'url' => $target['url'],
+            ]);
         }
     }
 

@@ -20,7 +20,6 @@ use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Wallee\Payment\Observer\RestoreCartOnCartPage;
-use Wallee\Sdk\Model\TransactionState;
 
 /**
  * Frontend controller action to handle successful payments.

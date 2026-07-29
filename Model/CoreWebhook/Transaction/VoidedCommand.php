@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Wallee\Payment\Model\CoreWebhook\Transaction;
 
 use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Sales\Model\Order;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Model\CoreWebhook\OrderInvoiceTrait;
 use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Webhook\Enum\LifecycleAction;
+use Wallee\PluginCore\Webhook\TransactionActionResolver;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Magento\Sales\Model\OrderFactory;
 
@@ -30,6 +31,7 @@ class VoidedCommand extends WebhookCommand
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param OrderResourceModel $orderResourceModel
      * @param OrderFactory $orderFactory
+     * @param TransactionActionResolver $transactionActionResolver
      */
     public function __construct(
         WebhookContext $context,
@@ -38,7 +40,8 @@ class VoidedCommand extends WebhookCommand
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly OrderResourceModel $orderResourceModel,
-        private readonly OrderFactory $orderFactory
+        private readonly OrderFactory $orderFactory,
+        private readonly TransactionActionResolver $transactionActionResolver
     ) {
         parent::__construct($context, $logger);
     }
@@ -71,6 +74,9 @@ class VoidedCommand extends WebhookCommand
         /** @var \Magento\Sales\Model\Order\Payment $payment */
         $payment = $order->getPayment();
         $payment->registerVoidNotification();
+        $this->logger->info('VoidedCommand: Registered void notification on payment.', [
+            'orderId' => $order->getIncrementId(),
+        ]);
 
         // Cancel Invoice (if exists)
         $transactionInfo = $this->findTransactionInfo();
@@ -85,22 +91,25 @@ class VoidedCommand extends WebhookCommand
                 $order->setWalleeInvoiceAllowManipulation(true); // TODO: Confirm flag name
                 $invoice->cancel();
                 $order->addRelatedObject($invoice);
+                $this->logger->info('VoidedCommand: Canceled invoice.', [
+                    'orderId' => $order->getIncrementId(),
+                    'invoiceId' => $invoice->getIncrementId(),
+                ]);
             }
         }
 
         // Safe State Update Logic
-        if ($this->context->remoteState == TransactionState::VOIDED) {
+        $remoteState = CoreTransactionState::tryFrom($this->context->remoteState);
+        $action = $remoteState !== null ? $this->transactionActionResolver->resolve($remoteState) : null;
+
+        if ($action === LifecycleAction::CANCEL_ORDER) {
             if ($order->canCancel()) {
                 $this->logger->info(sprintf('VoidedCommand: Canceling order %s.', $order->getIncrementId()));
 
-                $order->setState(Order::STATE_CANCELED);
-                $order->setStatus(Order::STATE_CANCELED);
-
-                $order->addStatusToHistory(
-                    Order::STATE_CANCELED,
-                    __('The order has been canceled.')->render(),
-                    false
-                );
+                // Standardized cancellation: use Magento's own cancellation flow
+                // (stock restoration, item state, order_cancel_after event) instead
+                // of manually setting state/status.
+                $order->registerCancellation(null, false);
             } else {
                 $this->logger->debug(sprintf(
                     'VoidedCommand: Skipping cancellation. Order %s cannot be canceled (State: %s).',
@@ -112,12 +121,10 @@ class VoidedCommand extends WebhookCommand
 
         $this->orderRepository->save($order);
 
-        $this->logger->debug(
-            sprintf(
-                'Command Voided for entity Transaction/%d completed.',
-                $this->context->entityId
-            )
-        );
+        $this->logger->info('VoidedCommand: Completed.', [
+            'orderId' => $order->getIncrementId(),
+            'state' => $order->getState(),
+        ]);
         return $order;
     }
 }

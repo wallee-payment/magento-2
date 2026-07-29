@@ -13,23 +13,11 @@ namespace Wallee\Payment\Model\Service;
 
 use Magento\Framework\DataObject;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order\Creditmemo;
 use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Helper\LineItemReduction as LineItemReductionHelper;
-use Wallee\Payment\Model\ApiClient;
-use Wallee\Sdk\Model\CriteriaOperator;
-use Wallee\Sdk\Model\EntityQuery;
-use Wallee\Sdk\Model\EntityQueryFilter;
-use Wallee\Sdk\Model\EntityQueryFilterType;
-use Wallee\Sdk\Model\EntityQueryOrderByType;
-use Wallee\Sdk\Model\LineItemReductionCreate;
-use Wallee\Sdk\Model\Refund;
-use Wallee\Sdk\Model\RefundState;
-use Wallee\Sdk\Model\TransactionInvoiceState;
-use Wallee\Sdk\Service\RefundService;
-use Wallee\Sdk\Service\TransactionInvoiceService;
+use Wallee\PluginCore\Currency\CurrencyRoundingService;
+use Wallee\PluginCore\Refund\RefundService as CoreRefundService;
 
 /**
  * Service to handle line item reductions.
@@ -51,15 +39,9 @@ class LineItemReductionService
 
     /**
      *
-     * @var LineItemHelper
+     * @var CoreRefundService
      */
-    private $lineItemHelper;
-
-    /**
-     *
-     * @var ApiClient
-     */
-    private $apiClient;
+    private $refundService;
 
     /**
      *
@@ -71,51 +53,53 @@ class LineItemReductionService
      *
      * @param Helper $helper
      * @param LineItemReductionHelper $reductionHelper
-     * @param LineItemHelper $lineItemHelper
-     * @param ApiClient $apiClient
+     * @param CoreRefundService $refundService
      * @param EventManagerInterface $eventManager
      */
     public function __construct(
         Helper $helper,
         LineItemReductionHelper $reductionHelper,
-        LineItemHelper $lineItemHelper,
-        ApiClient $apiClient,
+        CoreRefundService $refundService,
         EventManagerInterface $eventManager
     ) {
         $this->helper = $helper;
         $this->reductionHelper = $reductionHelper;
-        $this->lineItemHelper = $lineItemHelper;
-        $this->apiClient = $apiClient;
+        $this->refundService = $refundService;
         $this->eventManager = $eventManager;
     }
 
     /**
      * Converts the creditmemo's items to line item reductions.
      *
+     * The result is mapped by the caller into
+     * Wallee\PluginCore\Refund\LineItem\RefundLineItem entries
+     * (uniqueId, returnedQuantity, unitPriceReduction) for RefundContext::$lineItems.
+     *
      * @param Creditmemo $creditmemo
-     * @return LineItemReductionCreate[]
+     * @return list<array{uniqueId: ?string, quantity: float, amount: float}>
      * @throws LineItemReductionException
      */
-    public function convertCreditmemo(Creditmemo $creditmemo)
+    public function convertCreditmemo(Creditmemo $creditmemo): array
     {
-        /** @var \Wallee\Sdk\Model\LineItem[] $baseLineItems */
-        $baseLineItems = $this->getBaseLineItems($creditmemo->getOrder()
-            ->getWalleeSpaceId(), $creditmemo->getOrder()
-            ->getWalleeTransactionId());
-        $unrefundedAmount = $this->lineItemHelper->getTotalAmountIncludingTax($baseLineItems);
+        $order = $creditmemo->getOrder();
+        $baseLineItems = $this->getBaseLineItems(
+            (int) $order->getWalleeSpaceId(),
+            (int) $order->getWalleeTransactionId()
+        );
+
+        $unrefundedAmount = 0.0;
+        foreach ($baseLineItems as $baseLineItem) {
+            $unrefundedAmount += $baseLineItem->amountIncludingTax;
+        }
 
         $reductions = [];
-        if ($this->helper->compareAmounts(
+        if (CurrencyRoundingService::areAmountsEqual(
             $unrefundedAmount,
             $creditmemo->getGrandTotal(),
             $creditmemo->getOrderCurrencyCode()
-        ) == 0) {
+        )) {
             foreach ($baseLineItems as $baseLineItem) {
-                $reduction = new LineItemReductionCreate();
-                $reduction->setLineItemUniqueId($baseLineItem->getUniqueId());
-                $reduction->setQuantityReduction($baseLineItem->getQuantity());
-                $reduction->setUnitPriceReduction(0);
-                $reductions[] = $reduction;
+                $reductions[] = $this->makeReduction($baseLineItem->uniqueId, (float) $baseLineItem->quantity, 0.0);
             }
         } else {
             foreach ($creditmemo->getAllItems() as $creditmemoItem) {
@@ -125,7 +109,7 @@ class LineItemReductionService
             }
 
             $shippingReduction = $this->convertShipping($creditmemo);
-            if ($shippingReduction instanceof LineItemReductionCreate) {
+            if ($shippingReduction !== null) {
                 $reductions[] = $shippingReduction;
             }
         }
@@ -141,8 +125,48 @@ class LineItemReductionService
                 'baseLineItems' => $baseLineItems
             ]
         );
-        $this->validateReductions($transport->getData('items'), $creditmemo, $baseLineItems);
-        return $transport->getData('items');
+        $reductions = $transport->getData('items');
+        $this->validateReductions($reductions, $creditmemo, $baseLineItems);
+        return $this->mapReductionsToRefundContextLineItems($reductions);
+    }
+
+    /**
+     * Builds a single reduction in the internal array shape shared with event observers.
+     *
+     * @param string|null $uniqueId
+     * @param float $quantityReduction
+     * @param float $unitPriceReduction
+     * @return array{uniqueId: ?string, quantityReduction: float, unitPriceReduction: float}
+     */
+    private function makeReduction(?string $uniqueId, float $quantityReduction, float $unitPriceReduction): array
+    {
+        return [
+            'uniqueId' => $uniqueId,
+            'quantityReduction' => $quantityReduction,
+            'unitPriceReduction' => $unitPriceReduction,
+        ];
+    }
+
+    /**
+     * Maps the internal reduction arrays to the plain array shape the caller maps into
+     * RefundLineItem entries, where 'amount' is the per-remaining-unit price reduction
+     * (not the total reduced amount).
+     *
+     * @param array $reductions Each entry: ['uniqueId'=>?string,'quantityReduction'=>float,'unitPriceReduction'=>float]
+     * @return list<array{uniqueId: ?string, quantity: float, amount: float}>
+     */
+    private function mapReductionsToRefundContextLineItems(array $reductions): array
+    {
+        return array_map(
+            static function (array $reduction): array {
+                return [
+                    'uniqueId' => $reduction['uniqueId'],
+                    'quantity' => (float) $reduction['quantityReduction'],
+                    'amount' => (float) $reduction['unitPriceReduction'],
+                ];
+            },
+            $reductions
+        );
     }
 
     /**
@@ -176,56 +200,54 @@ class LineItemReductionService
      *
      * @param Creditmemo\Item $creditmemoItem
      * @param Creditmemo $creditmemo
-     * @return LineItemReductionCreate[]
+     * @return array{uniqueId: ?string, quantityReduction: float, unitPriceReduction: float}
      */
     private function convertItem(Creditmemo\Item $creditmemoItem, Creditmemo $creditmemo)
     {
-        $reduction = new LineItemReductionCreate();
-        $reduction->setLineItemUniqueId($creditmemoItem->getOrderItem()
-            ->getQuoteItemId());
-        $reduction->setQuantityReduction($creditmemoItem->getQty());
-        $reduction->setUnitPriceReduction(0);
-        return $reduction;
+        return $this->makeReduction(
+            $creditmemoItem->getOrderItem()->getQuoteItemId(),
+            (float) $creditmemoItem->getQty(),
+            0.0
+        );
     }
 
     /**
      * Converts the creditmemo's shipping information to a line item reduction.
      *
      * @param Creditmemo $creditmemo
-     * @return LineItemReductionCreate
+     * @return array{uniqueId: ?string, quantityReduction: float, unitPriceReduction: float}|null
      */
     private function convertShipping(Creditmemo $creditmemo)
     {
         if ($creditmemo->getShippingAmount() > 0) {
-            $reduction = new LineItemReductionCreate();
-            $reduction->setLineItemUniqueId('shipping');
-            if ($this->helper->compareAmounts(
+            if (CurrencyRoundingService::areAmountsEqual(
                 $creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
                 $creditmemo->getOrder()
                 ->getShippingInclTax(),
                 $creditmemo->getOrderCurrencyCode()
-            ) == 0) {
-                $reduction->setQuantityReduction(1);
-                $reduction->setUnitPriceReduction(0);
-            } else {
-                $reduction->setQuantityReduction(0);
-                $reduction->setUnitPriceReduction(
-                    $this->helper->roundAmount(
-                        $creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
-                        $creditmemo->getOrderCurrencyCode()
-                    )
-                );
+            )) {
+                return $this->makeReduction('shipping', 1.0, 0.0);
             }
-            return $reduction;
+
+            return $this->makeReduction(
+                'shipping',
+                0.0,
+                $this->helper->roundAmount(
+                    $creditmemo->getShippingAmount() + $creditmemo->getShippingTaxAmount(),
+                    $creditmemo->getOrderCurrencyCode()
+                )
+            );
         }
+
+        return null;
     }
 
     /**
      * Validates whether the given reductions total amount matches the one of the creditmemo.
      *
-     * @param LineItemReductionCreate[] $reductions
+     * @param array $reductions Each entry: ['uniqueId'=>?string,'quantityReduction'=>float,'unitPriceReduction'=>float]
      * @param Creditmemo $creditmemo
-     * @param \Wallee\Sdk\Model\LineItem[] $baseLineItems
+     * @param \Wallee\PluginCore\LineItem\LineItem[] $baseLineItems
      * @return void
      * @throws LineItemReductionException
      */
@@ -236,97 +258,29 @@ class LineItemReductionService
             $reductions,
             $creditmemo->getOrderCurrencyCode()
         );
-        if ($this->helper->compareAmounts(
+        if (!CurrencyRoundingService::areAmountsEqual(
             $reducedAmount,
             $creditmemo->getGrandTotal(),
             $creditmemo->getOrderCurrencyCode()
-        ) != 0) {
+        )) {
             throw new LineItemReductionException();
         }
     }
 
     /**
-     * Gets the line items that are to be used to calculate the refund.
+     * Gets the line items that are still refundable and used to calculate the refund.
      *
-     * This returns the line items of the latest refund if there is one or of the transaction invoice otherwise.
-     *
-     * @param int $spaceId
-     * @param int $transactionId
-     * @param Refund|null $refund
-     * @return \Wallee\Sdk\Model\LineItem[]
-     */
-    public function getBaseLineItems($spaceId, $transactionId, ?Refund $refund = null)
-    {
-        $lastSuccessfulRefund = $this->getLastSuccessfulRefund($spaceId, $transactionId, $refund);
-        if ($lastSuccessfulRefund instanceof Refund) {
-            return $lastSuccessfulRefund->getReducedLineItems();
-        } else {
-            return $this->getTransactionInvoice($spaceId, $transactionId)->getLineItems();
-        }
-    }
-
-    /**
-     * Gets the transaction invoice for the given transaction.
+     * Delegates to plugin-core, which resolves these via its Invoice domain: the latest successful
+     * refund's reduced line items, or the transaction invoice's line items when no refund exists yet.
      *
      * @param int $spaceId
      * @param int $transactionId
-     * @throws \Exception
-     * @return \Wallee\Sdk\Model\TransactionInvoice
+     * @return \Wallee\PluginCore\LineItem\LineItem[]
      */
-    private function getTransactionInvoice($spaceId, $transactionId)
+    private function getBaseLineItems(int $spaceId, int $transactionId): array
     {
-        $query = new EntityQuery();
-        $filter = new EntityQueryFilter();
-        $filter->setType(EntityQueryFilterType::_AND);
-        $filter->setChildren(
-            [
-                $this->helper->createEntityFilter(
-                    'state',
-                    TransactionInvoiceState::CANCELED,
-                    CriteriaOperator::NOT_EQUALS
-                ),
-                $this->helper->createEntityFilter('completion.lineItemVersion.transaction.id', $transactionId)
-            ]
+        return iterator_to_array(
+            $this->refundService->getRefundableLineItems($spaceId, $transactionId)
         );
-        $query->setFilter($filter);
-        $query->setNumberOfEntities(1);
-        $result = $this->apiClient->getService(TransactionInvoiceService::class)->search($spaceId, $query);
-        if (! empty($result)) {
-            return $result[0];
-        } else {
-            throw new LocalizedException(\__('The transaction invoice could not be found.'));
-        }
-    }
-
-    /**
-     * Gets the last successful refund of the given transaction, excluding the given refund.
-     *
-     * @param int $spaceId
-     * @param int $transactionId
-     * @param Refund|null $refund
-     * @return Refund
-     */
-    private function getLastSuccessfulRefund($spaceId, $transactionId, ?Refund $refund = null)
-    {
-        $query = new EntityQuery();
-        $filter = new EntityQueryFilter();
-        $filter->setType(EntityQueryFilterType::_AND);
-        $filters = [
-            $this->helper->createEntityFilter('state', RefundState::SUCCESSFUL),
-            $this->helper->createEntityFilter('transaction.id', $transactionId)
-        ];
-        if ($refund != null) {
-            $filters[] = $this->helper->createEntityFilter('id', $refund->getId(), CriteriaOperator::NOT_EQUALS);
-        }
-        $filter->setChildren($filters);
-        $query->setFilter($filter);
-        $query->setOrderBys([
-            $this->helper->createEntityOrderBy('createdOn', EntityQueryOrderByType::DESC)
-        ]);
-        $query->setNumberOfEntities(1);
-        $result = $this->apiClient->getService(RefundService::class)->search($spaceId, $query);
-        if (! empty($result)) {
-            return $result[0];
-        }
     }
 }

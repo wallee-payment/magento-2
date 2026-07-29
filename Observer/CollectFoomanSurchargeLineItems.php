@@ -23,9 +23,8 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Sdk\Model\LineItemCreate;
-use Wallee\Sdk\Model\LineItemType;
-use Wallee\Sdk\Model\TaxCreate;
+use Wallee\PluginCore\LineItem\LineItem as CoreLineItem;
+use Wallee\PluginCore\Tax\Tax as CoreTax;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -128,7 +127,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      * Convert Fooman surcharge totals into line items.
      *
      * @param Quote|Order|Invoice $entity
-     * @return LineItemCreate[]
+     * @return CoreLineItem[]
      */
     protected function convertFoomanSurchargeLineItems($entity)
     {
@@ -147,7 +146,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      * Build surcharge line items for an order.
      *
      * @param Order $order
-     * @return LineItemCreate[]
+     * @return CoreLineItem[]
      */
     protected function convertOrderFoomanSurchargeLineItems(Order $order)
     {
@@ -176,7 +175,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      * Build surcharge line items for a quote.
      *
      * @param Quote $quote
-     * @return LineItemCreate[]
+     * @return CoreLineItem[]
      */
     protected function convertQuoteFoomanSurchargeLineItems(Quote $quote)
     {
@@ -214,7 +213,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      * Build surcharge line items for an invoice.
      *
      * @param Invoice $invoice
-     * @return LineItemCreate[]
+     * @return CoreLineItem[]
      */
     protected function convertInvoiceFoomanSurchargeLineItems(Invoice $invoice)
     {
@@ -248,24 +247,23 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      * @param float $taxAmount
      * @param string $code
      * @param string $label
-     * @return LineItemCreate
+     * @return CoreLineItem
      */
     private function createSurchargeLineItem($entity, $currency, $amount, $taxAmount, $code, $label)
     {
-        $surcharge = new LineItemCreate();
-        $surcharge->setType(LineItemType::FEE);
-        $surcharge->setAmountIncludingTax($this->helper->roundAmount($amount + $taxAmount, $currency));
-        $surcharge->setSku('fooman-surcharge');
-        $surcharge->setUniqueId('fooman_surcharge_' . $code);
-        $surcharge->setName((string) $label);
-        $surcharge->setQuantity(1);
-        $surcharge->setShippingRequired(false);
+        $surcharge = new CoreLineItem();
+        $surcharge->type = CoreLineItem::TYPE_FEE;
+        $surcharge->amountIncludingTax = (float) $this->helper->roundAmount($amount + $taxAmount, $currency);
+        $surcharge->unitPriceIncludingTax = $surcharge->amountIncludingTax;
+        $surcharge->sku = 'fooman-surcharge';
+        $surcharge->uniqueId = 'fooman_surcharge_' . $code;
+        $surcharge->name = (string) $label;
+        $surcharge->quantity = 1.0;
+        $surcharge->shippingRequired = false;
         if ($taxAmount > 0) {
             $tax = $this->getTax($entity, $code);
-            if ($tax instanceof TaxCreate) {
-                $surcharge->setTaxes([
-                    $tax
-                ]);
+            if ($tax instanceof CoreTax) {
+                $surcharge->addTax($tax);
             }
         }
         return $surcharge;
@@ -276,7 +274,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      *
      * @param Quote|Order $entity
      * @param string $code
-     * @return TaxCreate|null
+     * @return CoreTax|null
      */
     protected function getTax($entity, $code)
     {
@@ -306,10 +304,12 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
             $taxRateRequest->setProductClassId($taxClassId);
             $rate = $this->taxCalculation->getRate($taxRateRequest);
             if ($rate > 0) {
-                $tax = new TaxCreate();
-                $tax->setRate($rate);
-                $tax->setTitle($taxClass->getClassName());
-                return $tax;
+                try {
+                    return new CoreTax((string) $taxClass->getClassName(), (float) $rate);
+                } catch (\InvalidArgumentException $e) {
+                    $this->logger->warning('Skipping surcharge tax with invalid title: ' . $e->getMessage());
+                    return null;
+                }
             }
         }
         return null;

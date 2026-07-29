@@ -23,7 +23,7 @@
 		</a>
 	</li>
 	<li>
-		<a href="https://github.com/wallee-payment/magento-2/releases/tag/3.2.2/">
+		<a href="https://github.com/wallee-payment/magento-2/releases/tag/3.3.0/">
 			Source
 		</a>
 	</li>
@@ -460,16 +460,65 @@ the <a href="https://app-wallee.com/space/select?target=/payment/flow/list" targ
 </div><div class="paragraph">
 <p>You can find more information about charge flows in our <a href="https://app-wallee.com/en-us/doc/payment/charge-flows" target="_blank">charge flow documentation</a>.</p>
 </div>					</div>
+</div>	<div class="chapter" id="_cookie_usage">
+	<div class="chapter-title">
+		<h1>
+			<span class="title-number">8</span>Cookie usage					</h1>
+	</div>
+	<div class="chapter-body">
+					<div class="paragraph">
+<p>This plugin use cookies for the purposes described below:</p>
+</div><table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 16%;"/>
+<col style="width: 16%;"/>
+<col style="width: 16%;"/>
+<col style="width: 16%;"/>
+<col style="width: 33%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
+<th class="tableblock halign-left valign-top">Duration</th>
+<th class="tableblock halign-left valign-top">Origin</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>wallee_device_id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Necessary</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Persistent (1 year)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">wallee</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Device/session ID for fraud prevention during payment. The plugin loads the device.js script from the gateway when the fingerprint option is enabled.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>wallee_restore_pending</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Necessary</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Session</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">wallee</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set before the client is sent to the external payment page so the quote can be marked as "payment in progress".</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>walleeNewUi</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Functional</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Persistent (10 years)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">wallee</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">UI-version toggle for the wallee merchant portal (old vs. new UI). Set automatically on every login based on the user&#8217;s stored preference, and can be toggled by the user. HttpOnly, Secure on HTTPS.</p></td>
+</tr>
+</tbody>
+</table>					</div>
 </div>	<div class="chapter" id="_faq">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">8</span>FAQ					</h1>
+			<span class="title-number">9</span>FAQ					</h1>
 	</div>
 	<div class="chapter-body">
 							<div class="section" id="_how_can_i_make_the_payment_methods_appear_in_the_checkout">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">8.1</span>How can I make the payment methods appear in the checkout?					</h2>
+			<span class="title-number">9.1</span>How can I make the payment methods appear in the checkout?					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -481,7 +530,7 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 </div>					<div class="section" id="_is_onestepcheckout_supported">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">8.2</span>Is OneStepCheckout supported?					</h2>
+			<span class="title-number">9.2</span>Is OneStepCheckout supported?					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -496,13 +545,13 @@ The payment methods are only displayed if the plugin&#8217;s total calculation m
 </div>	<div class="chapter" id="_troubleshooting">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">9</span>Troubleshooting					</h1>
+			<span class="title-number">10</span>Troubleshooting					</h1>
 	</div>
 	<div class="chapter-body">
 							<div class="section" id="__unique_constraint_violation_found_during_installation">
 	<div class="section-title">
 		<h2>
-			<span class="title-number">9.1</span>"Unique Constraint Violation Found" during installation					</h2>
+			<span class="title-number">10.1</span>"Unique Constraint Violation Found" during installation					</h2>
 	</div>
 	<div class="section-body">
 					<div class="paragraph">
@@ -516,7 +565,7 @@ simply enter your credentials again as described in this manual.</p>
 </div>	<div class="chapter" id="_support">
 	<div class="chapter-title">
 		<h1>
-			<span class="title-number">10</span>Support					</h1>
+			<span class="title-number">11</span>Support					</h1>
 	</div>
 	<div class="chapter-body">
 					<div class="paragraph">
@@ -640,37 +689,42 @@ simply enter your credentials again as described in this manual.</p>
 		<span class="item-title">Backend Orders</span>
 			</a>
     </li>					<li class="nav-level-1">
-	<a href="#_faq">
+	<a href="#_cookie_usage">
 		<span class="item-number">8</span>
+		<span class="item-title">Cookie usage</span>
+			</a>
+    </li>					<li class="nav-level-1">
+	<a href="#_faq">
+		<span class="item-number">9</span>
 		<span class="item-title">FAQ</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-2">
 	<a href="#_how_can_i_make_the_payment_methods_appear_in_the_checkout">
-		<span class="item-number">8.1</span>
+		<span class="item-number">9.1</span>
 		<span class="item-title">How can I make the payment methods appear in the checkout?</span>
 			</a>
     </li>    		    			<li class="nav-level-2">
 	<a href="#_is_onestepcheckout_supported">
-		<span class="item-number">8.2</span>
+		<span class="item-number">9.2</span>
 		<span class="item-title">Is OneStepCheckout supported?</span>
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_troubleshooting">
-		<span class="item-number">9</span>
+		<span class="item-number">10</span>
 		<span class="item-title">Troubleshooting</span>
 			</a>
         	<ul  class="nav">
     		    			<li class="nav-level-2">
 	<a href="#__unique_constraint_violation_found_during_installation">
-		<span class="item-number">9.1</span>
+		<span class="item-number">10.1</span>
 		<span class="item-title">&quot;Unique Constraint Violation Found&quot; during installation</span>
 			</a>
     </li>    		    	</ul>
     </li>					<li class="nav-level-1">
 	<a href="#_support">
-		<span class="item-number">10</span>
+		<span class="item-number">11</span>
 		<span class="item-title">Support</span>
 			</a>
     </li>			</ul>

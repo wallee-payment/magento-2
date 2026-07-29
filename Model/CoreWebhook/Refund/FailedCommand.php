@@ -6,14 +6,11 @@ namespace Wallee\Payment\Model\CoreWebhook\Refund;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Sales\Model\Order;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
-use Wallee\Payment\Helper\Locale as LocaleHelper;
 use Wallee\PluginCore\Log\LoggerInterface;
-use Wallee\PluginCore\Sdk\SdkProvider;
+use Wallee\PluginCore\Refund\RefundGatewayInterface;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
 use Wallee\PluginCore\Webhook\WebhookContext;
-use Wallee\Sdk\Model\Refund;
 
 class FailedCommand extends WebhookCommand
 {
@@ -24,19 +21,17 @@ class FailedCommand extends WebhookCommand
      * @param WebhookContext $context
      * @param LoggerInterface $logger
      * @param OrderRepositoryInterface $orderRepository
-     * @param LocaleHelper $localeHelper
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param SdkProvider $sdkProvider
+     * @param RefundGatewayInterface $pluginCoreRefundGateway
      */
     public function __construct(
         WebhookContext $context,
         LoggerInterface $logger,
         private readonly OrderRepositoryInterface $orderRepository,
-        private readonly LocaleHelper $localeHelper,
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly SdkProvider $sdkProvider,
+        private readonly RefundGatewayInterface $pluginCoreRefundGateway,
     ) {
         parent::__construct($context, $logger);
     }
@@ -77,19 +72,22 @@ class FailedCommand extends WebhookCommand
             return null;
         }
 
-        $failureReason = $refund->getFailureReason();
+        $failureReason = $refund->failureReason;
         if ($failureReason) {
             $order->addCommentToStatusHistory(
                 \__(
                     'The refund of %1 failed on the gateway: %2',
-                    $order->getBaseCurrency()->formatTxt($refund->getAmount()),
-                    $this->localeHelper->translate($failureReason->getDescription())
+                    $order->getBaseCurrency()->formatTxt($refund->amount),
+                    $failureReason->getDefault()
                 )->render()
             );
             $this->orderRepository->save($order);
         }
 
-        $this->logger->debug(sprintf('Command Failed for entity Refund/%d completed.', $this->context->entityId));
+        $this->logger->info('FailedCommand: Completed.', [
+            'orderId' => $order->getIncrementId(),
+            'refundAmount' => $refund->amount,
+        ]);
         // Return the objects needed by the postProcess hook
         return ['refund' => $refund, 'order' => $order];
     }

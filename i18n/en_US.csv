@@ -145,3 +145,4 @@
 "No line items provided.", "No line items provided."
 "The wallee transaction info is already linked to a different order.", "The wallee transaction info is already linked to a different order."
 "Unable to place order: A server error stopped your order from being placed. Please try to place your order again.", "Unable to place order: A server error stopped your order from being placed. Please try to place your order again."
+"Your checkout session has expired. Please try again.", "Your checkout session has expired. Please try again."

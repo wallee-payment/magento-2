@@ -6,7 +6,10 @@ namespace Wallee\Payment\Model\CoreWebhook\Transaction;
 
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
+use Wallee\PluginCore\Webhook\Enum\LifecycleAction;
+use Wallee\PluginCore\Webhook\TransactionActionResolver;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
@@ -25,6 +28,7 @@ class FulfillCommand extends WebhookCommand
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param OrderResourceModel $orderResourceModel
+     * @param TransactionActionResolver $transactionActionResolver
      */
     public function __construct(
         WebhookContext $context,
@@ -33,6 +37,7 @@ class FulfillCommand extends WebhookCommand
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly OrderResourceModel $orderResourceModel,
+        private readonly TransactionActionResolver $transactionActionResolver,
     ) {
         parent::__construct($context, $logger);
     }
@@ -48,6 +53,24 @@ class FulfillCommand extends WebhookCommand
 
         $order = $this->findOrder();
         if (!$order) {
+            $this->logger->warning(
+                sprintf(
+                    'FulfillCommand: No order found for entity ID: %d',
+                    $this->context->entityId
+                )
+            );
+            return null;
+        }
+
+        $remoteState = CoreTransactionState::tryFrom($this->context->remoteState);
+        $action = $remoteState !== null ? $this->transactionActionResolver->resolve($remoteState) : null;
+
+        if ($action !== LifecycleAction::FULFILL) {
+            $this->logger->warning(sprintf(
+                'FulfillCommand: Resolved action %s does not imply fulfillment; skipping order %s.',
+                $action !== null ? $action->name : 'UNKNOWN',
+                $order->getIncrementId()
+            ));
             return null;
         }
 
@@ -102,12 +125,10 @@ class FulfillCommand extends WebhookCommand
 
         $this->orderRepository->save($order);
 
-        $this->logger->debug(
-            sprintf(
-                'Command Fulfill for entity Transaction/%d completed.',
-                $this->context->entityId
-            )
-        );
+        $this->logger->info('FulfillCommand: Completed.', [
+            'orderId' => $order->getIncrementId(),
+            'state' => $order->getState(),
+        ]);
 
         return $order;
     }

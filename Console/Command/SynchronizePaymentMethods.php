@@ -16,7 +16,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
-use function PHPUnit\Framework\throwException;
 
 /**
  * Command to synchronize the payment methods.

@@ -24,8 +24,8 @@ use Magento\Customer\Model\Session;
 use Magento\GraphQl\Model\Query\ContextInterface;
 use Wallee\Payment\Api\OrderRepositoryInterface;
 use Psr\Log\LoggerInterface;
-use Wallee\Payment\Model\Service\Quote\TransactionService as TransactionQuoteService;
 use Wallee\Payment\Model\Service\Order\TransactionService as TransactionOrderService;
+use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
 
 class CustomerOrderTransactionSettings implements ResolverInterface
 {
@@ -55,9 +55,9 @@ class CustomerOrderTransactionSettings implements ResolverInterface
 
     /**
      *
-     * @var TransactionQuoteService
+     * @var TransactionGatewayInterface
      */
-    private $transactionQuoteService;
+    private $transactionGateway;
 
     /**
      *
@@ -76,7 +76,7 @@ class CustomerOrderTransactionSettings implements ResolverInterface
      * @param CheckoutSession $checkoutSession
      * @param GetCustomer $getCustomer
      * @param OrderRepositoryInterface $orderRepository
-     * @param TransactionQuoteService $transactionQuoteService
+     * @param TransactionGatewayInterface $transactionGateway
      * @param TransactionOrderService $transactionOrderService
      * @param LoggerInterface $logger
      */
@@ -85,7 +85,7 @@ class CustomerOrderTransactionSettings implements ResolverInterface
         CheckoutSession          $checkoutSession,
         GetCustomer              $getCustomer,
         OrderRepositoryInterface $orderRepository,
-        TransactionQuoteService  $transactionQuoteService,
+        TransactionGatewayInterface $transactionGateway,
         TransactionOrderService  $transactionOrderService,
         LoggerInterface          $logger
     ) {
@@ -93,7 +93,7 @@ class CustomerOrderTransactionSettings implements ResolverInterface
         $this->checkoutSession = $checkoutSession;
         $this->getCustomer = $getCustomer;
         $this->logger = $logger;
-        $this->transactionQuoteService = $transactionQuoteService;
+        $this->transactionGateway = $transactionGateway;
         $this->transactionOrderService = $transactionOrderService;
         $this->orderRepository = $orderRepository;
     }
@@ -149,16 +149,19 @@ class CustomerOrderTransactionSettings implements ResolverInterface
     {
         /** @var \Magento\Sales\Model\Order  $order */
         $order = $this->orderRepository->getOrderByIncrementId($incrementId);
-        $transaction = $this->transactionQuoteService->getTransaction(
-            $order->getWalleeSpaceId(),
-            $order->getWalleeTransactionId()
+        $transaction = $this->transactionGateway->find(
+            (int) $order->getWalleeSpaceId(),
+            (int) $order->getWalleeTransactionId()
         );
+        if ($transaction === null) {
+            throw new NoSuchEntityException(__('The transaction could not be found.'));
+        }
         $url = $this->transactionOrderService->getTransactionPaymentUrl($order, $integrationType);
 
         return [
             'order_id' => $order->getId(),
-            'transaction_id' => $transaction->getId(),
-            'transaction_state' => $transaction->getState(),
+            'transaction_id' => $transaction->id,
+            'transaction_state' => $transaction->state->value,
             'payment_url' => $url,
             'integration_type' => $integrationType
         ];

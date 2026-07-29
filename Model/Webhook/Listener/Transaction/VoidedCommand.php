@@ -13,7 +13,7 @@ namespace Wallee\Payment\Model\Webhook\Listener\Transaction;
 
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\State as CoreState;
 
 /**
  * Webhook listener command to handle voided transactions.
@@ -55,7 +55,7 @@ class VoidedCommand extends AbstractCommand
             $order->addRelatedObject($invoice);
         }
 
-        if ($entity->getState() == TransactionState::VOIDED) {
+        if ($entity->getState() == CoreState::VOIDED->value) {
             $order->setState(Order::STATE_CANCELED);
             $order->addStatusToHistory(
                 'canceled',

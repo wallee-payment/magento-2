@@ -12,27 +12,37 @@
 namespace Wallee\Payment\Plugin\Sales\Model\Service;
 
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Sales\Model\Order;
-use Psr\Log\LoggerInterface;
+use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
-use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\RefundJobFactory;
 use Wallee\Payment\Model\Payment\Method\Adapter as PaymentMethodAdapter;
 use Wallee\Payment\Model\Service\LineItemReductionService;
 use Wallee\Payment\Model\Service\RefundService;
-use Wallee\Sdk\Service\RefundService as ApiRefundService;
+use Wallee\PluginCore\Refund\RefundService as CoreRefundService;
 
 /**
  * Interceptor to handle refund jobs when a refund is triggered.
  */
 class CreditmemoService
 {
+    /**
+     * Seconds to wait for the per-order lock before giving up.
+     */
+    private const LOCK_TIMEOUT_SECONDS = 10;
 
     /**
      *
      * @var LoggerInterface
      */
     private $logger;
+
+    /**
+     *
+     * @var LockManagerInterface
+     */
+    private $lockManager;
 
     /**
      *
@@ -60,9 +70,9 @@ class CreditmemoService
 
     /**
      *
-     * @var ApiClient
+     * @var CoreRefundService
      */
-    private $apiClient;
+    private $pluginCoreRefundService;
 
     /**
      *
@@ -71,7 +81,8 @@ class CreditmemoService
      * @param RefundJobFactory $refundJobFactory
      * @param RefundJobRepositoryInterface $refundJobRepository
      * @param RefundService $refundService
-     * @param ApiClient $apiClient
+     * @param CoreRefundService $pluginCoreRefundService
+     * @param LockManagerInterface $lockManager
      */
     public function __construct(
         LoggerInterface $logger,
@@ -79,18 +90,25 @@ class CreditmemoService
         RefundJobFactory $refundJobFactory,
         RefundJobRepositoryInterface $refundJobRepository,
         RefundService $refundService,
-        ApiClient $apiClient
+        CoreRefundService $pluginCoreRefundService,
+        LockManagerInterface $lockManager
     ) {
         $this->logger = $logger;
         $this->lineItemReductionService = $lineItemReductionService;
         $this->refundJobFactory = $refundJobFactory;
         $this->refundJobRepository = $refundJobRepository;
         $this->refundService = $refundService;
-        $this->apiClient = $apiClient;
+        $this->pluginCoreRefundService = $pluginCoreRefundService;
+        $this->lockManager = $lockManager;
     }
 
     /**
      * Wrap refund execution to clean up refund job on failure.
+     *
+     * Also holds the same per-order lock the inbound refund webhook uses, for the entire
+     * gateway call and creditmemo/order persistence. Without it, the webhook confirming this
+     * very refund can arrive and run concurrently with this method, find no creditmemo yet
+     * committed under the refund's external id, and create a duplicate one.
      *
      * @param \Magento\Sales\Model\Service\CreditmemoService $subject
      * @param callable $proceed
@@ -100,6 +118,7 @@ class CreditmemoService
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      * @throws \Magento\Framework\Exception\InputException
      * @throws \Magento\Framework\Exception\StateException
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function aroundRefund(
         \Magento\Sales\Model\Service\CreditmemoService $subject,
@@ -107,10 +126,19 @@ class CreditmemoService
         \Magento\Sales\Api\Data\CreditmemoInterface $creditmemo,
         $offlineRequested = false
     ) {
+        $lockName = 'wallee_order_update_' . $creditmemo->getOrderId();
+        $this->logger->debug("Locking: Requesting lock for ID: {$lockName}");
+        if (!$this->lockManager->lock($lockName, self::LOCK_TIMEOUT_SECONDS)) {
+            throw new \Magento\Framework\Exception\LocalizedException(
+                \__('Could not acquire the order lock to process this refund. Please try again.')
+            );
+        }
+        $this->logger->debug("Locking: Lock acquired for ID: {$lockName}");
+
         try {
             return $proceed($creditmemo, $offlineRequested);
         } catch (\Exception $e) {
-            if ($creditmemo->getWalleeKeepRefundJob() !== true) {
+            if ($creditmemo->getData('wallee_keep_refund_job') !== true) {
                 try {
                     $this->refundJobRepository->delete(
                         $this->refundJobRepository->getByOrderId($creditmemo->getOrderId())
@@ -120,6 +148,9 @@ class CreditmemoService
                 }
             }
             throw $e;
+        } finally {
+            $this->logger->debug("Locking: Releasing lock for ID: {$lockName}");
+            $this->lockManager->unlock($lockName);
         }
     }
 
@@ -144,7 +175,7 @@ class CreditmemoService
         if ($creditmemo->getOrder()
             ->getPayment()
             ->getMethodInstance() instanceof PaymentMethodAdapter &&
-            $creditmemo->getWalleeExternalId() == null) {
+            $creditmemo->getData('wallee_external_id') == null) {
             try {
                 $this->handleExistingRefundJob($creditmemo->getOrder());
 
@@ -168,12 +199,14 @@ class CreditmemoService
         try {
             $existingRefundJob = $this->refundJobRepository->getByOrderId($order->getId());
             try {
-                $this->apiClient->getService(ApiRefundService::class)->refund(
-                    $order->getWalleeSpaceId(),
+                $this->pluginCoreRefundService->createRefund(
+                    (int) $order->getWalleeSpaceId(),
                     $existingRefundJob->getRefund()
                 );
             } catch (\Exception $e) {
-                $this->logger->critical($e);
+                $this->logger->critical(
+                    "Retry of existing refund job {$existingRefundJob->getId()} failed: " . $e->getMessage()
+                );
             }
 
             throw new \Magento\Framework\Exception\LocalizedException(

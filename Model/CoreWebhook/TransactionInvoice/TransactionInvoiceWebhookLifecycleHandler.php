@@ -8,12 +8,12 @@ use Wallee\Payment\Model\CoreWebhook\BaseOrderLifecycleHandler;
 use Wallee\PluginCore\Webhook\Enum\WebhookListener;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Sdk\SdkProvider;
-use Wallee\Sdk\Model\TransactionInvoice;
-use Wallee\Sdk\Service\TransactionInvoiceService;
+use Wallee\PluginCore\Transaction\Invoice\Invoice;
+use Wallee\PluginCore\Transaction\Invoice\InvoiceGatewayInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Lock\LockManagerInterface;
-use Psr\Log\LoggerInterface;
+use Wallee\PluginCore\Log\LoggerInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
@@ -32,6 +32,7 @@ class TransactionInvoiceWebhookLifecycleHandler extends BaseOrderLifecycleHandle
      * @param OrderRepositoryInterface $orderRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param SdkProvider $sdkProvider
+     * @param InvoiceGatewayInterface $invoiceGateway
      */
     public function __construct(
         private readonly OrderEmailSender $orderEmailSender,
@@ -42,7 +43,8 @@ class TransactionInvoiceWebhookLifecycleHandler extends BaseOrderLifecycleHandle
         TransactionInfoRepositoryInterface $transactionInfoRepository,
         OrderRepositoryInterface $orderRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
-        SdkProvider $sdkProvider
+        SdkProvider $sdkProvider,
+        private readonly InvoiceGatewayInterface $invoiceGateway
     ) {
         parent::__construct(
             $resource,
@@ -65,11 +67,9 @@ class TransactionInvoiceWebhookLifecycleHandler extends BaseOrderLifecycleHandle
     protected function loadSdkEntity(WebhookListener $listener, WebhookContext $context): ?object
     {
         try {
-            /** @var TransactionInvoiceService $service */
-            $service = $this->sdkProvider->getService(TransactionInvoiceService::class);
-            return $service->read($context->spaceId, $context->entityId);
+            return $this->invoiceGateway->find($context->spaceId, $context->entityId);
         } catch (\Exception $e) {
-            $this->logger->error("Failed to load SDK TransactionInvoice {$context->entityId}: " . $e->getMessage());
+            $this->logger->error("Failed to load TransactionInvoice {$context->entityId}: " . $e->getMessage());
         }
         return null;
     }
@@ -82,11 +82,11 @@ class TransactionInvoiceWebhookLifecycleHandler extends BaseOrderLifecycleHandle
      */
     protected function findOrder(object $entity): ?Order
     {
-        if (!$entity instanceof TransactionInvoice) {
+        if (!$entity instanceof Invoice) {
             return null;
         }
 
-        $transactionId = $entity->getLinkedTransaction();
+        $transactionId = $entity->linkedTransactionId;
         if (!$transactionId) {
             return null;
         }
@@ -112,7 +112,7 @@ class TransactionInvoiceWebhookLifecycleHandler extends BaseOrderLifecycleHandle
             return (int) $this->order->getEntityId();
         }
 
-        if ($this->sdkEntity instanceof TransactionInvoice) {
+        if ($this->sdkEntity instanceof Invoice) {
             $order = $this->findOrder($this->sdkEntity);
             return $order ? (int) $order->getEntityId() : null;
         }

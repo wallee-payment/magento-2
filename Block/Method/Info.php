@@ -25,7 +25,7 @@ use Wallee\Payment\Helper\Locale as LocaleHelper;
 use Magento\Framework\Url as UrlHelper;
 use Wallee\Payment\Model\Provider\LabelDescriptorGroupProvider;
 use Wallee\Payment\Model\Provider\LabelDescriptorProvider;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -217,23 +217,23 @@ class Info extends \Magento\Payment\Block\Info
     {
         if ($this->getTransaction()) {
             switch ($this->getTransaction()->getState()) {
-                case TransactionState::AUTHORIZED:
+                case CoreTransactionState::AUTHORIZED->value:
                     return \__('Authorized');
-                case TransactionState::COMPLETED:
+                case CoreTransactionState::COMPLETED->value:
                     return \__('Completed');
-                case TransactionState::CONFIRMED:
+                case CoreTransactionState::CONFIRMED->value:
                     return \__('Confirmed');
-                case TransactionState::DECLINE:
+                case CoreTransactionState::DECLINE->value:
                     return \__('Decline');
-                case TransactionState::FAILED:
+                case CoreTransactionState::FAILED->value:
                     return \__('Failed');
-                case TransactionState::FULFILL:
+                case CoreTransactionState::FULFILL->value:
                     return \__('Fulfill');
-                case TransactionState::PENDING:
+                case CoreTransactionState::PENDING->value:
                     return \__('Pending');
-                case TransactionState::PROCESSING:
+                case CoreTransactionState::PROCESSING->value:
                     return \__('Processing');
-                case TransactionState::VOIDED:
+                case CoreTransactionState::VOIDED->value:
                     return \__('Voided');
                 default:
                     return \__('Unknown State');
@@ -441,7 +441,7 @@ class Info extends \Magento\Payment\Block\Info
         $creditmemo = $this->registry->registry('current_creditmemo');
         if ($this->getTransaction()
             && $creditmemo != null
-            && $creditmemo->getWalleeExternalId() != null
+            && $creditmemo->getData('wallee_external_id') != null
         ) {
             $storeId = null;
             if ($this->getInfo() instanceof Payment) {

@@ -21,8 +21,9 @@ use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\Service\AbstractLineItemService;
-use Wallee\Sdk\Model\LineItemAttributeCreate;
-use Wallee\Sdk\Model\TaxCreate;
+use Wallee\PluginCore\LineItem\LineItem as CoreLineItem;
+use Wallee\PluginCore\LineItem\LineItemAttribute as CoreLineItemAttribute;
+use Wallee\PluginCore\Tax\Tax as CoreTax;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -101,7 +102,7 @@ class LineItemService extends AbstractLineItemService
      *
      * @param Invoice $invoice
      * @param float $expectedAmount
-     * @return \Wallee\Sdk\Model\LineItemCreate[]
+     * @return CoreLineItem[]
      */
     public function convertInvoiceLineItems(Invoice $invoice, $expectedAmount)
     {
@@ -116,7 +117,7 @@ class LineItemService extends AbstractLineItemService
      * Gets the attributes for the given invoice item.
      *
      * @param Invoice\Item $entityItem
-     * @return LineItemAttributeCreate[]
+     * @return CoreLineItemAttribute[]
      */
     protected function getAttributes($entityItem)
     {
@@ -127,10 +128,12 @@ class LineItemService extends AbstractLineItemService
                 $value = \current($value);
             }
 
-            $attribute = new LineItemAttributeCreate();
-            $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($option['label']), 512));
-            $attribute->setValue($this->helper->fixLength($this->helper->getFirstLine($value), 512));
-            $attributes[$this->getAttributeKey($option)] = $attribute;
+            $key = $this->getAttributeKey($option);
+            $attributes[$key] = new CoreLineItemAttribute(
+                $key,
+                $this->helper->fixLength($this->helper->getFirstLine($option['label']), 512),
+                $this->helper->getFirstLine($value)
+            );
         }
 
         return \array_merge(
@@ -144,7 +147,7 @@ class LineItemService extends AbstractLineItemService
      * Gets the tax for the given invoice item.
      *
      * @param Invoice\Item $entityItem
-     * @return TaxCreate
+     * @return CoreTax|null
      */
     protected function getTax($entityItem)
     {
@@ -154,12 +157,10 @@ class LineItemService extends AbstractLineItemService
                 ->getTaxClassId();
             if ($taxClassId > 0) {
                 $taxClass = $this->taxClassRepository->get($taxClassId);
-
-                $tax = new TaxCreate();
-                $tax->setRate($entityItem->getOrderItem()
-                    ->getTaxPercent());
-                $tax->setTitle($taxClass->getClassName());
-                return $tax;
+                return $this->buildTax(
+                    (float) $entityItem->getOrderItem()->getTaxPercent(),
+                    (string) $taxClass->getClassName()
+                );
             }
         } else {
             return null;
@@ -170,7 +171,7 @@ class LineItemService extends AbstractLineItemService
      * Converts the invoice's shipping information to a line item.
      *
      * @param Invoice $invoice
-     * @return \Wallee\Sdk\Model\LineItemCreate
+     * @return CoreLineItem|null
      */
     protected function convertShippingLineItem($invoice)
     {
@@ -189,7 +190,7 @@ class LineItemService extends AbstractLineItemService
      * Gets the shipping tax for the given entity.
      *
      * @param Invoice $invoice
-     * @return \Wallee\Sdk\Model\TaxCreate
+     * @return CoreTax|null
      */
     protected function getShippingTax($invoice)
     {
@@ -216,5 +217,18 @@ class LineItemService extends AbstractLineItemService
     protected function getCurrencyCode($invoice)
     {
         return $invoice->getOrderCurrencyCode();
+    }
+
+    /**
+     * The sales_invoice_item table has no parent_item_id or product_type column,
+     * so isIncludeItem()'s configurable/bundle checks must run against the
+     * underlying order item instead.
+     *
+     * @param Invoice\Item $entityItem
+     * @return \Magento\Sales\Model\Order\Item
+     */
+    protected function getItemForInclusionCheck($entityItem)
+    {
+        return $entityItem->getOrderItem();
     }
 }

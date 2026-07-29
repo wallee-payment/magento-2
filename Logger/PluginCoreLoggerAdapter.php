@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Wallee\Payment\Logger;
 
-use Wallee\PluginCore\Log\LoggerInterface as PluginCoreLoggerInterface;
+use Wallee\PluginCore\Log\LoggerInterface as CoreLoggerInterface;
 use Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 /**
  * This class adapts Magento's PSR-3 logger to the interface required by plugin-core.
  */
-class PluginCoreLoggerAdapter implements PluginCoreLoggerInterface
+class PluginCoreLoggerAdapter implements CoreLoggerInterface
 {
     /**
      * @var \Psr\Log\LoggerInterface

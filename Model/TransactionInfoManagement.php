@@ -24,7 +24,7 @@ use Wallee\Sdk\Model\EntityQueryFilter;
 use Wallee\Sdk\Model\EntityQueryFilterType;
 use Wallee\Sdk\Model\FailureReason;
 use Wallee\Sdk\Model\Transaction;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\Sdk\Service\ChargeAttemptService;
 
 /**
@@ -196,8 +196,8 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
             $transactionInfo->setData(TransactionInfoInterface::FAILURE_URL, $failureUrl);
         }
 
-        if ($transaction->getState() == TransactionState::FAILED
-            || $transaction->getState() == TransactionState::DECLINE) {
+        if ($transaction->getState() == CoreTransactionState::FAILED->value
+            || $transaction->getState() == CoreTransactionState::DECLINE->value) {
             $transactionInfo->setData(
                 TransactionInfoInterface::FAILURE_REASON,
                 $transaction->getFailureReason() instanceof FailureReason ? $transaction->getFailureReason()

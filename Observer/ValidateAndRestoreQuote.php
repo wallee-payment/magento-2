@@ -15,9 +15,7 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Checkout\Model\Session as CheckoutSession;
-use Wallee\Payment\Model\Service\Order\TransactionService;
-use Wallee\Sdk\Model\Transaction;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -31,9 +29,9 @@ class ValidateAndRestoreQuote implements ObserverInterface
     private $checkoutSession;
 
     /**
-     * @var TransactionService
+     * @var TransactionGatewayInterface
      */
-    private $transactionService;
+    private $transactionGateway;
 
     /**
      *
@@ -44,16 +42,16 @@ class ValidateAndRestoreQuote implements ObserverInterface
     /**
      *
      * @param CheckoutSession $checkoutSession
-     * @param TransactionService $transactionService
+     * @param TransactionGatewayInterface $transactionGateway
      * @param LoggerInterface $logger
      */
     public function __construct(
         CheckoutSession $checkoutSession,
-        TransactionService $transactionService,
+        TransactionGatewayInterface $transactionGateway,
         LoggerInterface $logger
     ) {
         $this->checkoutSession = $checkoutSession;
-        $this->transactionService = $transactionService;
+        $this->transactionGateway = $transactionGateway;
         $this->logger = $logger;
     }
 
@@ -85,18 +83,11 @@ class ValidateAndRestoreQuote implements ObserverInterface
         $transactionId = $order->getWalleeTransactionId();
         if ($spaceId && $transactionId) {
             try {
-                $transaction = $this->transactionService->getTransaction($spaceId, $transactionId);
-                if ($transaction instanceof Transaction) {
-                    $paidStates = [
-                        TransactionState::AUTHORIZED,
-                        TransactionState::COMPLETED,
-                        TransactionState::FULFILL,
-                    ];
-                    if (in_array($transaction->getState(), $paidStates, true)) {
-                        throw new LocalizedException(
-                            __('Your cart has already been paid for and cannot be restored.')
-                        );
-                    }
+                $transaction = $this->transactionGateway->find((int) $spaceId, (int) $transactionId);
+                if ($transaction !== null && $transaction->state->isPaidLike()) {
+                    throw new LocalizedException(
+                        __('Your cart has already been paid for and cannot be restored.')
+                    );
                 }
             } catch (LocalizedException $e) {
                 throw $e;

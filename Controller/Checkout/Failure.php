@@ -47,7 +47,12 @@ class Failure extends \Wallee\Payment\Controller\Checkout
     {
         $this->checkoutSession->restoreQuote();
 
-        $this->messageManager->addErrorMessage(\__('The payment could not be processed. Please try again.'));
+        $errorMessage = \__('The payment could not be processed. Please try again.');
+        $reason = $this->getRequest()->getParam('reason');
+        if ($reason === 'expired') {
+            $errorMessage = \__('Your checkout session has expired. Please try again.');
+        }
+        $this->messageManager->addErrorMessage($errorMessage);
         return $this->_redirect($this->getFailureRedirectionPath());
     }
 

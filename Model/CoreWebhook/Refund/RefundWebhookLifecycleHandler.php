@@ -8,13 +8,14 @@ use Wallee\Payment\Model\CoreWebhook\BaseOrderLifecycleHandler;
 use Wallee\PluginCore\Webhook\Enum\WebhookListener;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Sdk\SdkProvider;
-use Wallee\Sdk\Model\Refund;
-use Wallee\Sdk\Service\RefundService;
+use Wallee\PluginCore\Refund\Refund as CoreRefund;
+use Wallee\PluginCore\Refund\RefundGatewayInterface;
+use Wallee\PluginCore\Refund\Exception\RefundException;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Lock\LockManagerInterface;
-use Psr\Log\LoggerInterface;
+use Wallee\PluginCore\Log\LoggerInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
@@ -33,6 +34,7 @@ class RefundWebhookLifecycleHandler extends BaseOrderLifecycleHandler
      * @param ResourceConnection $resource
      * @param SdkProvider $sdkProvider
      * @param LoggerInterface $logger
+     * @param RefundGatewayInterface $pluginCoreRefundGateway
      */
     public function __construct(
         private readonly RefundJobRepositoryInterface $refundJobRepository,
@@ -43,7 +45,8 @@ class RefundWebhookLifecycleHandler extends BaseOrderLifecycleHandler
         LockManagerInterface $lockManager,
         ResourceConnection $resource,
         SdkProvider $sdkProvider,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        private readonly RefundGatewayInterface $pluginCoreRefundGateway
     ) {
         parent::__construct(
             $resource,
@@ -66,11 +69,17 @@ class RefundWebhookLifecycleHandler extends BaseOrderLifecycleHandler
     protected function loadSdkEntity(WebhookListener $listener, WebhookContext $context): ?object
     {
         try {
-            /** @var RefundService $refundService */
-            $refundService = $this->sdkProvider->getService(RefundService::class);
-            return $refundService->read($context->spaceId, $context->entityId);
+            return $this->pluginCoreRefundGateway->findById($context->spaceId, $context->entityId);
+        } catch (RefundException $e) {
+            $this->logger->error('Failed to load Refund.', [
+                'entityId' => $context->entityId,
+                'exception' => $e,
+            ]);
         } catch (\Exception $e) {
-            $this->logger->error("Failed to load SDK Refund {$context->entityId}: " . $e->getMessage());
+            $this->logger->error('Failed to load Refund.', [
+                'entityId' => $context->entityId,
+                'exception' => $e,
+            ]);
         }
         return null;
     }
@@ -83,17 +92,12 @@ class RefundWebhookLifecycleHandler extends BaseOrderLifecycleHandler
      */
     protected function findOrder(object $entity): ?Order
     {
-        if (!$entity instanceof Refund) {
-            return null;
-        }
-
-        $transaction = $entity->getTransaction();
-        if (!$transaction) {
+        if (!$entity instanceof CoreRefund) {
             return null;
         }
 
         // Use inherited helper
-        $transactionInfo = $this->findTransactionInfoByTransactionId($transaction->getId());
+        $transactionInfo = $this->findTransactionInfoByTransactionId($entity->transactionId);
 
         if ($transactionInfo) {
             return $this->orderRepository->get($transactionInfo->getOrderId());
@@ -113,7 +117,7 @@ class RefundWebhookLifecycleHandler extends BaseOrderLifecycleHandler
             return (int) $this->order->getEntityId();
         }
 
-        if ($this->sdkEntity instanceof Refund) {
+        if ($this->sdkEntity instanceof CoreRefund) {
             $order = $this->findOrder($this->sdkEntity);
             return $order ? (int) $order->getEntityId() : null;
         }
@@ -131,15 +135,20 @@ class RefundWebhookLifecycleHandler extends BaseOrderLifecycleHandler
      */
     protected function doPostProcess(?object $entity, ?Order $order, mixed $commandResult): void
     {
-        if ($entity instanceof Refund) {
+        if ($entity instanceof CoreRefund) {
             try {
-                $refundJob = $this->refundJobRepository->getByExternalId($entity->getExternalId());
+                $refundJob = $this->refundJobRepository->getByExternalId($entity->externalId);
                 $this->refundJobRepository->delete($refundJob);
+                $this->logger->debug('Deleted local refund job after gateway confirmation.', [
+                    'refundJobId' => $refundJob->getId(),
+                    'externalId' => $entity->externalId,
+                ]);
             } catch (NoSuchEntityException $e) {
-                // Ignore
-                $this->logger->debug(
-                    "Failed to run post-processin for refund: " . $e->getMessage()
-                );
+                // Expected for refunds not created from Magento (e.g. initiated in the portal):
+                // there was never a local job to clean up.
+                $this->logger->debug('No local refund job to clean up.', [
+                    'externalId' => $entity->externalId,
+                ]);
             }
         }
     }

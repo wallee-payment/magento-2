@@ -16,7 +16,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
 use Magento\Sales\Model\Order\Payment\Transaction;
 use Wallee\Payment\Model\Webhook\Listener\Operation\AbstractOperation;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 
 /**
  * Webhook listener command to handle authorized transactions.
@@ -77,7 +77,7 @@ class AuthorizedCommand extends AbstractCommand
 
         } else {
             $payment->registerAuthorizationNotification($payment->getAmountAuthorized());
-            if ($entity->getState() != TransactionState::FULFILL) {
+            if ($entity->getState() != CoreTransactionState::FULFILL->value) {
                 // Order's state cannot be Payment Review, but pending or processing.
                 $order->setState(Order::STATE_PROCESSING);
                 $order->addStatusToHistory(

@@ -14,6 +14,7 @@ namespace Wallee\Payment\Gateway\Command;
 use Magento\Payment\Gateway\CommandInterface;
 use Magento\Payment\Gateway\Helper\SubjectReader;
 use Wallee\Payment\Model\Service\Order\TransactionService;
+use Wallee\PluginCore\Log\LoggerInterface;
 
 /**
  * Payment gateway command to accept a payment.
@@ -29,11 +30,19 @@ class AcceptPaymentCommand implements CommandInterface
 
     /**
      *
-     * @param TransactionService $orderTransactionService
+     * @var LoggerInterface
      */
-    public function __construct(TransactionService $orderTransactionService)
+    private $logger;
+
+    /**
+     *
+     * @param TransactionService $orderTransactionService
+     * @param LoggerInterface $logger
+     */
+    public function __construct(TransactionService $orderTransactionService, LoggerInterface $logger)
     {
         $this->orderTransactionService = $orderTransactionService;
+        $this->logger = $logger;
     }
 
     /**
@@ -46,7 +55,18 @@ class AcceptPaymentCommand implements CommandInterface
     {
         /** @var \Magento\Sales\Model\Order\Payment $payment */
         $payment = SubjectReader::readPayment($commandSubject)->getPayment();
+        $order = $payment->getOrder();
 
-        $this->orderTransactionService->accept($payment->getOrder());
+        try {
+            $this->orderTransactionService->accept($order);
+        } catch (\Exception $e) {
+            $this->logger->error('Accept payment failed on the gateway.', [
+                'orderId' => $order->getIncrementId(),
+                'exception' => $e,
+            ]);
+            throw $e;
+        }
+
+        $this->logger->info('Accept payment completed.', ['orderId' => $order->getIncrementId()]);
     }
 }

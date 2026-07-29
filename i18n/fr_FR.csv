@@ -145,3 +145,4 @@
 "No line items provided.", "Aucune ligne d’article fournie."
 "The wallee transaction info is already linked to a different order.", "Les informations de transaction wallee sont déjà liées à une autre commande."
 "Unable to place order: A server error stopped your order from being placed. Please try to place your order again.", "Impossible de passer la commande : Une erreur serveur a empêché le traitement de votre commande. Veuillez réessayer."
+"Your checkout session has expired. Please try again.", "Votre session de paiement a expiré. Veuillez réessayer."

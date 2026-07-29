@@ -8,7 +8,7 @@ use Magento\Framework\Logger\Handler\Base;
 use Magento\Framework\Filesystem\Driver\File;
 use Wallee\PluginCore\Settings\Settings;
 
-class Webhook extends Base
+class GenericFileHandler extends Base
 {
     /**
      * @var string

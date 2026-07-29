@@ -23,9 +23,9 @@ use Wallee\Payment\Api\Data\PaymentMethodConfigurationInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Model\PaymentMethodConfiguration;
 use Wallee\Payment\Model\PaymentMethodConfigurationFactory;
-use Wallee\PluginCore\PaymentMethod\PaymentMethod as PluginCorePaymentMethod;
+use Wallee\PluginCore\PaymentMethod\PaymentMethod as CorePaymentMethod;
 use Wallee\PluginCore\PaymentMethod\PaymentMethodRepositoryInterface;
-use Wallee\PluginCore\PaymentMethod\State as PluginCoreState;
+use Wallee\PluginCore\PaymentMethod\State as CoreState;
 
 /**
  * Magento-side adapter for plugin-core payment method synchronization.
@@ -95,7 +95,7 @@ class PaymentMethodRepository implements PaymentMethodRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function create(PluginCorePaymentMethod $method, int $spaceId): void
+    public function create(CorePaymentMethod $method, int $spaceId): void
     {
         /** @var PaymentMethodConfiguration $entity */
         $entity = $this->configurationFactory->create();
@@ -107,7 +107,7 @@ class PaymentMethodRepository implements PaymentMethodRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function update(PluginCorePaymentMethod $method, int $spaceId): void
+    public function update(CorePaymentMethod $method, int $spaceId): void
     {
         try {
             $entity = $this->configurationRepository->getByConfigurationId($spaceId, $method->id);
@@ -169,17 +169,17 @@ class PaymentMethodRepository implements PaymentMethodRepositoryInterface
      *
      * @param PaymentMethodConfiguration $entity
      * @param int $spaceId
-     * @param PluginCorePaymentMethod $method
+     * @param CorePaymentMethod $method
      * @return void
      */
     private function applyPaymentMethod(
         PaymentMethodConfiguration $entity,
         int $spaceId,
-        PluginCorePaymentMethod $method
+        CorePaymentMethod $method
     ): void {
         $state = match ($method->state) {
-            PluginCoreState::ACTIVE => PaymentMethodConfiguration::STATE_ACTIVE,
-            PluginCoreState::INACTIVE => PaymentMethodConfiguration::STATE_INACTIVE,
+            CoreState::ACTIVE => PaymentMethodConfiguration::STATE_ACTIVE,
+            CoreState::INACTIVE => PaymentMethodConfiguration::STATE_INACTIVE,
             default => PaymentMethodConfiguration::STATE_HIDDEN,
         };
 
@@ -206,12 +206,12 @@ class PaymentMethodRepository implements PaymentMethodRepositoryInterface
      * mirroring Magento's legacy per-store payment configuration layout.
      *
      * @param PaymentMethodConfigurationInterface $configuration
-     * @param PluginCorePaymentMethod $method
+     * @param CorePaymentMethod $method
      * @return void
      */
     private function storeConfigValues(
         PaymentMethodConfigurationInterface $configuration,
-        PluginCorePaymentMethod $method
+        CorePaymentMethod $method
     ): void {
         $defaultLocale = $this->scopeConfig->getValue('general/locale/code');
 
@@ -260,7 +260,7 @@ class PaymentMethodRepository implements PaymentMethodRepositoryInterface
      * Resolves localized values and persists for the given scope.
      *
      * @param PaymentMethodConfigurationInterface $configuration
-     * @param PluginCorePaymentMethod $method
+     * @param CorePaymentMethod $method
      * @param string $locale
      * @param string $scope
      * @param int $scopeId
@@ -268,7 +268,7 @@ class PaymentMethodRepository implements PaymentMethodRepositoryInterface
      */
     private function writeLocalizedValues(
         PaymentMethodConfigurationInterface $configuration,
-        PluginCorePaymentMethod $method,
+        CorePaymentMethod $method,
         string $locale,
         string $scope = ScopeConfigInterface::SCOPE_TYPE_DEFAULT,
         int $scopeId = 0

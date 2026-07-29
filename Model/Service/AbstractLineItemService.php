@@ -26,10 +26,11 @@ use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\Service\Quote\GiftCardAccountWrapper;
-use Wallee\Sdk\Model\LineItemAttributeCreate;
-use Wallee\Sdk\Model\LineItemCreate;
-use Wallee\Sdk\Model\LineItemType;
-use Wallee\Sdk\Model\TaxCreate;
+use Wallee\PluginCore\LineItem\LineItem as CoreLineItem;
+use Wallee\PluginCore\LineItem\LineItemAttribute as CoreLineItemAttribute;
+use Wallee\PluginCore\LineItem\LineItemAttributeCollection as CoreLineItemAttributeCollection;
+use Wallee\PluginCore\LineItem\UnitPriceCalculator;
+use Wallee\PluginCore\Tax\Tax as CoreTax;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -155,7 +156,7 @@ abstract class AbstractLineItemService
      * Convers the entity's items to line items.
      *
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
-     * @return LineItemCreate[]
+     * @return CoreLineItem[]
      */
     protected function convertLineItems($entity)
     {
@@ -168,7 +169,7 @@ abstract class AbstractLineItemService
         }
 
         $shippingLineItems = $this->convertShippingLineItem($entity);
-        if ($shippingLineItems instanceof LineItemCreate) {
+        if ($shippingLineItems instanceof CoreLineItem) {
             $items[] = $shippingLineItems;
         }
 
@@ -212,15 +213,17 @@ abstract class AbstractLineItemService
      */
     private function isIncludeItem($entityItem)
     {
-        if ($entityItem->getParentItemId() != null &&
-            $entityItem->getParentItem()->getProductType() ==
+        $item = $this->getItemForInclusionCheck($entityItem);
+
+        if ($item->getParentItemId() != null &&
+            $item->getParentItem()->getProductType() ==
             \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE) {
             return false;
         }
 
-        if ($entityItem->getProductType() == \Magento\Catalog\Model\Product\Type::TYPE_BUNDLE &&
-            $entityItem->getParentItemId() == null &&
-            $entityItem->getProduct()->getPriceType() != \Magento\Bundle\Model\Product\Price::PRICE_TYPE_FIXED) {
+        if ($item->getProductType() == \Magento\Catalog\Model\Product\Type::TYPE_BUNDLE &&
+            $item->getParentItemId() == null &&
+            $item->getProduct()->getPriceType() != \Magento\Bundle\Model\Product\Price::PRICE_TYPE_FIXED) {
             return false;
         }
 
@@ -228,11 +231,25 @@ abstract class AbstractLineItemService
     }
 
     /**
+     * Resolves the item whose parent-item-id and product-type should be inspected by
+     * isIncludeItem(). Defaults to the entity item itself; overridden where the entity
+     * item's own type doesn't carry that data (e.g. invoice items, whose underlying
+     * sales_invoice_item table has no parent_item_id or product_type column at all).
+     *
+     * @param \Magento\Framework\DataObject $entityItem
+     * @return \Magento\Framework\DataObject
+     */
+    protected function getItemForInclusionCheck($entityItem)
+    {
+        return $entityItem;
+    }
+
+    /**
      * Converts the given entity item to line items.
      *
      * @param \Magento\Framework\DataObject $entityItem
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
-     * @return LineItemCreate
+     * @return CoreLineItem
      */
     private function convertItem($entityItem, $entity)
     {
@@ -243,25 +260,27 @@ abstract class AbstractLineItemService
 
         $currency = $this->getCurrencyCode($entity);
 
-        $productItem = new LineItemCreate();
-        $productItem->setType(LineItemType::PRODUCT);
-        $productItem->setUniqueId($this->getUniqueId($entityItem));
-        $productItem->setAmountIncludingTax($this->helper->roundAmount($amountIncludingTax, $currency));
-        $productItem->setName($this->helper->fixLength($entityItem->getName(), 150));
-        $productItem->setQuantity($entityItem->getQty() ? $entityItem->getQty() : $entityItem->getQtyOrdered());
-        $productItem->setShippingRequired(! $entityItem->getIsVirtual());
-        $productItem->setSku($this->helper->fixLength($entityItem->getSku(), 200));
+        $productItem = new CoreLineItem();
+        $productItem->type = CoreLineItem::TYPE_PRODUCT;
+        $productItem->uniqueId = (string) $this->getUniqueId($entityItem);
+        $productItem->amountIncludingTax = (float) $this->helper->roundAmount($amountIncludingTax, $currency);
         $discount = $entityItem->getRowTotalInclTax() - $amountIncludingTax;
-        $productItem->setDiscountIncludingTax($this->helper->roundAmount($discount, $currency));
+        $productItem->discountIncludingTax = (float) $this->helper->roundAmount($discount, $currency);
+        $productItem->name = $entityItem->getName();
+        $productItem->quantity = (float) ($entityItem->getQty() ? $entityItem->getQty() : $entityItem->getQtyOrdered());
+        $productItem->shippingRequired = ! $entityItem->getIsVirtual();
+        $productItem->sku = $entityItem->getSku();
+        $productItem->unitPriceIncludingTax = UnitPriceCalculator::deriveUnitPrice(
+            $productItem->amountIncludingTax,
+            $productItem->quantity
+        );
         $tax = $this->getTax($entityItem);
-        if ($tax instanceof TaxCreate) {
-            $productItem->setTaxes([
-                $tax
-            ]);
+        if ($tax instanceof CoreTax) {
+            $productItem->addTax($tax);
         }
         $attributes = $this->getAttributes($entityItem);
         if (! empty($attributes)) {
-            $productItem->setAttributes($attributes);
+            $productItem->attributes = new CoreLineItemAttributeCollection(...array_values($attributes));
         }
 
         $transport = new DataObject([
@@ -287,9 +306,9 @@ abstract class AbstractLineItemService
     protected function getAttributeKey($option)
     {
         if (isset($option['option_id']) && ! empty($option['option_id'])) {
-            return $this->helper->fixLength('option_' . $option['option_id'], 40);
+            return 'option_' . $option['option_id'];
         } else {
-            return $this->helper->fixLength(\preg_replace('/[^a-z0-9]/', '', \strtolower($option['label'])), 40);
+            return (string) $option['label'];
         }
     }
 
@@ -297,7 +316,7 @@ abstract class AbstractLineItemService
      * Gets the tax for the given item.
      *
      * @param \Magento\Framework\DataObject $entityItem
-     * @return TaxCreate
+     * @return CoreTax|null
      */
     protected function getTax($entityItem)
     {
@@ -305,13 +324,29 @@ abstract class AbstractLineItemService
             $taxClassId = $entityItem->getProduct()->getTaxClassId();
             if ($taxClassId > 0) {
                 $taxClass = $this->taxClassRepository->get($taxClassId);
-
-                $tax = new TaxCreate();
-                $tax->setRate($entityItem->getTaxPercent());
-                $tax->setTitle($taxClass->getClassName());
-                return $tax;
+                return $this->buildTax((float) $entityItem->getTaxPercent(), (string) $taxClass->getClassName());
             }
         } else {
+            return null;
+        }
+    }
+
+    /**
+     * Builds a plugin-core Tax value object from a rate and title. Tax
+     * self-truncates an overlong title, but still rejects one under 2
+     * characters — a store with such a misconfigured tax class name should
+     * not crash checkout.
+     *
+     * @param float $rate
+     * @param string $title
+     * @return CoreTax|null
+     */
+    protected function buildTax(float $rate, string $title): ?CoreTax
+    {
+        try {
+            return new CoreTax($title, $rate);
+        } catch (\InvalidArgumentException $e) {
+            $this->logger->warning('Skipping line item tax with invalid title: ' . $e->getMessage());
             return null;
         }
     }
@@ -320,7 +355,7 @@ abstract class AbstractLineItemService
      * Gets the attributes for the given entity item.
      *
      * @param \Magento\Framework\DataObject $entityItem
-     * @return \Wallee\Sdk\Model\LineItemAttributeCreate[]
+     * @return CoreLineItemAttribute[]
      */
     abstract protected function getAttributes($entityItem);
 
@@ -329,7 +364,7 @@ abstract class AbstractLineItemService
      *
      * @param int $productId
      * @param int $storeId
-     * @return \Wallee\Sdk\Model\LineItemAttributeCreate[]
+     * @return CoreLineItemAttribute[]
      */
     protected function getCustomAttributes($productId, $storeId)
     {
@@ -347,10 +382,12 @@ abstract class AbstractLineItemService
                 $label = \__($productAttribute->getStoreLabel($storeId));
                 $value = $productAttribute->getFrontend()->getValue($product);
                 if ($value !== null && $value !== "" && $value !== false) {
-                    $attribute = new LineItemAttributeCreate();
-                    $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($label), 512));
-                    $attribute->setValue($this->helper->fixLength($this->helper->getFirstLine($value), 512));
-                    $attributes['product_' . $this->helper->fixLength($productAttributeCode, 32)] = $attribute;
+                    $key = 'product_' . $productAttributeCode;
+                    $attributes[$key] = new CoreLineItemAttribute(
+                        $key,
+                        $this->helper->fixLength($this->helper->getFirstLine($label), 512),
+                        $this->helper->getFirstLine($value)
+                    );
                 }
             }
         }
@@ -379,7 +416,7 @@ abstract class AbstractLineItemService
      * Converts the entity's shipping information to a line item.
      *
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
-     * @return LineItemCreate
+     * @return CoreLineItem|null
      */
     protected function convertShippingLineItem($entity)
     {
@@ -400,7 +437,7 @@ abstract class AbstractLineItemService
      * @param float $shippingTaxAmount
      * @param float $shippingDiscountAmount
      * @param string $shippingDescription
-     * @return LineItemCreate
+     * @return CoreLineItem|null
      */
     protected function convertShippingLineItemInner(
         $entity,
@@ -410,14 +447,12 @@ abstract class AbstractLineItemService
         $shippingDescription
     ) {
         if ($shippingAmount > 0) {
-            $shippingItem = new LineItemCreate();
-            $shippingItem->setType(LineItemType::SHIPPING);
-            $shippingItem->setUniqueId('shipping');
-            $shippingItem->setAmountIncludingTax(
-                $this->helper->roundAmount(
-                    $shippingAmount + $shippingTaxAmount - $shippingDiscountAmount,
-                    $this->getCurrencyCode($entity)
-                )
+            $shippingItem = new CoreLineItem();
+            $shippingItem->type = CoreLineItem::TYPE_SHIPPING;
+            $shippingItem->uniqueId = 'shipping';
+            $shippingItem->amountIncludingTax = (float) $this->helper->roundAmount(
+                $shippingAmount + $shippingTaxAmount - $shippingDiscountAmount,
+                $this->getCurrencyCode($entity)
             );
             if ($this->scopeConfig->getValue(
                 'wallee_payment/line_items/overwrite_shipping_description',
@@ -425,32 +460,27 @@ abstract class AbstractLineItemService
                 $entity->getStoreId()
             )
             ) {
-                $shippingItem->setName(
-                    $this->helper->fixLength(
-                        $this->scopeConfig->getValue(
-                            'wallee_payment/line_items/custom_shipping_description',
-                            ScopeInterface::SCOPE_STORE,
-                            $entity->getStoreId()
-                        ),
-                        150
-                    )
+                $shippingItem->name = $this->scopeConfig->getValue(
+                    'wallee_payment/line_items/custom_shipping_description',
+                    ScopeInterface::SCOPE_STORE,
+                    $entity->getStoreId()
                 );
             } else {
-                $shippingItem->setName($this->helper->fixLength($shippingDescription, 150));
+                $shippingItem->name = $shippingDescription;
             }
-            $shippingItem->setQuantity(1);
-            $shippingItem->setSku('shipping');
+            $shippingItem->quantity = 1.0;
+            $shippingItem->sku = 'shipping';
+            $shippingItem->unitPriceIncludingTax = $shippingItem->amountIncludingTax;
             if ($shippingDiscountAmount > 0) {
-                $shippingItem->setDiscountIncludingTax(
-                    $this->helper->roundAmount($shippingDiscountAmount, $this->getCurrencyCode($entity))
+                $shippingItem->discountIncludingTax = (float) $this->helper->roundAmount(
+                    $shippingDiscountAmount,
+                    $this->getCurrencyCode($entity)
                 );
             }
             if ($shippingTaxAmount > 0) {
                 $tax = $this->getShippingTax($entity);
-                if ($tax instanceof TaxCreate) {
-                    $shippingItem->setTaxes([
-                        $tax
-                    ]);
+                if ($tax instanceof CoreTax) {
+                    $shippingItem->addTax($tax);
                 }
             }
 
@@ -474,7 +504,7 @@ abstract class AbstractLineItemService
      * Gets the shipping tax for the given entity.
      *
      * @param \Magento\Quote\Model\Quote|\Magento\Sales\Model\Order|\Magento\Sales\Model\Order\Invoice $entity
-     * @return TaxCreate
+     * @return CoreTax|null
      */
     protected function getShippingTax($entity)
     {
@@ -508,12 +538,10 @@ abstract class AbstractLineItemService
             $taxRateRequest->setProductClassId($shippingTaxClassId);
             $rate = $this->taxCalculation->getRate($taxRateRequest);
             if ($rate > 0) {
-                $tax = new TaxCreate();
-                $tax->setRate($rate);
-                $tax->setTitle($shippingTaxClass->getClassName());
-                return $tax;
+                return $this->buildTax((float) $rate, (string) $shippingTaxClass->getClassName());
             }
         }
+        return null;
     }
 
     /**

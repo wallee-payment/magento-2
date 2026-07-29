@@ -39,6 +39,7 @@ define([
         redirectAfterPlaceOrder: false,
         loadingIframe: false,
         checkoutHandler: null,
+        currentJsUrl: null,
 
         /**
          * @override
@@ -138,6 +139,10 @@ define([
             var self = this;
             var registry = window.__walleeHandlers = window.__walleeHandlers || {};
 
+            if (this.handler && this.isTokenExpired(this.currentJsUrl)) {
+                this.teardownHandler();
+            }
+
             if (this.handler) {
                 this.checkoutHandler.selectPaymentMethod();
             } else if (this.loadingIframe) {
@@ -167,6 +172,8 @@ define([
                         console.error("Wallee Metadata Error:", data.error);
                         return;
                     }
+
+                    self.currentJsUrl = data.javascriptUrl;
 
                     // Load the SDK dynamically from the URL provided in the metadata.
                     sdkLoader.load(data.javascriptUrl).then(function () {
@@ -200,6 +207,15 @@ define([
                             if (validationResult.success) {
                                 this.placeOrder();
                             } else {
+                                var errors = validationResult.errors || [];
+                                var tokenDead = errors.some(function (e) {
+                                    return typeof e === 'string' && e.indexOf('security token') !== -1;
+                                });
+                                if (tokenDead) {
+                                    this.handleExpiredSession();
+                                    return;
+                                }
+                                
                                 // Scroll to payment method on validation failure.
                                 $('html, body').animate({ scrollTop: $('#' + this.getCode()).offset().top - 20 });
                                 if (validationResult.errors) {
@@ -250,6 +266,10 @@ define([
                     return;
                 }
                 if (this.handler) {
+                    if (this.isTokenExpired(this.currentJsUrl)) {
+                        this.handleExpiredSession();
+                        return;
+                    }
                     if (this.checkoutHandler.isPrimaryActionReplaced()) {
                         this.handler.trigger();
                     } else {
@@ -261,6 +281,42 @@ define([
             } else {
                 this.placeOrder();
             }
+        },
+
+        isTokenExpired: function(url){
+            if (!url) {
+                return true;
+            }
+            var match = url.match(/securityToken=(\d+)-/);
+            if (!match) {
+                return true;
+            }
+            var tokenExpiryTime = parseInt(match[1], 10);
+            return Date.now() >= tokenExpiryTime;
+        },
+
+        handleExpiredSession: function () {
+            fullScreenLoader.stopLoader(true);
+            $('body').trigger('processStop');
+            window.location.replace(urlBuilder.build("wallee_payment/checkout/failure") + "?reason=expired");
+        },
+
+        teardownHandler: function () {
+            var registry = window.__walleeHandlers = window.__walleeHandlers || {};
+            var configId = this.getConfigurationId();
+
+            if (registry[configId]) {
+                delete registry[configId];
+            }
+
+            var $container = $('#' + this.getFormId());
+            if ($container.length) {
+                $container.empty();
+            }
+
+            this.handler = null;
+            this.currentJsUrl = null;
+            this.loadingIframe = false;
         },
 
         placeOrder: function (data, event) {

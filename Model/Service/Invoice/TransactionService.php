@@ -12,25 +12,21 @@
 namespace Wallee\Payment\Model\Service\Invoice;
 
 use Magento\Customer\Model\CustomerRegistry;
-use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Payment;
-use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
-use Wallee\Payment\Helper\Locale as LocaleHelper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\AbstractTransactionService;
 use Wallee\Payment\Model\Service\Order\TransactionService as OrderTransactionService;
-use Wallee\Sdk\Model\TransactionCompletion;
-use Wallee\Sdk\Model\TransactionCompletionState;
-use Wallee\Sdk\Model\TransactionInvoice;
-use Wallee\Sdk\Model\TransactionInvoiceState;
-use Wallee\Sdk\Model\TransactionLineItemUpdateRequest;
-use Wallee\Sdk\Model\TransactionState;
-use Wallee\Sdk\Model\TransactionLineItemVersionCreate;
-use Wallee\Sdk\Service\TransactionLineItemVersionService;
-use Psr\Log\LoggerInterface;
+use Wallee\PluginCore\LineItem\LineItemCollection;
+use Wallee\PluginCore\Transaction\Invoice\Invoice as CoreInvoice;
+use Wallee\PluginCore\Transaction\Invoice\State as CoreTransactionInvoiceState;
+use Wallee\PluginCore\Log\LoggerInterface;
+use Wallee\PluginCore\Transaction\Completion\CaptureRequest;
+use Wallee\PluginCore\Transaction\Completion\Exception\CompletionException;
+use Wallee\PluginCore\Transaction\Completion\State as CoreState;
+use Wallee\PluginCore\Transaction\Completion\TransactionCompletionGatewayInterface;
 
 /**
  * Service to handle transactions in invoice context.
@@ -40,27 +36,9 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
-     * @var ApiClient
-     */
-    private $apiClient;
-
-    /**
-     *
-     * @var LocaleHelper
-     */
-    private $localeHelper;
-
-    /**
-     *
      * @var LineItemService
      */
     private $lineItemService;
-
-    /**
-     *
-     * @var TransactionInfoRepositoryInterface
-     */
-    private $transactionInfoRepository;
 
     /**
      *
@@ -76,70 +54,47 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
+     * @var TransactionCompletionGatewayInterface
+     */
+    private TransactionCompletionGatewayInterface $completionGateway;
+
+    /**
+     *
      * @param ResourceConnection $resource
      * @param CustomerRegistry $customerRegistry
      * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
-     * @param LocaleHelper $localeHelper
      * @param LineItemService $lineItemService
-     * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param OrderTransactionService $orderTransactionService
      * @param LoggerInterface $logger
+     * @param TransactionCompletionGatewayInterface $completionGateway
      */
     public function __construct(
-        ResourceConnection $resource,
         CustomerRegistry $customerRegistry,
         ApiClient $apiClient,
         CookieManagerInterface $cookieManager,
-        LocaleHelper $localeHelper,
         LineItemService $lineItemService,
-        TransactionInfoRepositoryInterface $transactionInfoRepository,
         OrderTransactionService $orderTransactionService,
         LoggerInterface $logger,
+        TransactionCompletionGatewayInterface $completionGateway,
     ) {
         parent::__construct(
-            $resource,
             $customerRegistry,
             $apiClient,
             $cookieManager
         );
-        $this->apiClient = $apiClient;
-        $this->localeHelper = $localeHelper;
         $this->lineItemService = $lineItemService;
-        $this->transactionInfoRepository = $transactionInfoRepository;
         $this->orderTransactionService = $orderTransactionService;
         $this->logger = $logger;
-    }
-
-    /**
-     * Updates the transaction's line items from the given invoice.
-     *
-     * @param Invoice $invoice
-     * @param float $expectedAmount
-     * @return void
-     */
-    public function updateLineItems(Invoice $invoice, $expectedAmount)
-    {
-        $transactionInfo = $this->transactionInfoRepository->getByOrderId($invoice->getOrderId());
-        if ($transactionInfo->getState() == TransactionState::AUTHORIZED) {
-            $lineItems = $this->lineItemService->convertInvoiceLineItems($invoice, $expectedAmount);
-
-            $data = [
-                'external_id' => uniqid(),
-                'line_items' => $lineItems,
-                'transaction' => (int)$transactionInfo->getTransactionId()
-            ];
-
-            $lineItemsCreate = new TransactionLineItemVersionCreate($data);
-            $this->apiClient->getService(TransactionLineItemVersionService::class)->create(
-                $transactionInfo->getSpaceId(),
-                $lineItemsCreate
-            );
-        }
+        $this->completionGateway = $completionGateway;
     }
 
     /**
      * Completes the transaction linked to the given payment's and invoice's order.
+     *
+     * Sends this invoice's line items to the gateway as part of the capture request
+     * itself — the gateway's unified capture API declares and captures atomically,
+     * so there is no separate "declare line items" step anymore.
      *
      * @param Payment $payment
      * @param Invoice $invoice
@@ -147,27 +102,40 @@ class TransactionService extends AbstractTransactionService
      * @return void
      * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function complete(Payment $payment, Invoice $invoice, $amount)
+    public function complete(Payment $payment, Invoice $invoice, float $amount): void
     {
-        $this->updateLineItems($invoice, $amount);
+        $order = $invoice->getOrder();
+        $lineItems = $this->lineItemService->convertInvoiceLineItems($invoice, $amount);
+        $captureRequest = new CaptureRequest(
+            lineItems: new LineItemCollection(...$lineItems),
+            isFinal: ! $order->canInvoice(),
+            externalId: uniqid(),
+            merchantReference: $invoice->getIncrementId(),
+        );
 
-        $completion = $this->orderTransactionService->complete($invoice->getOrder());
-        if (! ($completion instanceof TransactionCompletion) ||
-            $completion->getState() == TransactionCompletionState::FAILED) {
+        try {
+            $completion = $this->completionGateway->capture(
+                (int) $order->getWalleeSpaceId(),
+                (int) $order->getWalleeTransactionId(),
+                $captureRequest
+            );
+        } catch (CompletionException $e) {
             throw new \Magento\Framework\Exception\LocalizedException(
-                \__(
-                    'The capture of the invoice failed on the gateway: %1.',
-                    $this->localeHelper->translate($completion->getFailureReason()
-                    ->getDescription())
-                )
+                \__('The capture of the invoice failed on the gateway: %1', $e->getMessage())
+            );
+        }
+
+        if ($completion->state === CoreState::FAILED) {
+            throw new \Magento\Framework\Exception\LocalizedException(
+                \__('The capture of the invoice failed on the gateway.')
             );
         }
 
         try {
             $transactionInvoice = $this->orderTransactionService->getTransactionInvoice($invoice->getOrder());
-            if ($transactionInvoice instanceof TransactionInvoice &&
-                $transactionInvoice->getState() != TransactionInvoiceState::PAID &&
-                $transactionInvoice->getState() != TransactionInvoiceState::NOT_APPLICABLE) {
+            if ($transactionInvoice instanceof CoreInvoice &&
+                $transactionInvoice->state !== CoreTransactionInvoiceState::PAID &&
+                $transactionInvoice->state !== CoreTransactionInvoiceState::NOT_APPLICABLE) {
                 $invoice->setWalleeCapturePending(true);
             }
         } catch (NoSuchEntityException $e) {

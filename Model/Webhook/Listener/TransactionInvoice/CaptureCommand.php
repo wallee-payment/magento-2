@@ -19,7 +19,7 @@ use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
 use Magento\Sales\Model\Order\Payment\Transaction as MagentoTransaction;
 use Wallee\Payment\Model\Webhook\Listener\Transaction\AuthorizedCommand;
 use Wallee\Sdk\Model\Transaction;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 
 /**
  * Webhook listener command to handle captured transaction invoices.
@@ -79,7 +79,7 @@ class CaptureCommand extends AbstractCommand
         $txState = $transaction->getState();
         
         // If the transaction is already FULFILL or COMPLETED - do not set payment_review
-        if (!in_array($txState, [TransactionState::FULFILL, TransactionState::COMPLETED], true)) {
+        if (!in_array($txState, [CoreTransactionState::FULFILL->value, CoreTransactionState::COMPLETED->value], true)) {
             // Put order into review if not already
             if ($order->getState() !== Order::STATE_PAYMENT_REVIEW) {
                 $order->setState(Order::STATE_PAYMENT_REVIEW);
@@ -99,7 +99,7 @@ class CaptureCommand extends AbstractCommand
         }
 
         // Mark transaction complete
-        if ($transaction->getState() == TransactionState::FULFILL) {
+        if ($transaction->getState() == CoreTransactionState::FULFILL->value) {
             $order->setState(Order::STATE_PROCESSING);
             $order->setStatus('processing');
         }

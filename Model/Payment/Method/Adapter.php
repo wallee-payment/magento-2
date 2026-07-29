@@ -293,7 +293,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
             $payment_options_response = $quote->getData('wallee_payment_payment_options_response');
 
             foreach ($payment_options_response as $pay) {
-                if ($pay->getId() == $paymentMethodConfiguration->getConfigurationId()) {
+                if ($pay->id == $paymentMethodConfiguration->getConfigurationId()) {
                     return true;
                 }
 

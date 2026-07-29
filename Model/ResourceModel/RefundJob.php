@@ -13,9 +13,11 @@ namespace Wallee\Payment\Model\ResourceModel;
 
 use Magento\Framework\DataObject;
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
-use Magento\Framework\Model\ResourceModel\Db\Context;
 use Wallee\Payment\Api\Data\RefundJobInterface;
-use Wallee\Sdk\ObjectSerializer;
+use Wallee\PluginCore\Refund\LineItem\RefundLineItem;
+use Wallee\PluginCore\Refund\LineItem\RefundLineItemCollection;
+use Wallee\PluginCore\Refund\RefundContext;
+use Wallee\PluginCore\Refund\Type as CoreType;
 
 /**
  * Transaction Info Resource Model
@@ -41,24 +43,6 @@ class RefundJob extends AbstractDb
     ];
 
     /**
-     *
-     * @var ObjectSerializer
-     */
-    private $objectSerializer;
-
-    /**
-     *
-     * @param Context $context
-     * @param ObjectSerializer $objectSerializer
-     * @param string $connectionName
-     */
-    public function __construct(Context $context, ObjectSerializer $objectSerializer, $connectionName = null)
-    {
-        parent::__construct($context, $connectionName);
-        $this->objectSerializer = $objectSerializer;
-    }
-
-    /**
      * Model initialization
      *
      * @return void
@@ -69,7 +53,7 @@ class RefundJob extends AbstractDb
     }
 
     /**
-     * Serialize refund data before saving.
+     * Serialize the refund context before saving.
      *
      * @param DataObject $object
      * @param string $field
@@ -86,8 +70,7 @@ class RefundJob extends AbstractDb
             } else {
                 $object->setData(
                     $field,
-                    $this->getSerializer()
-                    ->serialize($this->objectSerializer->sanitizeForSerialization($value) ?: $defaultValue)
+                    $value instanceof RefundContext ? \json_encode($value) : $defaultValue
                 );
             }
 
@@ -98,7 +81,7 @@ class RefundJob extends AbstractDb
     }
 
     /**
-     * Unserialize refund data after loading.
+     * Unserialize the refund context after loading.
      *
      * @param DataObject $object
      * @param string $field
@@ -111,19 +94,32 @@ class RefundJob extends AbstractDb
         if ($field == RefundJobInterface::REFUND) {
             $value = $object->getData($field);
             if ($value) {
-                $rawValue = json_decode($object->getData($field));
-                if (json_last_error() !== JSON_ERROR_NONE) {
+                $data = \json_decode((string) $value, true);
+                if (json_last_error() !== JSON_ERROR_NONE || ! \is_array($data)) {
                     throw new \InvalidArgumentException('Unable to unserialize value.');
                 }
-                $value = $this->objectSerializer->deserialize(
-                    $rawValue,
-                    \Wallee\Sdk\Model\RefundCreate::class
+                // Legacy fallback: jobs persisted before the RefundLineItem migration
+                // stored 'quantity'/'amount' keys instead of 'returnedQuantity'/
+                // 'unitPriceReduction'; missing keys default to 0 rather than failing
+                // to deserialize an in-flight retry job.
+                $lineItems = new RefundLineItemCollection(
+                    ...array_map(
+                        static fn (array $item): RefundLineItem => new RefundLineItem(
+                            uniqueId: (string) ($item['uniqueId'] ?? ''),
+                            returnedQuantity: (float) ($item['returnedQuantity'] ?? $item['quantity'] ?? 0),
+                            unitPriceReduction: (float) ($item['unitPriceReduction'] ?? $item['amount'] ?? 0),
+                        ),
+                        $data['lineItems'] ?? []
+                    )
                 );
-                if (empty($value)) {
-                    $object->setData($field, $defaultValue);
-                } else {
-                    $object->setData($field, $value);
-                }
+                $object->setData($field, new RefundContext(
+                    transactionId: (int) $data['transactionId'],
+                    amount: (float) $data['amount'],
+                    merchantReference: (string) $data['merchantReference'],
+                    type: CoreType::from($data['type']),
+                    lineItems: $lineItems,
+                    externalId: $data['externalId'] ?? null
+                ));
             } else {
                 $object->setData($field, $defaultValue);
             }

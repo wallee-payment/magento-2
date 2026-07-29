@@ -17,13 +17,12 @@ use Magento\Customer\Model\GroupRegistry as CustomerGroupRegistry;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Quote\Model\Quote;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Model\Calculation as TaxCalculation;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
 use Wallee\Payment\Model\Service\AbstractLineItemService;
-use Wallee\Sdk\Model\LineItemAttributeCreate;
+use Wallee\PluginCore\LineItem\LineItemAttribute as CoreLineItemAttribute;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -31,12 +30,6 @@ use Psr\Log\LoggerInterface;
  */
 class LineItemService extends AbstractLineItemService
 {
-
-    /**
-     *
-     * @var ScopeConfigInterface
-     */
-    private $scopeConfig;
 
     /**
      *
@@ -101,7 +94,6 @@ class LineItemService extends AbstractLineItemService
             $logger,
             $giftCardAccountManagement
         );
-        $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;
         $this->lineItemHelper = $lineItemHelper;
         $this->productConfigurationHelper = $productConfigurationHelper;
@@ -109,31 +101,23 @@ class LineItemService extends AbstractLineItemService
     }
 
     /**
-     * Converts the quote's items to line items.
+     * Converts the quote's items to line items. Total consistency is enforced
+     * downstream by plugin-core's LineItemConsistencyService, so we only
+     * normalise unique IDs here.
      *
      * @param Quote $quote
-     * @return \Wallee\Sdk\Model\LineItemCreate[]
+     * @return \Wallee\PluginCore\LineItem\LineItem[]
      */
     public function convertQuoteLineItems(Quote $quote)
     {
-        return $this->lineItemHelper->correctLineItems(
-            $this->convertLineItems($quote),
-            $quote->getGrandTotal(),
-            $this->getCurrencyCode($quote),
-            $this->scopeConfig->getValue(
-                'wallee_payment/line_items/enforce_consistency',
-                ScopeInterface::SCOPE_STORE,
-                $quote->getStoreId()
-            ),
-            []
-        );
+        return $this->lineItemHelper->ensureUniqueIds($this->convertLineItems($quote));
     }
 
     /**
      * Gets the attributes for the given quote item.
      *
      * @param Quote\Item $entityItem
-     * @return LineItemAttributeCreate[]
+     * @return CoreLineItemAttribute[]
      */
     protected function getAttributes($entityItem)
     {
@@ -144,10 +128,12 @@ class LineItemService extends AbstractLineItemService
                 $value = \current($value);
             }
 
-            $attribute = new LineItemAttributeCreate();
-            $attribute->setLabel($this->helper->fixLength($this->helper->getFirstLine($option['label']), 512));
-            $attribute->setValue($this->helper->fixLength($this->helper->getFirstLine($value), 512));
-            $attributes[$this->getAttributeKey($option)] = $attribute;
+            $key = $this->getAttributeKey($option);
+            $attributes[$key] = new CoreLineItemAttribute(
+                $key,
+                $this->helper->fixLength($this->helper->getFirstLine($option['label']), 512),
+                $this->helper->getFirstLine($value)
+            );
         }
 
         return \array_merge(
@@ -161,7 +147,7 @@ class LineItemService extends AbstractLineItemService
      * Converts the quote's shipping information to a line item.
      *
      * @param Quote $quote
-     * @return \Wallee\Sdk\Model\LineItemCreate
+     * @return \Wallee\PluginCore\LineItem\LineItem|null
      */
     protected function convertShippingLineItem($quote)
     {

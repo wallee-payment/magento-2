@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Wallee\Payment\Model\CoreWebhook\Refund;
 
 use Magento\Sales\Model\Order;
-use Wallee\PluginCore\Sdk\SdkProvider;
-use Wallee\Sdk\Model\Refund;
-use Wallee\Sdk\Service\RefundService;
+use Wallee\PluginCore\Refund\Exception\RefundException;
+use Wallee\PluginCore\Refund\Refund as CoreRefund;
+use Wallee\PluginCore\Refund\RefundGatewayInterface;
 use Wallee\Payment\Model\CoreWebhook\BaseOrderLookupTrait; // 1. Use the base trait
 
 /**
@@ -18,22 +18,23 @@ trait RefundCommandTrait
     use BaseOrderLookupTrait; // 2. Add the base trait
 
     /**
-     * Load refund entity from the SDK.
+     * Load refund entity from the PluginCore refund gateway.
      *
-     * @return Refund|null
+     * @return CoreRefund|null
      */
-    protected function loadRefund(): ?Refund
+    protected function loadRefund(): ?CoreRefund
     {
-        /** @var SdkProvider $sdkProvider */
-        $sdkProvider = $this->sdkProvider;
-        /** @var RefundService $refundService */
-        $refundService = $sdkProvider->getService(RefundService::class);
+        /** @var RefundGatewayInterface $pluginCoreRefundGateway */
+        $pluginCoreRefundGateway = $this->pluginCoreRefundGateway;
 
         try {
-            $spaceId = $sdkProvider->getSpaceId();
-            $refundId = $this->context->entityId;
-            return $refundService->read($spaceId, $refundId);
-        } catch (\Exception $e) {
+            return $pluginCoreRefundGateway->findById($this->context->spaceId, (int) $this->context->entityId);
+        } catch (RefundException $e) {
+            $this->logger->error($e->getLocalizedMessage()->getDefault(), [
+                'entityId' => $this->context->entityId,
+                'spaceId' => $this->context->spaceId,
+                'exception' => $e,
+            ]);
             return null;
         }
     }
@@ -41,17 +42,12 @@ trait RefundCommandTrait
     /**
      * Find order linked to the given refund.
      *
-     * @param Refund $refund
+     * @param CoreRefund $refund
      * @return Order|null
      */
-    protected function findOrderFromRefund(Refund $refund): ?Order
+    protected function findOrderFromRefund(CoreRefund $refund): ?Order
     {
-        $transaction = $refund->getTransaction();
-        if (!$transaction) {
-            return null;
-        }
-
         // 3. Use the helper method from the base trait
-        return $this->findOrderByTransactionId($transaction->getId());
+        return $this->findOrderByTransactionId($refund->transactionId);
     }
 }

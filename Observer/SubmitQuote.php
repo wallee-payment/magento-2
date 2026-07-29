@@ -24,7 +24,7 @@ use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\Order\TransactionService;
-use Wallee\Sdk\Model\TransactionState;
+use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\Sdk\Service\ChargeFlowService;
 use Psr\Log\LoggerInterface;
 use Magento\Checkout\Model\Session as CheckoutSession;
@@ -182,11 +182,7 @@ class SubmitQuote implements ObserverInterface
             if ($order->getWalleeToken() != null) {
                 $this->transactionService->waitForTransactionState(
                     $order,
-                    [
-                        TransactionState::AUTHORIZED,
-                        TransactionState::COMPLETED,
-                        TransactionState::FULFILL
-                    ],
+                    CoreTransactionState::getPaidLikeValues(),
                     3
                 );
             }

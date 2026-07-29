@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Wallee\Payment\Model\CoreWebhook\TransactionCompletion;
 
 use Magento\Sales\Model\Order;
-use Wallee\PluginCore\Sdk\SdkProvider;
-use Wallee\Sdk\Model\TransactionCompletion;
-use Wallee\Sdk\Service\TransactionCompletionService;
+use Wallee\PluginCore\Transaction\Completion\TransactionCompletion;
 use Wallee\Payment\Model\CoreWebhook\BaseOrderLookupTrait;
 
 /**
@@ -18,25 +16,17 @@ trait TransactionCompletionCommandTrait
     use BaseOrderLookupTrait;
 
     /**
-     * Load transaction completion entity from the SDK.
+     * Load the transaction completion domain entity via plugin-core.
      *
      * @return TransactionCompletion|null
      */
     protected function loadTransactionCompletion(): ?TransactionCompletion
     {
-        /** @var SdkProvider $sdkProvider */
-        $sdkProvider = $this->sdkProvider;
-        /** @var TransactionCompletionService $completionService */
-        $completionService = $sdkProvider->getService(TransactionCompletionService::class);
-
         try {
-            $spaceId = $sdkProvider->getSpaceId();
-            $completionId = $this->context->entityId;
-            return $completionService->read($spaceId, $completionId);
+            return $this->completionGateway->find($this->context->spaceId, $this->context->entityId);
         } catch (\Exception $e) {
             $this->logger->error(
-                "Could not load SDK TransactionCompletion {$this->context->entityId}: " .
-                $e->getMessage()
+                "Could not load TransactionCompletion {$this->context->entityId}: " . $e->getMessage()
             );
             return null;
         }
@@ -50,15 +40,13 @@ trait TransactionCompletionCommandTrait
      */
     protected function findOrderFromCompletion(TransactionCompletion $completion): ?Order
     {
-        $transaction = $completion->getLineItemVersion()->getTransaction();
-        if (!$transaction) {
+        if (!$completion->linkedTransactionId) {
             $this->logger->warning(
-                "Could not get parent Transaction from TransactionCompletion {$completion->getId()}"
+                "Could not get parent Transaction from TransactionCompletion {$completion->id}"
             );
             return null;
         }
 
-        // Use the method from the base trait
-        return $this->findOrderByTransactionId($transaction->getId());
+        return $this->findOrderByTransactionId($completion->linkedTransactionId);
     }
 }

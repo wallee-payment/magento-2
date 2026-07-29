@@ -7,9 +7,8 @@ namespace Wallee\Payment\Model\CoreWebhook\Refund;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
-use Wallee\Payment\Helper\Locale as LocaleHelper;
 use Wallee\PluginCore\Log\LoggerInterface;
-use Wallee\PluginCore\Sdk\SdkProvider;
+use Wallee\PluginCore\Refund\RefundGatewayInterface;
 use Wallee\PluginCore\Webhook\Command\WebhookCommandInterface;
 use Wallee\PluginCore\Webhook\Listener\WebhookListenerInterface;
 use Wallee\PluginCore\Webhook\WebhookContext;
@@ -20,18 +19,16 @@ class FailedListener implements WebhookListenerInterface
      *
      * @param LoggerInterface $logger
      * @param OrderRepositoryInterface $orderRepository
-     * @param LocaleHelper $localeHelper
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param SdkProvider $sdkProvider
+     * @param RefundGatewayInterface $pluginCoreRefundGateway
      */
     public function __construct(
         private readonly LoggerInterface $logger,
         private readonly OrderRepositoryInterface $orderRepository,
-        private readonly LocaleHelper $localeHelper,
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly SdkProvider $sdkProvider,
+        private readonly RefundGatewayInterface $pluginCoreRefundGateway,
     ) {
     }
 
@@ -47,10 +44,9 @@ class FailedListener implements WebhookListenerInterface
             $context,
             $this->logger,
             $this->orderRepository,
-            $this->localeHelper,
             $this->transactionInfoRepository,
             $this->searchCriteriaBuilder,
-            $this->sdkProvider
+            $this->pluginCoreRefundGateway
         );
     }
 }
