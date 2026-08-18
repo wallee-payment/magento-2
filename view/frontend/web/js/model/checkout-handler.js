@@ -87,6 +87,18 @@ define([
 		
 		function updateAddresses(callback) {
 			if (!quote.isVirtual()) {
+				//Guard against a missing shipping method. Third party one-step checkouts
+				//(e.g. Firecheckout) can trigger this before the shipping method is restored
+				//into the quote on a soft reload. Calling setShippingInformation then makes the
+				//core shipping-save-processor read quote.shippingMethod()['method_code'] on null,
+				//throwing "Cannot read properties of null (reading 'method_code')".
+				if (!quote.shippingMethod()) {
+					if (typeof callback == 'function') {
+						callback();
+					}
+					loadPaymentForm();
+					return;
+				}
 				storeShippingAddress();
 				setShippingInformationAction().done(function(){
 					if (typeof callback == 'function') {

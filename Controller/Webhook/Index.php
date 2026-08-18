@@ -16,8 +16,9 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\Exception\NotFoundException;
+use Wallee\PluginCore\SharedKernel\AbstractDomainException;
 use Wallee\PluginCore\Webhook\WebhookProcessor;
-use Wallee\Payment\Model\CoreWebhook\RegistryConfigurer;
+use Wallee\Payment\Model\Webhook\RegistryConfigurer;
 use Wallee\PluginCore\Http\Request as CoreRequest;
 use Wallee\PluginCore\Log\LoggerInterface;
 
@@ -75,11 +76,41 @@ class Index extends \Wallee\Payment\Controller\Webhook implements CsrfAwareActio
             $this->registryConfigurer->configure();
             $this->webhookProcessor->process($pluginCoreRequest);
         } catch (\Throwable $e) {
-            $this->logger->critical($e->getMessage(), ['exception' => $e]);
+            $retryableCause = $this->findRetryableCause($e);
+            if ($retryableCause !== null) {
+                // Expected, self-healing condition (e.g. a cross-entity ordering race) that the
+                // portal's own webhook retry will resolve — not an operator-facing error. Log the
+                // specific reason as plain text rather than the raw exception object: our backend
+                // renders a Throwable in context as "... at /vendor/path/File.php:95", which reads
+                // like an unhandled error even though this is a deliberately caught, expected case.
+                $this->logger->warning($e->getMessage(), ['reason' => $retryableCause->getMessage()]);
+            } else {
+                $this->logger->critical($e->getMessage(), ['exception' => $e]);
+            }
             $this->getResponse()->setHttpResponseCode(500);
             return;
         }
         $this->getResponse()->setHttpResponseCode(200);
+    }
+
+    /**
+     * Finds the retryable cause in the given exception's chain, if any.
+     *
+     * WebhookProcessor re-wraps every failure into a generic CommandException before it
+     * reaches this controller, so the original cause's retryability has to be recovered by
+     * walking the exception chain rather than checked on $e directly.
+     *
+     * @param \Throwable $e
+     * @return AbstractDomainException|null
+     */
+    private function findRetryableCause(\Throwable $e): ?AbstractDomainException
+    {
+        for ($cause = $e; $cause !== null; $cause = $cause->getPrevious()) {
+            if ($cause instanceof AbstractDomainException && $cause->isRetryable()) {
+                return $cause;
+            }
+        }
+        return null;
     }
 
     /**

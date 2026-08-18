@@ -27,7 +27,6 @@ use Magento\Store\Model\ScopeInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\LineItem as LineItemHelper;
-use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Config\Source\IntegrationMethod;
 use Wallee\Payment\Model\CustomerIdManipulationException;
 use Wallee\Payment\Model\Payment\Method\Adapter as PaymentMethodAdapter;
@@ -48,9 +47,9 @@ use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\PluginCore\Transaction\TransactionContext;
 use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
 use Wallee\PluginCore\Token\Token as CoreToken;
-use Wallee\Sdk\Model\EntityQuery;
-use Wallee\Sdk\Model\Transaction;
-use Wallee\Sdk\Service\DeliveryIndicationService;
+use Wallee\PluginCore\DeliveryIndication\DeliveryIndication as CoreDeliveryIndication;
+use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationGatewayInterface;
+use Wallee\PluginCore\Transaction\Transaction as CoreTransaction;
 
 /**
  * Service to handle transactions in order context.
@@ -105,18 +104,18 @@ class TransactionService extends AbstractTransactionService
     private $transactionInfoRepository;
 
     /**
-     *
-     * @var ApiClient
-     */
-    private $apiClient;
-
-    /**
      * Gateway for the two-step update/confirm flow that replaced the legacy
      * SDK confirm() call.
      *
      * @var TransactionGatewayInterface
      */
     private TransactionGatewayInterface $transactionGateway;
+
+    /**
+     *
+     * @var DeliveryIndicationGatewayInterface
+     */
+    private $deliveryIndicationGateway;
 
     /**
      *
@@ -142,7 +141,6 @@ class TransactionService extends AbstractTransactionService
      * @param ScopeConfigInterface $scopeConfig
      * @param CustomerRegistry $customerRegistry
      * @param OrderRepositoryInterface $orderRepository
-     * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
      * @param LoggerInterface $logger
      * @param LineItemService $lineItemService
@@ -152,13 +150,13 @@ class TransactionService extends AbstractTransactionService
      * @param TransactionGatewayInterface $transactionGateway
      * @param EventManagerInterface $eventManager
      * @param CartRepositoryInterface $quoteRepository
+     * @param DeliveryIndicationGatewayInterface $deliveryIndicationGateway
      */
     public function __construct(
         Helper $helper,
         ScopeConfigInterface $scopeConfig,
         CustomerRegistry $customerRegistry,
         OrderRepositoryInterface $orderRepository,
-        ApiClient $apiClient,
         CookieManagerInterface $cookieManager,
         LoggerInterface $logger,
         LineItemService $lineItemService,
@@ -168,10 +166,10 @@ class TransactionService extends AbstractTransactionService
         TransactionGatewayInterface $transactionGateway,
         EventManagerInterface $eventManager,
         CartRepositoryInterface $quoteRepository,
+        DeliveryIndicationGatewayInterface $deliveryIndicationGateway,
     ) {
         parent::__construct(
             $customerRegistry,
-            $apiClient,
             $cookieManager
         );
         $this->helper = $helper;
@@ -182,10 +180,22 @@ class TransactionService extends AbstractTransactionService
         $this->eventManager = $eventManager;
         $this->lineItemHelper = $lineItemHelper;
         $this->transactionInfoRepository = $transactionInfoRepository;
-        $this->apiClient = $apiClient;
         $this->invoiceGateway = $invoiceGateway;
         $this->transactionGateway = $transactionGateway;
         $this->quoteRepository = $quoteRepository;
+        $this->deliveryIndicationGateway = $deliveryIndicationGateway;
+    }
+
+    /**
+     * Gets the transaction by its ID.
+     *
+     * @param int $spaceId
+     * @param int $transactionId
+     * @return CoreTransaction
+     */
+    public function getTransaction($spaceId, $transactionId): CoreTransaction
+    {
+        return $this->transactionGateway->get((int) $spaceId, (int) $transactionId);
     }
 
     /**
@@ -197,29 +207,25 @@ class TransactionService extends AbstractTransactionService
      * TransactionGatewayInterface::confirm(). The retry loop handles
      * versioning conflicts surfacing as TransactionException.
      *
-     * The SDK Transaction return type is preserved because the caller
-     * (SubmitQuote) forwards it to TransactionInfoManagement::update(),
-     * which still requires the SDK model.
-     *
-     * @param Transaction $transaction
+     * @param CoreTransaction $transaction
      * @param Order $order
      * @param Invoice $invoice
      * @param bool $chargeFlow
-     * @param \Wallee\Sdk\Model\Token|null $token
-     * @return Transaction
+     * @param CoreToken|null $token
+     * @return CoreTransaction
      * @throws LocalizedException
      * @throws CustomerIdManipulationException
      */
     public function confirmTransaction(
-        Transaction $transaction,
+        CoreTransaction $transaction,
         Order $order,
         Invoice $invoice,
         bool $chargeFlow = false,
-        ?\Wallee\Sdk\Model\Token $token = null,
-    ) {
-        if ($transaction->getState() == CoreTransactionState::CONFIRMED->value) {
+        ?CoreToken $token = null,
+    ): CoreTransaction {
+        if ($transaction->state === CoreTransactionState::CONFIRMED) {
             return $transaction;
-        } elseif ($transaction->getState() != CoreTransactionState::PENDING->value) {
+        } elseif ($transaction->state !== CoreTransactionState::PENDING) {
             $this->cancelOrder($order, $invoice);
             throw new LocalizedException(\__('wallee_checkout_failure'));
         }
@@ -232,20 +238,16 @@ class TransactionService extends AbstractTransactionService
                 // On retries, re-read the transaction to get the current version and state.
                 if ($i > 0) {
                     $transaction = $this->getTransaction($spaceId, $transactionId);
-                    if ($transaction instanceof Transaction
-                        && $transaction->getState() == CoreTransactionState::CONFIRMED->value
-                    ) {
+                    if ($transaction->state === CoreTransactionState::CONFIRMED) {
                         return $transaction;
-                    } elseif (!($transaction instanceof Transaction)
-                        || $transaction->getState() != CoreTransactionState::PENDING->value
-                    ) {
+                    } elseif ($transaction->state !== CoreTransactionState::PENDING) {
                         $this->cancelOrder($order, $invoice);
                         throw new LocalizedException(\__('wallee_checkout_failure'));
                     }
                 }
 
-                if (!empty($transaction->getCustomerId())
-                    && $transaction->getCustomerId() != $order->getCustomerId()
+                if (!empty($transaction->customerId)
+                    && $transaction->customerId != $order->getCustomerId()
                 ) {
                     throw new CustomerIdManipulationException();
                 }
@@ -261,15 +263,13 @@ class TransactionService extends AbstractTransactionService
                 // Step 1: push the order data onto the existing transaction.
                 $this->transactionGateway->update(
                     $transactionId,
-                    (int) $transaction->getVersion(),
+                    (int) $transaction->version,
                     $context,
                 );
 
                 // Step 2: lock the transaction to finalize checkout.
                 $this->transactionGateway->confirm($spaceId, $transactionId);
 
-                // Re-read via the SDK API to return the full SDK Transaction
-                // the caller (SubmitQuote → TransactionInfoManagement) expects.
                 return $this->getTransaction($spaceId, $transactionId);
             } catch (TransactionException $e) {
                 // isRetryable() is true for an optimistic-locking version conflict or a
@@ -347,14 +347,14 @@ class TransactionService extends AbstractTransactionService
      * @param Order $order
      * @param int $spaceId
      * @param bool $chargeFlow
-     * @param \Wallee\Sdk\Model\Token|null $token
+     * @param CoreToken|null $token
      * @return TransactionContext
      */
     private function buildConfirmationContext(
         Order $order,
         int $spaceId,
         bool $chargeFlow,
-        ?\Wallee\Sdk\Model\Token $token,
+        ?CoreToken $token,
     ): TransactionContext {
         $context = new TransactionContext();
         $context->spaceId = $spaceId;
@@ -426,11 +426,8 @@ class TransactionService extends AbstractTransactionService
             $this->applyReturnUrls($context, $order);
         }
 
-        // Map the SDK token to a PluginCore token if provided.
         if ($token !== null) {
-            $coreToken = new CoreToken();
-            $coreToken->id = (int) $token->getId();
-            $context->token = $coreToken;
+            $context->token = $token;
         }
 
         return $context;
@@ -748,15 +745,19 @@ class TransactionService extends AbstractTransactionService
      * Note: there are no delivery indication for Authorized transactions
      *
      * @param Order $order
-     * @return \Wallee\Sdk\Model\DeliveryIndication
+     * @return CoreDeliveryIndication
      */
-    public function accept(Order $order)
+    public function accept(Order $order): CoreDeliveryIndication
     {
-        return $this->apiClient->getService(DeliveryIndicationService::class)->markAsSuitable(
-            $order->getWalleeSpaceId(),
-            $this->getDeliveryIndication($order)
-            ->getId()
+        $indication = $this->deliveryIndicationGateway->markAsSuitable(
+            (int) $order->getWalleeSpaceId(),
+            $this->getDeliveryIndication($order)->id
         );
+        $this->logger->info('Delivery indication accepted.', [
+            'orderId' => $order->getIncrementId(),
+            'deliveryIndicationId' => $indication->id,
+        ]);
+        return $indication;
     }
 
     /**
@@ -765,36 +766,40 @@ class TransactionService extends AbstractTransactionService
      * Note: there are no delivery indication for Authorized transactions
      *
      * @param Order $order
-     * @return \Wallee\Sdk\Model\DeliveryIndication
+     * @return CoreDeliveryIndication
      */
-    public function deny(Order $order)
+    public function deny(Order $order): CoreDeliveryIndication
     {
-        return $this->apiClient->getService(DeliveryIndicationService::class)->markAsNotSuitable(
-            $order->getWalleeSpaceId(),
-            $this->getDeliveryIndication($order)
-            ->getId()
+        $indication = $this->deliveryIndicationGateway->markAsNotSuitable(
+            (int) $order->getWalleeSpaceId(),
+            $this->getDeliveryIndication($order)->id
         );
+        $this->logger->info('Delivery indication denied.', [
+            'orderId' => $order->getIncrementId(),
+            'deliveryIndicationId' => $indication->id,
+        ]);
+        return $indication;
     }
 
     /**
      * Gets the delivery indication linked to the given order.
      *
      * @param Order $order
-     * @return \Wallee\Sdk\Model\DeliveryIndication
+     * @return CoreDeliveryIndication
+     * @throws NoSuchEntityException
      */
-    protected function getDeliveryIndication(Order $order)
+    protected function getDeliveryIndication(Order $order): CoreDeliveryIndication
     {
-        $query = new EntityQuery();
-        $query->setFilter(
-            $this->helper->createEntityFilter('transaction.id', $order->getWalleeTransactionId())
+        $indication = $this->deliveryIndicationGateway->findByTransaction(
+            (int) $order->getWalleeSpaceId(),
+            (int) $order->getWalleeTransactionId()
         );
-        $query->setNumberOfEntities(1);
-        return \current(
-            $this->apiClient->getService(DeliveryIndicationService::class)->search(
-                $order->getWalleeSpaceId(),
-                $query
-            )
-        );
+        if ($indication === null) {
+            throw new NoSuchEntityException(
+                \__('No delivery indication found for the order.')
+            );
+        }
+        return $indication;
     }
 
     /**

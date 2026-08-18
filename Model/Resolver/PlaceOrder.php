@@ -137,7 +137,7 @@ class PlaceOrder implements ResolverInterface
     /**
      * Update transaction urls to redirect the customer after placing the order
      *
-     * @param \Wallee\Sdk\Model\Transaction $transaction
+     * @param \Wallee\PluginCore\Transaction\Transaction $transaction
      * @param string $orderId
      * @param string $successUrl
      * @param string $failureUrl
@@ -159,7 +159,7 @@ class PlaceOrder implements ResolverInterface
     /**
      * Gets the transaction settings to use their custom payment integration
      *
-     * @param \Wallee\Sdk\Model\Transaction $transaction
+     * @param \Wallee\PluginCore\Transaction\Transaction $transaction
      * @param \Magento\Sales\Api\Data\OrderInterface $order
      * @param string $integrationType
      * @return array<mixed>
@@ -170,8 +170,8 @@ class PlaceOrder implements ResolverInterface
         $url = $this->transactionOrderService->getTransactionPaymentUrl($order, $integrationType);
 
         return [
-                'transaction_id' => $transaction->getId(),
-                'transaction_state' => $transaction->getState(),
+                'transaction_id' => $transaction->id,
+                'transaction_state' => $transaction->state->value,
                 'payment_url' => $url,
                 'integration_type' => $integrationType
         ];
@@ -181,7 +181,7 @@ class PlaceOrder implements ResolverInterface
      * Retrieve the transaction data
      *
      * @param \Magento\Sales\Api\Data\OrderInterface $order
-     * @return \Wallee\Sdk\Model\Transaction
+     * @return \Wallee\PluginCore\Transaction\Transaction
      */
     public function getTransaction(Order $order)
     {

@@ -23,8 +23,7 @@ use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Helper\Document as DocumentHelper;
 use Wallee\Payment\Helper\Locale as LocaleHelper;
 use Magento\Framework\Url as UrlHelper;
-use Wallee\Payment\Model\Provider\LabelDescriptorGroupProvider;
-use Wallee\Payment\Model\Provider\LabelDescriptorProvider;
+use Wallee\PluginCore\GlobalData\GlobalDataService;
 use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Psr\Log\LoggerInterface;
 
@@ -78,15 +77,9 @@ class Info extends \Magento\Payment\Block\Info
 
     /**
      *
-     * @var LabelDescriptorProvider
+     * @var GlobalDataService
      */
-    private $labelDescriptorProvider;
-
-    /**
-     *
-     * @var LabelDescriptorGroupProvider
-     */
-    private $labelDescriptorGroupProvider;
+    private $globalDataService;
 
     /**
      *
@@ -122,8 +115,7 @@ class Info extends \Magento\Payment\Block\Info
      * @param DocumentHelper $documentHelper
      * @param UrlHelper $urlHelper
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
-     * @param LabelDescriptorProvider $labelDescriptorProvider
-     * @param LabelDescriptorGroupProvider $labelDescriptorGroupProvider
+     * @param GlobalDataService $globalDataService
      * @param urlBackendHelper $urlBackendHelper
      * @param LoggerInterface $logger
      * @param array $data
@@ -137,8 +129,7 @@ class Info extends \Magento\Payment\Block\Info
         DocumentHelper $documentHelper,
         UrlHelper $urlHelper,
         TransactionInfoRepositoryInterface $transactionInfoRepository,
-        LabelDescriptorProvider $labelDescriptorProvider,
-        LabelDescriptorGroupProvider $labelDescriptorGroupProvider,
+        GlobalDataService $globalDataService,
         urlBackendHelper $urlBackendHelper,
         LoggerInterface $logger,
         array $data = [],
@@ -151,8 +142,7 @@ class Info extends \Magento\Payment\Block\Info
         $this->documentHelper = $documentHelper;
         $this->urlHelper = $urlHelper;
         $this->transactionInfoRepository = $transactionInfoRepository;
-        $this->labelDescriptorProvider = $labelDescriptorProvider;
-        $this->labelDescriptorGroupProvider = $labelDescriptorGroupProvider;
+        $this->globalDataService = $globalDataService;
         $this->urlBackendHelper = $urlBackendHelper;
         $this->logger = $logger;
     }
@@ -464,17 +454,20 @@ class Info extends \Magento\Payment\Block\Info
     public function getGroupedLabels()
     {
         if ($this->getTransaction() && $this->getTransaction()->getLabels()) {
+            $descriptors = $this->globalDataService->getLabelDescriptors();
+            $descriptorGroups = $this->globalDataService->getLabelDescriptorGroups();
+
             $labelsByGroupId = [];
             foreach ($this->getTransaction()->getLabels() as $descriptorId => $value) {
-                $descriptor = $this->labelDescriptorProvider->find($descriptorId);
+                $descriptor = $descriptors->findById($descriptorId);
                 if ($descriptor) {
-                    $labelsByGroupId[$descriptor->getGroup()][] = new Label($descriptor, $value);
+                    $labelsByGroupId[$descriptor->groupId][] = new Label($descriptor, $value);
                 }
             }
 
             $labelsByGroup = [];
             foreach ($labelsByGroupId as $groupId => $labels) {
-                $group = $this->labelDescriptorGroupProvider->find($groupId);
+                $group = $descriptorGroups->findById($groupId);
                 if ($group) {
                     \usort($labels, function ($a, $b) {
                         return $a->getWeight() - $b->getWeight();

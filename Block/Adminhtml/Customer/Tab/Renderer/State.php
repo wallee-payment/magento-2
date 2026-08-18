@@ -13,7 +13,7 @@ namespace Wallee\Payment\Block\Adminhtml\Customer\Tab\Renderer;
 
 use Magento\Backend\Block\Widget\Grid\Column\Renderer\AbstractRenderer;
 use Magento\Framework\DataObject;
-use Wallee\Sdk\Model\CreationEntityState;
+use Wallee\PluginCore\Token\State as CoreTokenState;
 
 /**
  * Block to render the state grid column of the token grid.
@@ -30,9 +30,9 @@ class State extends AbstractRenderer
     {
         switch ($row->getData($this->getColumn()
             ->getIndex())) {
-            case CreationEntityState::ACTIVE:
+            case CoreTokenState::ACTIVE->value:
                 return \__('Active');
-            case CreationEntityState::INACTIVE:
+            case CoreTokenState::INACTIVE->value:
                 return \__('Inactive');
             default:
                 return \__('Unknown State');

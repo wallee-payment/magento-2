@@ -14,7 +14,7 @@ namespace Wallee\Payment\Helper;
 use Magento\Backend\Model\Locale\Manager as LocaleManager;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
-use Wallee\Payment\Model\Provider\LanguageProvider;
+use Wallee\PluginCore\GlobalData\GlobalDataService;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -44,9 +44,9 @@ class Locale extends AbstractHelper
 
     /**
      *
-     * @var LanguageProvider
+     * @var GlobalDataService
      */
-    private $languageProvider;
+    private $globalDataService;
 
     /**
      *
@@ -59,20 +59,20 @@ class Locale extends AbstractHelper
      * @param Context $context
      * @param LocaleManager $backendLocaleManager
      * @param Data $helper
-     * @param LanguageProvider $languageProvider
+     * @param GlobalDataService $globalDataService
      * @param LoggerInterface $logger
      */
     public function __construct(
         Context $context,
         LocaleManager $backendLocaleManager,
         Data $helper,
-        LanguageProvider $languageProvider,
+        GlobalDataService $globalDataService,
         LoggerInterface $logger
     ) {
         parent::__construct($context);
         $this->backendLocaleManager = $backendLocaleManager;
         $this->helper = $helper;
-        $this->languageProvider = $languageProvider;
+        $this->globalDataService = $globalDataService;
         $this->logger = $logger;
     }
 
@@ -106,9 +106,9 @@ class Locale extends AbstractHelper
         }
 
         try {
-            $primaryLanguage = $this->languageProvider->findPrimary($language);
-            if ($primaryLanguage !== false && isset($translatedString[$primaryLanguage->getIetfCode()])) {
-                return $translatedString[$primaryLanguage->getIetfCode()];
+            $primaryLanguage = $this->globalDataService->getLanguages()->findPrimary(\substr($language, 0, 2));
+            if ($primaryLanguage !== null && isset($translatedString[$primaryLanguage->ietfCode])) {
+                return $translatedString[$primaryLanguage->ietfCode];
             }
         } catch (\Exception $e) {
             $this->logger->debug(

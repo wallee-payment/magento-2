@@ -17,7 +17,7 @@ use Magento\Payment\Gateway\Helper\SubjectReader;
 use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Transaction\Completion\TransactionCompletionService;
 use Wallee\PluginCore\Transaction\Exception\TransactionException;
-use Wallee\PluginCore\Transaction\Completion\State as CoreState;
+use Wallee\PluginCore\Transaction\Void\State as CoreVoidState;
 
 /**
  * Payment gateway command to void a payment.
@@ -50,7 +50,7 @@ class VoidCommand implements CommandInterface
         $order = $payment->getOrder();
 
         try {
-            $completion = $this->completionService->void(
+            $void = $this->completionService->void(
                 (int) $order->getWalleeSpaceId(),
                 (int) $order->getWalleeTransactionId()
             );
@@ -64,12 +64,12 @@ class VoidCommand implements CommandInterface
             );
         }
 
-        if ($completion->state === CoreState::FAILED) {
+        if ($void->state === CoreVoidState::FAILED) {
             $this->logger->error('Void was rejected by the gateway.', [
                 'orderId' => $order->getIncrementId(),
             ]);
             throw new \Magento\Framework\Exception\LocalizedException(
-                \__('The capture of the invoice failed on the gateway.')
+                \__('The void of the payment failed on the gateway.')
             );
         }
 

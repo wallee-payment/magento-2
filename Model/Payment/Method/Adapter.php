@@ -27,8 +27,8 @@ use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Block\Method\Form;
 use Wallee\Payment\Block\Method\Info;
 use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\Quote\TransactionService;
+use Wallee\PluginCore\Settings\SettingsProviderInterface;
 
 /**
  * wallee payment method adapter.
@@ -58,9 +58,9 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
 
     /**
      *
-     * @var ApiClient
+     * @var SettingsProviderInterface
      */
-    private $apiClient;
+    private $settingsProvider;
 
     /**
      *
@@ -100,7 +100,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
      * @param PaymentDataObjectFactory $paymentDataObjectFactory
      * @param ScopeConfigInterface $scopeConfig
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
-     * @param ApiClient $apiClient
+     * @param SettingsProviderInterface $settingsProvider
      * @param TransactionService $transactionService
      * @param Helper $helper
      * @param AppState $appState
@@ -117,7 +117,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
         PaymentDataObjectFactory $paymentDataObjectFactory,
         ScopeConfigInterface $scopeConfig,
         PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        ApiClient $apiClient,
+        SettingsProviderInterface $settingsProvider,
         TransactionService $transactionService,
         Helper $helper,
         AppState $appState,
@@ -142,7 +142,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
         $this->logger = $logger;
         $this->scopeConfig = $scopeConfig;
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->apiClient = $apiClient;
+        $this->settingsProvider = $settingsProvider;
         $this->transactionService = $transactionService;
         $this->helper = $helper;
         $this->paymentMethodConfigurationId = $paymentMethodConfigurationId;
@@ -205,6 +205,16 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
     }
 
     /**
+     * Gets whether the API user ID and secret are both configured.
+     *
+     * @return boolean
+     */
+    private function isApiClientDataConfigured()
+    {
+        return $this->settingsProvider->getUserId() !== null && $this->settingsProvider->getApiKey() !== null;
+    }
+
+    /**
      * Gets the URL to the payment method's image.
      *
      * @return string
@@ -251,7 +261,7 @@ class Adapter extends \Magento\Payment\Model\Method\Adapter
             return false;
         }
 
-        if ($quote == null && !$this->apiClient->checkApiClientData()) {
+        if ($quote == null && !$this->isApiClientDataConfigured()) {
             $this->logger->debug("ADAPTER::isAvailable - FINISH");
             return false;
         }

@@ -12,7 +12,7 @@
 namespace Wallee\Payment\Api;
 
 use Magento\Sales\Model\Order;
-use Wallee\Sdk\Model\Transaction;
+use Wallee\PluginCore\Transaction\Transaction;
 
 interface TransactionInfoManagementInterface
 {

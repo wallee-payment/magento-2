@@ -16,7 +16,6 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\Sales\Model\Order\Payment;
-use Wallee\Payment\Model\ApiClient;
 use Wallee\Payment\Model\Service\AbstractTransactionService;
 use Wallee\Payment\Model\Service\Order\TransactionService as OrderTransactionService;
 use Wallee\PluginCore\LineItem\LineItemCollection;
@@ -60,9 +59,7 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
-     * @param ResourceConnection $resource
      * @param CustomerRegistry $customerRegistry
-     * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
      * @param LineItemService $lineItemService
      * @param OrderTransactionService $orderTransactionService
@@ -71,7 +68,6 @@ class TransactionService extends AbstractTransactionService
      */
     public function __construct(
         CustomerRegistry $customerRegistry,
-        ApiClient $apiClient,
         CookieManagerInterface $cookieManager,
         LineItemService $lineItemService,
         OrderTransactionService $orderTransactionService,
@@ -80,7 +76,6 @@ class TransactionService extends AbstractTransactionService
     ) {
         parent::__construct(
             $customerRegistry,
-            $apiClient,
             $cookieManager
         );
         $this->lineItemService = $lineItemService;

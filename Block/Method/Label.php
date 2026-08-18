@@ -11,7 +11,7 @@
  */
 namespace Wallee\Payment\Block\Method;
 
-use Wallee\Sdk\Model\LabelDescriptor;
+use Wallee\PluginCore\GlobalData\LabelDescriptor\LabelDescriptor;
 
 /**
  * Holds the information about a label that are needed to render the label in the backend.
@@ -49,17 +49,17 @@ class Label
      */
     public function getId()
     {
-        return $this->descriptor->getId();
+        return $this->descriptor->id;
     }
 
     /**
      * Gets the label descriptor's name.
      *
-     * @return array
+     * @return array|string|null
      */
     public function getName()
     {
-        return $this->descriptor->getName();
+        return $this->descriptor->name->jsonSerialize();
     }
 
     /**
@@ -69,7 +69,7 @@ class Label
      */
     public function getWeight()
     {
-        return $this->descriptor->getWeight();
+        return $this->descriptor->weight;
     }
 
     /**

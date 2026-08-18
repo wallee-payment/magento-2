@@ -16,15 +16,9 @@ use Wallee\Payment\Api\PaymentMethodConfigurationRepositoryInterface;
 use Wallee\Payment\Api\TokenInfoManagementInterface;
 use Wallee\Payment\Api\TokenInfoRepositoryInterface;
 use Wallee\Payment\Api\Data\TokenInfoInterface;
-use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Sdk\Model\CreationEntityState;
-use Wallee\Sdk\Model\EntityQuery;
-use Wallee\Sdk\Model\EntityQueryFilter;
-use Wallee\Sdk\Model\EntityQueryFilterType;
-use Wallee\Sdk\Model\TokenVersion;
-use Wallee\Sdk\Model\TokenVersionState;
-use Wallee\Sdk\Service\TokenService;
-use Wallee\Sdk\Service\TokenVersionService;
+use Wallee\PluginCore\Token\State as CoreTokenState;
+use Wallee\PluginCore\Token\TokenService as CoreTokenService;
+use Wallee\PluginCore\Token\TokenVersion as CoreTokenVersion;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -32,12 +26,6 @@ use Psr\Log\LoggerInterface;
  */
 class TokenInfoManagement implements TokenInfoManagementInterface
 {
-
-    /**
-     *
-     * @var Helper
-     */
-    private $helper;
 
     /**
      *
@@ -59,9 +47,9 @@ class TokenInfoManagement implements TokenInfoManagementInterface
 
     /**
      *
-     * @var ApiClient
+     * @var CoreTokenService
      */
-    private $apiClient;
+    private $pluginCoreTokenService;
 
     /**
      *
@@ -71,26 +59,23 @@ class TokenInfoManagement implements TokenInfoManagementInterface
 
     /**
      *
-     * @param Helper $helper
      * @param TokenInfoRepositoryInterface $tokenInfoRepository
      * @param TokenInfoFactory $tokenInfoFactory
      * @param PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository
-     * @param ApiClient $apiClient
+     * @param CoreTokenService $pluginCoreTokenService
      * @param LoggerInterface $logger
      */
     public function __construct(
-        Helper $helper,
         TokenInfoRepositoryInterface $tokenInfoRepository,
         TokenInfoFactory $tokenInfoFactory,
         PaymentMethodConfigurationRepositoryInterface $paymentMethodConfigurationRepository,
-        ApiClient $apiClient,
+        CoreTokenService $pluginCoreTokenService,
         LoggerInterface $logger
     ) {
-        $this->helper = $helper;
         $this->tokenInfoRepository = $tokenInfoRepository;
         $this->tokenInfoFactory = $tokenInfoFactory;
         $this->paymentMethodConfigurationRepository = $paymentMethodConfigurationRepository;
-        $this->apiClient = $apiClient;
+        $this->pluginCoreTokenService = $pluginCoreTokenService;
         $this->logger = $logger;
     }
 
@@ -103,8 +88,15 @@ class TokenInfoManagement implements TokenInfoManagementInterface
      */
     public function updateTokenVersion($spaceId, $tokenVersionId)
     {
-        $tokenVersion = $this->apiClient->getService(TokenVersionService::class)->read($spaceId, $tokenVersionId);
-        $this->updateTokenVersionInfo($tokenVersion);
+        $tokenVersion = $this->pluginCoreTokenService->getTokenVersion((int) $spaceId, (int) $tokenVersionId);
+        if ($tokenVersion !== null) {
+            $this->updateTokenVersionInfo($tokenVersion);
+        } else {
+            $this->logger->debug('Token version not found; nothing to update.', [
+                'spaceId' => $spaceId,
+                'tokenVersionId' => $tokenVersionId,
+            ]);
+        }
     }
 
     /**
@@ -118,98 +110,99 @@ class TokenInfoManagement implements TokenInfoManagementInterface
      */
     public function updateToken($spaceId, $tokenId)
     {
-        $query = new EntityQuery();
-        $filter = new EntityQueryFilter();
-        $filter->setType(EntityQueryFilterType::_AND);
-        $filter->setChildren(
-            [
-                $this->helper->createEntityFilter('token.id', $tokenId),
-                $this->helper->createEntityFilter('state', TokenVersionState::ACTIVE)
-            ]
-        );
-        $query->setFilter($filter);
-        $query->setNumberOfEntities(1);
-        $tokenVersions = $this->apiClient->getService(TokenVersionService::class)->search($spaceId, $query);
-        if (! empty($tokenVersions)) {
-            $this->updateTokenVersionInfo($tokenVersions[0]);
-        } else {
-            try {
-                $tokenInfo = $this->tokenInfoRepository->getByTokenId($spaceId, $tokenId);
-                $this->tokenInfoRepository->delete($tokenInfo);
-            } catch (NoSuchEntityException $e) {
-                $this->logger->debug(
-                    sprintf(
-                        "An issue occurred retrieving or deleting the token info by token id %s.",
-                        $tokenId,
-                    ),
-                    ['exception' => $e]
-                );
-            }
+        $tokenVersion = $this->pluginCoreTokenService->getActiveTokenVersion((int) $spaceId, (int) $tokenId);
+        if ($tokenVersion !== null) {
+            $this->updateTokenVersionInfo($tokenVersion);
+            return;
+        }
+
+        try {
+            $tokenInfo = $this->tokenInfoRepository->getByTokenId($spaceId, $tokenId);
+            $this->tokenInfoRepository->delete($tokenInfo);
+            $this->logger->info('Token has no active version; deleted local token info.', [
+                'spaceId' => $spaceId,
+                'tokenId' => $tokenId,
+            ]);
+        } catch (NoSuchEntityException $e) {
+            $this->logger->debug(
+                sprintf(
+                    "An issue occurred retrieving or deleting the token info by token id %s.",
+                    $tokenId,
+                ),
+                ['exception' => $e]
+            );
         }
     }
 
     /**
      * Updates token info based on the given token version.
      *
-     * @param TokenVersion $tokenVersion
+     * @param CoreTokenVersion $tokenVersion
      * @return void
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      * @throws \Magento\Framework\Exception\CouldNotSaveException
      * @throws \Magento\Framework\Exception\InputException
      * @throws \Magento\Framework\Exception\StateException
      */
-    protected function updateTokenVersionInfo(TokenVersion $tokenVersion)
+    protected function updateTokenVersionInfo(CoreTokenVersion $tokenVersion)
     {
         try {
             $tokenInfo = $this->tokenInfoRepository->getByTokenId(
-                $tokenVersion->getLinkedSpaceId(),
-                $tokenVersion->getToken()
-                ->getId()
+                $tokenVersion->linkedSpaceId,
+                $tokenVersion->token->id
             );
         } catch (NoSuchEntityException $e) {
             $tokenInfo = $this->tokenInfoFactory->create();
         }
 
-        if (! \in_array(
-            $tokenVersion->getToken()->getState(),
-            [
-                CreationEntityState::ACTIVE,
-                CreationEntityState::INACTIVE
-            ]
-        )) {
+        if (! \in_array($tokenVersion->token->state, [CoreTokenState::ACTIVE, CoreTokenState::INACTIVE], true)) {
             if ($tokenInfo->getId()) {
                 $this->tokenInfoRepository->delete($tokenInfo);
+                $this->logger->info('Token version is no longer active or inactive; deleted local token info.', [
+                    'tokenId' => $tokenVersion->token->id,
+                    'spaceId' => $tokenVersion->linkedSpaceId,
+                    'state' => $tokenVersion->token->state->value,
+                ]);
             }
         } else {
-            $tokenInfo->setData(TokenInfoInterface::CUSTOMER_ID, $tokenVersion->getToken()
-                ->getCustomerId());
-            $tokenInfo->setData(TokenInfoInterface::NAME, $tokenVersion->getName());
-            try {
-                $tokenInfo->setData(
-                    TokenInfoInterface::PAYMENT_METHOD_ID,
-                    $this->paymentMethodConfigurationRepository->getByConfigurationId(
-                        $tokenVersion->getLinkedSpaceId(),
-                        $tokenVersion->getPaymentConnectorConfiguration()
-                            ->getPaymentMethodConfiguration()
-                        ->getId()
-                    )
-                    ->getId()
-                );
-                $tokenInfo->setData(
-                    TokenInfoInterface::CONNECTOR_ID,
-                    $tokenVersion->getPaymentConnectorConfiguration()
-                    ->getId()
-                );
-            } catch (\Error $e) { //Catching, but not showing, ticket WAL-69414
-                $error = $e;
+            $tokenInfo->setData(TokenInfoInterface::CUSTOMER_ID, $tokenVersion->token->customerId);
+            $tokenInfo->setData(TokenInfoInterface::NAME, $tokenVersion->name);
+
+            if ($tokenVersion->paymentMethodConfigurationId !== null) {
+                try {
+                    $tokenInfo->setData(
+                        TokenInfoInterface::PAYMENT_METHOD_ID,
+                        $this->paymentMethodConfigurationRepository->getByConfigurationId(
+                            $tokenVersion->linkedSpaceId,
+                            $tokenVersion->paymentMethodConfigurationId
+                        )->getId()
+                    );
+                } catch (NoSuchEntityException $e) {
+                    $this->logger->debug(
+                        "Could not resolve the local payment method configuration for a token version.",
+                        [
+                            'spaceId' => $tokenVersion->linkedSpaceId,
+                            'paymentMethodConfigurationId' => $tokenVersion->paymentMethodConfigurationId,
+                            'exception' => $e,
+                        ]
+                    );
+                }
+            }
+            if ($tokenVersion->connectorConfigurationId !== null) {
+                $tokenInfo->setData(TokenInfoInterface::CONNECTOR_ID, $tokenVersion->connectorConfigurationId);
             }
 
-            $tokenInfo->setData(TokenInfoInterface::SPACE_ID, $tokenVersion->getLinkedSpaceId());
-            $tokenInfo->setData(TokenInfoInterface::STATE, $tokenVersion->getToken()
-                ->getState());
-            $tokenInfo->setData(TokenInfoInterface::TOKEN_ID, $tokenVersion->getToken()
-                ->getId());
+            $tokenInfo->setData(TokenInfoInterface::SPACE_ID, $tokenVersion->linkedSpaceId);
+            $tokenInfo->setData(TokenInfoInterface::STATE, $tokenVersion->token->state->value);
+            $tokenInfo->setData(TokenInfoInterface::TOKEN_ID, $tokenVersion->token->id);
             $this->tokenInfoRepository->save($tokenInfo);
+
+            $this->logger->info('Token info updated.', [
+                'tokenId' => $tokenVersion->token->id,
+                'tokenVersionId' => $tokenVersion->id,
+                'spaceId' => $tokenVersion->linkedSpaceId,
+                'state' => $tokenVersion->token->state->value,
+            ]);
         }
     }
 
@@ -223,7 +216,12 @@ class TokenInfoManagement implements TokenInfoManagementInterface
      */
     public function deleteToken(TokenInfoInterface $token)
     {
-        $this->apiClient->getService(TokenService::class)->delete($token->getSpaceId(), $token->getTokenId());
+        $this->pluginCoreTokenService->deleteToken((int) $token->getSpaceId(), (int) $token->getTokenId());
         $this->tokenInfoRepository->delete($token);
+
+        $this->logger->info('Token deleted.', [
+            'tokenId' => $token->getTokenId(),
+            'spaceId' => $token->getSpaceId(),
+        ]);
     }
 }

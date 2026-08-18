@@ -17,12 +17,11 @@
         }
     ],
     "type": "magento2-module",
-    "version": "3.3.0",
+    "version": "3.4.0",
     "require": {
         "php": "~7.4.0||~8.0||~8.1||~8.2||~8.3||~8.4",
         "magento/framework": "^102.0.0||^103.0.0",
-        "wallee/sdk": "4.8.1",
-        "wallee/plugin-core": "0.1.7"
+        "wallee/plugin-core": "0.1.8"
     },
     "autoload": {
         "files": [

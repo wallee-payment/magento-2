@@ -22,10 +22,9 @@ use Magento\Sales\Model\Order\Invoice;
 use Wallee\Payment\Api\TransactionInfoManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Payment\Model\ApiClient;
+use Wallee\PluginCore\Charge\ChargeService;
 use Wallee\Payment\Model\Service\Order\TransactionService;
 use Wallee\PluginCore\Transaction\State as CoreTransactionState;
-use Wallee\Sdk\Service\ChargeFlowService;
 use Psr\Log\LoggerInterface;
 use Magento\Checkout\Model\Session as CheckoutSession;
 
@@ -73,9 +72,9 @@ class SubmitQuote implements ObserverInterface
 
     /**
      *
-     * @var ApiClient
+     * @var ChargeService
      */
-    private $apiClient;
+    private $chargeService;
 
     /**
      *
@@ -97,7 +96,7 @@ class SubmitQuote implements ObserverInterface
      * @param TransactionService $transactionService
      * @param TransactionInfoManagementInterface $transactionInfoManagement
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
-     * @param ApiClient $apiClient
+     * @param ChargeService $chargeService
      * @param LoggerInterface $logger
      * @param CheckoutSession $checkoutSession
      */
@@ -108,7 +107,7 @@ class SubmitQuote implements ObserverInterface
         TransactionService $transactionService,
         TransactionInfoManagementInterface $transactionInfoManagement,
         TransactionInfoRepositoryInterface $transactionInfoRepository,
-        ApiClient $apiClient,
+        ChargeService $chargeService,
         LoggerInterface $logger,
         CheckoutSession $checkoutSession
     ) {
@@ -118,7 +117,7 @@ class SubmitQuote implements ObserverInterface
         $this->transactionService = $transactionService;
         $this->transactionInfoManagement = $transactionInfoManagement;
         $this->transactionInfoRepository = $transactionInfoRepository;
-        $this->apiClient = $apiClient;
+        $this->chargeService = $chargeService;
         $this->logger = $logger;
         $this->checkoutSession = $checkoutSession;
     }
@@ -174,7 +173,7 @@ class SubmitQuote implements ObserverInterface
         }
 
         if ($order->getWalleeChargeFlow() && $this->helper->isAdminArea()) {
-            $this->apiClient->getService(ChargeFlowService::class)->applyFlow(
+            $this->chargeService->applyFlow(
                 $order->getWalleeSpaceId(),
                 $order->getWalleeTransactionId()
             );
@@ -295,6 +294,11 @@ class SubmitQuote implements ObserverInterface
             ) === 0 && $invoice->getState() != Invoice::STATE_CANCELED
             ) {
                 $invoice->load($invoice->getId());
+                // Invoice::getOrder() lazily loads a fresh Order from the DB when $_order isn't
+                // already set — which it isn't for an invoice found via getInvoiceCollection().
+                // Without this, cancel()'s internal order-total mutations would silently land on
+                // that orphaned, never-saved object instead of $order.
+                $invoice->setOrder($order);
                 return $invoice;
             }
         }

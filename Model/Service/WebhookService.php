@@ -14,7 +14,7 @@ namespace Wallee\Payment\Model\Service;
 use Magento\Framework\UrlInterface;
 use Magento\Store\Api\Data\WebsiteInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use Wallee\Payment\Model\CoreWebhook\RegistryConfigurer;
+use Wallee\Payment\Model\Webhook\RegistryConfigurer;
 use Wallee\Payment\Model\Settings\SettingsProvider;
 use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Webhook\WebhookProcessor;

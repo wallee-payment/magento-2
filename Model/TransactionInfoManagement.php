@@ -11,21 +11,18 @@
  */
 namespace Wallee\Payment\Model;
 
+use Magento\Framework\App\CacheInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Sales\Model\Order;
 use Magento\Framework\Exception\LocalizedException;
 use Wallee\Payment\Api\TransactionInfoManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Api\Data\TransactionInfoInterface;
-use Wallee\Payment\Helper\Data as Helper;
-use Wallee\Sdk\Model\ChargeAttemptState;
-use Wallee\Sdk\Model\EntityQuery;
-use Wallee\Sdk\Model\EntityQueryFilter;
-use Wallee\Sdk\Model\EntityQueryFilterType;
-use Wallee\Sdk\Model\FailureReason;
-use Wallee\Sdk\Model\Transaction;
+use Wallee\PluginCore\Charge\ChargeService;
+use Wallee\PluginCore\GlobalData\GlobalDataService;
+use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Transaction\State as CoreTransactionState;
-use Wallee\Sdk\Service\ChargeAttemptService;
+use Wallee\PluginCore\Transaction\Transaction;
 
 /**
  * Transaction info management service.
@@ -33,10 +30,19 @@ use Wallee\Sdk\Service\ChargeAttemptService;
 class TransactionInfoManagement implements TransactionInfoManagementInterface
 {
     /**
+     * Cache identifier for the connector-id-to-payment-method-type-id map.
      *
-     * @var Helper
+     * @var string
      */
-    private $helper;
+    private const CACHE_KEY_PAYMENT_CONNECTOR_MAP = 'wallee_payment_connector_map';
+
+    /**
+     * Payment connectors are shop-agnostic reference data that changes rarely, so a short
+     * TTL is enough to avoid fetching the full connector catalog on every transaction update.
+     *
+     * @var int
+     */
+    private const CACHE_LIFETIME_PAYMENT_CONNECTOR_MAP = 600;
 
     /**
      *
@@ -52,27 +58,51 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
 
     /**
      *
-     * @var ApiClient
+     * @var ChargeService
      */
-    private $apiClient;
+    private $chargeService;
 
     /**
      *
-     * @param Helper $helper
+     * @var GlobalDataService
+     */
+    private $globalDataService;
+
+    /**
+     *
+     * @var CacheInterface
+     */
+    private $cache;
+
+    /**
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
+     *
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param TransactionInfoFactory $transactionInfoFactory
-     * @param ApiClient $apiClient
+     * @param ChargeService $chargeService
+     * @param GlobalDataService $globalDataService
+     * @param CacheInterface $cache
+     * @param LoggerInterface $logger
      */
     public function __construct(
-        Helper $helper,
         TransactionInfoRepositoryInterface $transactionInfoRepository,
         TransactionInfoFactory $transactionInfoFactory,
-        ApiClient $apiClient
+        ChargeService $chargeService,
+        GlobalDataService $globalDataService,
+        CacheInterface $cache,
+        LoggerInterface $logger
     ) {
-        $this->helper = $helper;
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->transactionInfoFactory = $transactionInfoFactory;
-        $this->apiClient = $apiClient;
+        $this->chargeService = $chargeService;
+        $this->globalDataService = $globalDataService;
+        $this->cache = $cache;
+        $this->logger = $logger;
     }
 
     /**
@@ -87,11 +117,17 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
     {
         try {
             $info = $this->transactionInfoRepository->getByTransactionId(
-                $transaction->getLinkedSpaceId(),
-                $transaction->getId()
+                $transaction->spaceId,
+                $transaction->id
             );
 
             if ($info->getOrderId() != $order->getId() && !$info->isExternalPaymentUrl()) {
+                $this->logger->error('Transaction info is already linked to a different order.', [
+                    'orderId' => $order->getId(),
+                    'existingOrderId' => $info->getOrderId(),
+                    'transactionId' => $transaction->id,
+                    'spaceId' => $transaction->spaceId,
+                ]);
                 throw new LocalizedException(
                     \__('The wallee transaction info is already linked to a different order.')
                 );
@@ -101,6 +137,14 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
         }
         $info = $this->setTransactionData($transaction, $info, null, $order);
         $this->transactionInfoRepository->save($info);
+
+        $this->logger->info('Transaction info updated.', [
+            'orderId' => $order->getId(),
+            'transactionId' => $transaction->id,
+            'spaceId' => $transaction->spaceId,
+            'state' => $transaction->state->value,
+        ]);
+
         return $info;
     }
 
@@ -118,8 +162,8 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
     {
         try {
             $info = $this->transactionInfoRepository->getByTransactionId(
-                $transaction->getLinkedSpaceId(),
-                $transaction->getId()
+                $transaction->spaceId,
+                $transaction->id
             );
 
             //prevents a new transaction info from being created by duplicating the order id
@@ -133,6 +177,13 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
 
         $info = $this->setTransactionData($transaction, $info, $orderId, null, $successUrl, $failureUrl);
         $this->transactionInfoRepository->save($info);
+
+        $this->logger->info('Transaction info redirect URLs updated.', [
+            'orderId' => $orderId,
+            'transactionId' => $transaction->id,
+            'spaceId' => $transaction->spaceId,
+        ]);
+
         return $info;
     }
 
@@ -155,32 +206,24 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
         $successUrl = null,
         $failureUrl = null
     ) {
-        $transactionInfo->setData(TransactionInfoInterface::TRANSACTION_ID, $transaction->getId());
+        $transactionInfo->setData(TransactionInfoInterface::TRANSACTION_ID, $transaction->id);
         $transactionInfo->setData(
             TransactionInfoInterface::AUTHORIZATION_AMOUNT,
-            $transaction->getAuthorizationAmount()
+            $transaction->authorizedAmount
         );
         $transactionInfo->setData(
             TransactionInfoInterface::ORDER_ID,
             $order instanceof Order ? $order->getId() : $orderId
         );
-        $transactionInfo->setData(TransactionInfoInterface::STATE, $transaction->getState());
-        $transactionInfo->setData(TransactionInfoInterface::SPACE_ID, $transaction->getLinkedSpaceId());
-        $transactionInfo->setData(TransactionInfoInterface::SPACE_VIEW_ID, $transaction->getSpaceViewId());
-        $transactionInfo->setData(TransactionInfoInterface::LANGUAGE, $transaction->getLanguage());
-        $transactionInfo->setData(TransactionInfoInterface::CURRENCY, $transaction->getCurrency());
-        $transactionInfo->setData(
-            TransactionInfoInterface::CONNECTOR_ID,
-            $transaction->getPaymentConnectorConfiguration() != null
-                ? $transaction->getPaymentConnectorConfiguration()->getConnector() : null
-        );
+        $transactionInfo->setData(TransactionInfoInterface::STATE, $transaction->state->value);
+        $transactionInfo->setData(TransactionInfoInterface::SPACE_ID, $transaction->spaceId);
+        $transactionInfo->setData(TransactionInfoInterface::SPACE_VIEW_ID, $transaction->environment?->spaceViewId);
+        $transactionInfo->setData(TransactionInfoInterface::LANGUAGE, $transaction->environment?->language);
+        $transactionInfo->setData(TransactionInfoInterface::CURRENCY, $transaction->currency);
+        $transactionInfo->setData(TransactionInfoInterface::CONNECTOR_ID, $transaction->paymentMethod?->connectorId);
         $transactionInfo->setData(
             TransactionInfoInterface::PAYMENT_METHOD_ID,
-            $transaction->getPaymentConnectorConfiguration() != null &&
-            $transaction->getPaymentConnectorConfiguration()
-                ->getPaymentMethodConfiguration() != null ? $transaction->getPaymentConnectorConfiguration()
-                ->getPaymentMethodConfiguration()
-                ->getPaymentMethod() : null
+            $this->resolvePaymentMethodTypeId($transaction->paymentMethod?->connectorId)
         );
         $transactionInfo->setData(TransactionInfoInterface::LABELS, $this->getTransactionLabels($transaction));
 
@@ -196,12 +239,11 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
             $transactionInfo->setData(TransactionInfoInterface::FAILURE_URL, $failureUrl);
         }
 
-        if ($transaction->getState() == CoreTransactionState::FAILED->value
-            || $transaction->getState() == CoreTransactionState::DECLINE->value) {
+        if ($transaction->state === CoreTransactionState::FAILED
+            || $transaction->state === CoreTransactionState::DECLINE) {
             $transactionInfo->setData(
                 TransactionInfoInterface::FAILURE_REASON,
-                $transaction->getFailureReason() instanceof FailureReason ? $transaction->getFailureReason()
-                    ->getDescription() : null
+                $transaction->failureReason?->getDefault()
             );
         }
 
@@ -216,47 +258,75 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
      */
     private function getTransactionLabels(Transaction $transaction)
     {
-        $chargeAttempt = $this->getChargeAttempt($transaction);
-        if ($chargeAttempt != null) {
-            $labels = [];
-            foreach ($chargeAttempt->getLabels() as $label) {
-                $labels[$label->getDescriptor()->getId()] = $label->getContentAsString();
-            }
-
-            return $labels;
-        } else {
+        $chargeAttempt = $this->chargeService->findSuccessfulAttemptByTransaction(
+            $transaction->spaceId,
+            $transaction->id
+        );
+        if ($chargeAttempt === null) {
+            $this->logger->debug('No successful charge attempt found for transaction; no labels to show.', [
+                'transactionId' => $transaction->id,
+                'spaceId' => $transaction->spaceId,
+            ]);
             return [];
         }
+
+        $labels = [];
+        foreach ($chargeAttempt->labels as $label) {
+            $labels[$label->descriptorId] = $label->content;
+        }
+
+        $this->logger->debug('Resolved transaction labels from the successful charge attempt.', [
+            'transactionId' => $transaction->id,
+            'spaceId' => $transaction->spaceId,
+            'labelCount' => count($labels),
+        ]);
+
+        return $labels;
     }
 
     /**
-     * Gets the successful charge attempt of the transaction.
+     * Resolves the payment method type ID for the given connector, via the
+     * connector's own listing — TransactionPaymentMethod only carries the
+     * connector-scoped ID, not the payment method type ID directly.
      *
-     * @param Transaction $transaction
-     * @return \Wallee\Sdk\Model\ChargeAttempt
+     * @param int|null $connectorId
+     * @return int|null
      */
-    private function getChargeAttempt(Transaction $transaction)
+    private function resolvePaymentMethodTypeId(?int $connectorId): ?int
     {
-        $query = new EntityQuery();
-        $filter = new EntityQueryFilter();
-        $filter->setType(EntityQueryFilterType::_AND);
-        $filter->setChildren(
-            [
-                $this->helper->createEntityFilter('charge.transaction.id', $transaction->getId()),
-                $this->helper->createEntityFilter('state', ChargeAttemptState::SUCCESSFUL)
-            ]
-        );
-        $query->setFilter($filter);
-        $query->setNumberOfEntities(1);
-        $result = $this->apiClient->getService(ChargeAttemptService::class)->search(
-            $transaction->getLinkedSpaceId(),
-            $query
-        );
-        if ($result != null) {
-            return \current($result);
-        } else {
+        if ($connectorId === null) {
             return null;
         }
+        return $this->getConnectorToPaymentMethodTypeIdMap()[$connectorId] ?? null;
+    }
+
+    /**
+     * Returns the connector-id-to-payment-method-type-id map, backed by a short-lived cache.
+     *
+     * Avoids re-fetching the full connector catalog on every transaction update.
+     *
+     * @return array<int, int|null>
+     */
+    private function getConnectorToPaymentMethodTypeIdMap(): array
+    {
+        $cached = $this->cache->load(self::CACHE_KEY_PAYMENT_CONNECTOR_MAP);
+        if ($cached !== false) {
+            return json_decode($cached, true);
+        }
+
+        $map = [];
+        foreach ($this->globalDataService->getPaymentConnectors() as $connector) {
+            $map[$connector->id] = $connector->paymentMethodId;
+        }
+
+        $this->cache->save(
+            json_encode($map),
+            self::CACHE_KEY_PAYMENT_CONNECTOR_MAP,
+            [],
+            self::CACHE_LIFETIME_PAYMENT_CONNECTOR_MAP
+        );
+
+        return $map;
     }
 
     /**
@@ -268,13 +338,8 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
      */
     private function getPaymentMethodImage(Transaction $transaction, Order $order)
     {
-        if ($transaction->getPaymentConnectorConfiguration() != null &&
-            $transaction->getPaymentConnectorConfiguration()->getPaymentMethodConfiguration() != null) {
-            return $this->extractImagePath(
-                $transaction->getPaymentConnectorConfiguration()
-                    ->getPaymentMethodConfiguration()
-                ->getResolvedImageUrl()
-            );
+        if ($transaction->paymentMethod?->resolvedImageUrl !== null) {
+            return $this->extractImagePath($transaction->paymentMethod->resolvedImageUrl);
         } else {
             return $order->getPayment()
                 ->getMethodInstance()

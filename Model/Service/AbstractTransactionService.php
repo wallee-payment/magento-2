@@ -13,9 +13,6 @@ namespace Wallee\Payment\Model\Service;
 
 use Magento\Customer\Model\CustomerRegistry;
 use Magento\Framework\Stdlib\CookieManagerInterface;
-use Wallee\Payment\Model\ApiClient;
-use Wallee\Sdk\Model\Gender;
-use Wallee\Sdk\Service\TransactionService;
 
 /**
  * Abstract service to handle transactions.
@@ -31,12 +28,6 @@ abstract class AbstractTransactionService
 
     /**
      *
-     * @var ApiClient
-     */
-    private $apiClient;
-
-    /**
-     *
      * @var CookieManagerInterface
      */
     private $cookieManager;
@@ -44,29 +35,14 @@ abstract class AbstractTransactionService
     /**
      *
      * @param CustomerRegistry $customerRegistry
-     * @param ApiClient $apiClient
      * @param CookieManagerInterface $cookieManager
      */
     public function __construct(
         CustomerRegistry $customerRegistry,
-        ApiClient $apiClient,
         CookieManagerInterface $cookieManager
     ) {
         $this->customerRegistry = $customerRegistry;
-        $this->apiClient = $apiClient;
         $this->cookieManager = $cookieManager;
-    }
-
-    /**
-     * Gets the transaction by its ID.
-     *
-     * @param int $spaceId
-     * @param int $transactionId
-     * @return Transaction
-     */
-    public function getTransaction($spaceId, $transactionId)
-    {
-        return $this->apiClient->getService(TransactionService::class)->read($spaceId, $transactionId);
     }
 
     /**
@@ -117,25 +93,6 @@ abstract class AbstractTransactionService
         }
         if ((int) $gender === 2) {
             return 2;
-        }
-        return null;
-    }
-
-    /**
-     * Gets the customer's gender as an SDK Gender constant.
-     *
-     * @param string|int|null $gender
-     * @param int|null $customerId
-     * @return string|null
-     */
-    protected function getGender($gender, $customerId)
-    {
-        $raw = $this->getRawGender($gender, $customerId);
-        if ($raw === 1) {
-            return Gender::MALE;
-        }
-        if ($raw === 2) {
-            return Gender::FEMALE;
         }
         return null;
     }
