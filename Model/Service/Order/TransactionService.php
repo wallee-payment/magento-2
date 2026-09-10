@@ -372,7 +372,12 @@ class TransactionService extends AbstractTransactionService
 
         $methodInstance = $order->getPayment()?->getMethodInstance();
         if ($methodInstance instanceof PaymentMethodAdapter) {
-            $context->allowedPaymentMethodConfigurations = [$methodInstance->getPaymentMethodConfigurationId()];
+            // The adapter's own id is the local entity id; the API expects the configuration id
+            // from the portal, and rejects the entity id as belonging to a foreign space.
+            $configurationId = (int) $methodInstance->getPaymentMethodConfiguration()->getConfigurationId();
+            if ($configurationId > 0) {
+                $context->allowedPaymentMethodConfigurations = [$configurationId];
+            }
         }
 
         // Map billing and shipping addresses using the PluginCore address DTO.

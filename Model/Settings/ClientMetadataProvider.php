@@ -40,7 +40,7 @@ class ClientMetadataProvider implements ClientMetadataProviderInterface
         return new ClientMetadata(
             shopSystem: 'magento',
             shopSystemVersion: $this->productMetadata->getVersion(),
-            pluginVersion: '3.4.0',
+            pluginVersion: '3.5.0',
         );
     }
 }

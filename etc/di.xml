@@ -169,7 +169,7 @@
     <!-- preference above.                                                  -->
     <!-- =================================================================== -->
 
-    <virtualType name="Wallee\Payment\TransactionGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\TransactionGateway">
+    <virtualType name="Wallee\Payment\TransactionGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\TransactionGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
             <argument name="settings" xsi:type="object">Wallee\PluginCore\Settings\Settings</argument>
@@ -185,14 +185,14 @@
     </type>
 
     <virtualType name="Wallee\Payment\TransactionCompletionGateway"
-                 type="Wallee\PluginCore\Sdk\WebServiceAPIV1\TransactionCompletionGateway">
+                 type="Wallee\PluginCore\Sdk\WebServiceAPIV2\TransactionCompletionGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
     </virtualType>
 
     <virtualType name="Wallee\Payment\InvoiceGateway"
-                 type="Wallee\PluginCore\Sdk\WebServiceAPIV1\InvoiceGateway">
+                 type="Wallee\PluginCore\Sdk\WebServiceAPIV2\InvoiceGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
@@ -210,37 +210,37 @@
         </arguments>
     </type>
 
-    <virtualType name="Wallee\Payment\RefundGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\RefundGateway">
+    <virtualType name="Wallee\Payment\RefundGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\RefundGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
     </virtualType>
 
-    <virtualType name="Wallee\Payment\TokenGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\TokenGateway">
+    <virtualType name="Wallee\Payment\TokenGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\TokenGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
     </virtualType>
 
-    <virtualType name="Wallee\Payment\DeliveryIndicationGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\DeliveryIndicationGateway">
+    <virtualType name="Wallee\Payment\DeliveryIndicationGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\DeliveryIndicationGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
     </virtualType>
 
-    <virtualType name="Wallee\Payment\GlobalDataGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\GlobalDataGateway">
+    <virtualType name="Wallee\Payment\GlobalDataGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\GlobalDataGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
     </virtualType>
 
-    <virtualType name="Wallee\Payment\ChargeGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\ChargeGateway">
+    <virtualType name="Wallee\Payment\ChargeGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\ChargeGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
     </virtualType>
 
-    <virtualType name="Wallee\Payment\DocumentGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\DocumentGateway">
+    <virtualType name="Wallee\Payment\DocumentGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\DocumentGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
@@ -252,19 +252,19 @@
         </arguments>
     </type>
 
-    <virtualType name="Wallee\Payment\PaymentMethodGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\PaymentMethodGateway">
+    <virtualType name="Wallee\Payment\PaymentMethodGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\PaymentMethodGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
     </virtualType>
 
-    <virtualType name="Wallee\Payment\ManualTaskGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\ManualTaskGateway">
+    <virtualType name="Wallee\Payment\ManualTaskGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\ManualTaskGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
     </virtualType>
 
-    <virtualType name="Wallee\Payment\WebhookManagementGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\WebhookManagementGateway">
+    <virtualType name="Wallee\Payment\WebhookManagementGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\WebhookManagementGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
@@ -284,7 +284,7 @@
         </arguments>
     </type>
 
-    <virtualType name="Wallee\Payment\WebhookSignatureGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV1\WebhookSignatureGateway">
+    <virtualType name="Wallee\Payment\WebhookSignatureGateway" type="Wallee\PluginCore\Sdk\WebServiceAPIV2\WebhookSignatureGateway">
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\PluginCore\Sdk\SdkProvider</argument>
         </arguments>
