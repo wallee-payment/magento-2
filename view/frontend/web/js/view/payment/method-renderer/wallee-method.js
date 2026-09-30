@@ -18,7 +18,8 @@ define([
     'Magento_Checkout/js/model/payment/additional-validators',
     'Wallee_Payment/js/model/checkout-handler',
     'Wallee_Payment/js/wallee-sdk-loader',
-    'mage/storage'
+    'mage/storage',
+    'mage/translate'
 ], function (
     $,
     Component,
@@ -29,7 +30,8 @@ define([
     additionalValidators,
     checkoutHandler,
     sdkLoader,
-    storage
+    storage,
+    $t
 ) {
     'use strict';
     return Component.extend({
@@ -40,6 +42,7 @@ define([
         loadingIframe: false,
         checkoutHandler: null,
         currentJsUrl: null,
+        lightboxMetadata: null,
 
         /**
          * @override
@@ -215,7 +218,7 @@ define([
                                     this.handleExpiredSession();
                                     return;
                                 }
-                                
+
                                 // Scroll to payment method on validation failure.
                                 $('html, body').animate({ scrollTop: $('#' + this.getCode()).offset().top - 20 });
                                 if (validationResult.errors) {
@@ -278,9 +281,79 @@ define([
                 } else {
                     this.placeOrder();
                 }
+            } else if (window.checkoutConfig.wallee.integrationMethod == 'lightbox') {
+                if (!this.validate() || !additionalValidators.validate()) {
+                    return;
+                }
+                this.prefetchLightboxMetadataAndPlaceOrder();
             } else {
                 this.placeOrder();
             }
+        },
+
+        // For a logged-in customer, metadata resolution depends on the quote
+        // still being active. placeOrder() deactivates the quote as soon as it
+        // succeeds, so fetching metadata *after* placeOrder() (as afterPlaceOrder
+        // used to for lightbox) races Magento's own quote-deactivation and fails
+        // with "Current customer does not have an active cart." Fetching here,
+        // before the order is placed, avoids the race - mirrors createIframeHandler.
+        prefetchLightboxMetadataAndPlaceOrder: function () {
+            var self = this;
+
+            // Disable the button up-front: the metadata fetch runs before placeOrder()
+            // would disable it, so without this a second click could start a parallel flow.
+            this.isPlaceOrderActionAllowed(false);
+
+            fullScreenLoader.startLoader();
+            $('body').trigger('processStart');
+
+            this.fetchMetadata().done(function (response) {
+                var data;
+
+                try {
+                    data = JSON.parse(response);
+                } catch (e) {
+                    fullScreenLoader.stopLoader(true);
+                    $('body').trigger('processStop');
+                    console.error("Wallee Lightbox Metadata Error:", e);
+                    self.messageContainer.addErrorMessage({
+                        message: $t('Unable to initialize the payment. Please try again.')
+                    });
+                    self.isPlaceOrderActionAllowed(true);
+                    return;
+                }
+
+                fullScreenLoader.stopLoader(true);
+                $('body').trigger('processStop');
+
+                if (data.error) {
+                    // Log the raw error, customer see only generic message
+                    console.error("Wallee Lightbox Metadata Error:", data.error);
+                    self.messageContainer.addErrorMessage({
+                        message: $t('Unable to initialize the payment. Please try again.')
+                    });
+                    self.isPlaceOrderActionAllowed(true);
+                    return;
+                }
+
+                self.lightboxMetadata = data;
+                // placeOrder() re-runs its own validation and keeps the button
+                // disabled on success; it re-enables the button itself on a failed
+                // order request. It only returns false (without re-enabling) when
+                // that re-validation fails - restore the button in that case.
+                if (!self.placeOrder()) {
+                    self.lightboxMetadata = null;
+                    self.isPlaceOrderActionAllowed(true);
+                }
+            }).fail(function (error) {
+                fullScreenLoader.stopLoader(true);
+                $('body').trigger('processStop');
+                console.error("Wallee REST Metadata Call failed for Lightbox", error);
+                self.messageContainer.addErrorMessage({
+                    message: $t('Unable to initialize the payment. Please try again.')
+                });
+                self.isPlaceOrderActionAllowed(true);
+            });
         },
 
         isTokenExpired: function(url){
@@ -406,29 +479,28 @@ define([
             if (window.checkoutConfig.wallee.integrationMethod == 'iframe' && this.handler) {
                 this.handler.submit();
             } else if (window.checkoutConfig.wallee.integrationMethod == 'lightbox') {
-                this.fetchMetadata().done(function (response) {
-                    var data = JSON.parse(response);
-                    if (data.error) {
-                        console.error("Wallee Lightbox Metadata Error:", data.error);
-                        self.fallbackToPaymentPage();
-                        return;
-                    }
+                // Metadata was already fetched (while the quote was still active) in
+                // prefetchLightboxMetadataAndPlaceOrder, before placeOrder() ran.
+                var data = self.lightboxMetadata;
+                self.lightboxMetadata = null;
 
-                    sdkLoader.load(data.javascriptUrl).then(function () {
-                        var handlerFactory = window.LightboxCheckoutHandler;
-                        if (typeof handlerFactory != 'undefined' && handlerFactory) {
-                            registry[data.configurationId] = handlerFactory; // Utilize global registry
-                            handlerFactory.startPayment(data.configurationId, function () {
-                                self.fallbackToPaymentPage();
-                            });
-                        } else {
+                if (!data) {
+                    console.error("Wallee Lightbox metadata missing in afterPlaceOrder");
+                    self.fallbackToPaymentPage();
+                    return;
+                }
+
+                sdkLoader.load(data.javascriptUrl).then(function () {
+                    var handlerFactory = window.LightboxCheckoutHandler;
+                    if (typeof handlerFactory != 'undefined' && handlerFactory) {
+                        registry[data.configurationId] = handlerFactory; // Utilize global registry
+                        handlerFactory.startPayment(data.configurationId, function () {
                             self.fallbackToPaymentPage();
-                        }
-                    }).catch(function () {
+                        });
+                    } else {
                         self.fallbackToPaymentPage();
-                    });
-                }).fail(function (error) {
-                    console.error("Wallee REST Metadata Call failed for Lightbox", error);
+                    }
+                }).catch(function () {
                     self.fallbackToPaymentPage();
                 });
             } else {

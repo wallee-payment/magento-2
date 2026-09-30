@@ -73,22 +73,24 @@ class AuthorizedCommand extends WebhookCommand
         $remoteState = CoreTransactionState::tryFrom($this->context->remoteState);
         $action = $remoteState !== null ? $this->transactionActionResolver->resolve($remoteState) : null;
 
-        // 1. Check the FRESH database state (bypassing cache)
-        $freshOrder = $this->orderFactory->create();
-        $this->orderResourceModel->load($freshOrder, $order->getId());
+        // 1. Work on the order as the database currently holds it, not on the snapshot the
+        // repository cached before the order lock was taken. Everything below — including the
+        // save — uses this instance; saving the pre-lock one is what left paid orders with a
+        // NULL total_paid and a stale state.
+        $order = $this->reloadOrder($order);
 
-        $currentState = $freshOrder->getState();
-        $currentStatus = $freshOrder->getStatus();
+        $currentState = $order->getState();
+        $currentStatus = $order->getStatus();
 
         // 2. Check if already authorized (Idempotency)
-        if ($freshOrder->getData('wallee_authorized')) {
+        if ($order->getData('wallee_authorized')) {
             $payment = $order->getPayment();
             $payment->setTransactionId($this->getTransactionIdForPayment());
             $this->orderRepository->save($order);
 
             $this->logger->debug(sprintf(
                 'AuthorizedCommand: Skipping processing because order %s has already been processed.',
-                $freshOrder->getIncrementId()
+                $order->getIncrementId()
             ));
             return $order;
         }
@@ -98,7 +100,14 @@ class AuthorizedCommand extends WebhookCommand
         $payment = $order->getPayment();
         $payment->setTransactionId($this->getTransactionIdForPayment());
         $payment->setIsTransactionClosed(false);
-        $payment->registerAuthorizationNotification($payment->getAmountAuthorized());
+        // The base amount, not the order-currency one: registerAuthorizationNotification()
+        // stores what it is given in base_amount_authorized and weighs it against
+        // getBaseTotalDue() to decide whether the authorization covers the order. Handing it
+        // the order-currency figure makes every order whose currency differs from the base
+        // currency look under-authorized, which flags it as suspected fraud and parks it in
+        // payment review. InitializeCommand already recorded the correct base amount at
+        // checkout, so it only has to be read back here.
+        $payment->registerAuthorizationNotification($payment->getBaseAmountAuthorized());
 
         // 4. Apply Safe State Logic
         $protectedStates = [

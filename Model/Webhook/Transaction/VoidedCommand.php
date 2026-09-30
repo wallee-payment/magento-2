@@ -66,9 +66,10 @@ class VoidedCommand extends WebhookCommand
             return null;
         }
 
-        // Load fresh state from DB (Bypassing cache)
-        $freshOrder = $this->orderFactory->create();
-        $this->orderResourceModel->load($freshOrder, $order->getId());
+        // Work on the order as the database currently holds it, not on the snapshot the
+        // repository cached before the order lock was taken. Everything below — including the
+        // save — uses this instance.
+        $order = $this->reloadOrder($order);
 
         // Update Payment (Always record the notification)
         /** @var \Magento\Sales\Model\Order\Payment $payment */

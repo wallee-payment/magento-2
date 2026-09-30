@@ -103,7 +103,7 @@
                 <?php foreach ($group->getLabels() as $label): ?>
                     <tr>
                         <th><?=$escaper->escapeHtml($block->translate($label->getName()))?></th>
-                        <td><?=$escaper->escapeHtml($label->getValue()) ?></td>
+                        <td><?=$escaper->escapeHtml($block->truncateLabelValue($label->getValue())) ?></td>
                     </tr>
                 <?php endforeach; ?>
             </table>

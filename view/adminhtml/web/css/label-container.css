@@ -13,6 +13,11 @@
 	margin-top: 1rem;
 }
 
+.wallee-label-container td {
+	word-break: break-all;
+	white-space: pre-line;
+}
+
 .wallee-label-container > a {
 	clear: both;
 	color: #0a0a0a;

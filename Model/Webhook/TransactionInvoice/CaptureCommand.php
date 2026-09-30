@@ -17,10 +17,11 @@ use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Transaction\Invoice\InvoiceGatewayInterface;
 use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
-use Wallee\PluginCore\Webhook\Exception\TransientWebhookException;
+use Wallee\PluginCore\Webhook\Exception\RetryableWebhookException;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Magento\Sales\Model\OrderFactory;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 
 class CaptureCommand extends WebhookCommand
 {
@@ -39,6 +40,7 @@ class CaptureCommand extends WebhookCommand
      * @param TransactionGatewayInterface $transactionGateway
      * @param OrderResourceModel $orderResourceModel
      * @param OrderFactory $orderFactory
+     * @param PriceCurrencyInterface $priceCurrency
      */
     public function __construct(
         WebhookContext $context,
@@ -50,7 +52,8 @@ class CaptureCommand extends WebhookCommand
         private readonly InvoiceGatewayInterface $invoiceGateway,
         private readonly TransactionGatewayInterface $transactionGateway,
         private readonly OrderResourceModel $orderResourceModel,
-        private readonly OrderFactory $orderFactory
+        private readonly OrderFactory $orderFactory,
+        private readonly PriceCurrencyInterface $priceCurrency
     ) {
         parent::__construct($context, $logger);
     }
@@ -82,24 +85,32 @@ class CaptureCommand extends WebhookCommand
             return null;
         }
 
-        // 1. Load FRESH state from DB (Bypassing cache) to detect race conditions
-        $freshOrder = $this->orderFactory->create();
-        $this->orderResourceModel->load($freshOrder, $order->getId());
+        // 1. Work on the order as the database currently holds it, not on the snapshot the
+        // repository cached before the order lock was taken. Everything below — including the
+        // save — uses this instance, so the Transaction webhook's writes survive.
+        $order = $this->reloadOrder($order);
 
         // Guard: capture must not run before authorization has been persisted.
         // The Transaction and TransactionInvoice webhooks are independent entities
         // with no cross-entity ordering guarantee. If this capture arrived first,
         // throw a retryable exception so the portal retries after backoff — by
         // then AuthorizedCommand will have completed.
-        if (!$freshOrder->getData('wallee_authorized')) {
-            throw new TransientWebhookException(sprintf(
+        if (!$order->getData('wallee_authorized')) {
+            throw new RetryableWebhookException(sprintf(
                 'CaptureCommand: order %s is not yet authorized — deferring capture for retry.',
-                $freshOrder->getIncrementId()
+                $order->getIncrementId()
             ));
         }
 
+        // Snapshot what the database actually holds. captureInvoice() rewrites state and status
+        // on $order further down, so every later decision that must be made against the
+        // persisted order has to read these, not the mutated object.
+        $persistedState = $order->getState();
+        $persistedStatus = $order->getStatus();
+        $persistedOrderIsEditable = $order->canHold();
+
         // Detect if we are currently in Payment Review (e.g. set by DeliveryIndication)
-        $isPaymentReview = ($freshOrder->getState() === Order::STATE_PAYMENT_REVIEW);
+        $isPaymentReview = ($persistedState === Order::STATE_PAYMENT_REVIEW);
 
         $transaction = $this->transactionGateway->find($this->context->spaceId, $invoiceEntity->linkedTransactionId);
         if ($transaction === null) {
@@ -136,7 +147,11 @@ class CaptureCommand extends WebhookCommand
 
         if ($needsCapture) {
             // WARNING: captureInvoice() implicitly sets Order State to PROCESSING in memory!
-            $finalInvoice = $this->captureInvoice($order, $invoiceEntity->amount, $existingInvoice);
+            $finalInvoice = $this->captureInvoice(
+                $order,
+                $this->toBaseAmount($order, $invoiceEntity->amount),
+                $existingInvoice
+            );
 
             // 4. The Revert Fix
             // If we were in Payment Review, we must force it back immediately because
@@ -144,7 +159,7 @@ class CaptureCommand extends WebhookCommand
             if ($isPaymentReview && $finalInvoice) {
                 $this->logger->info("CaptureCommand: Restoring Payment Review state after capture.");
                 $order->setState(Order::STATE_PAYMENT_REVIEW);
-                $order->setStatus($freshOrder->getStatus());
+                $order->setStatus($persistedStatus);
             }
         }
 
@@ -161,7 +176,7 @@ class CaptureCommand extends WebhookCommand
 
             // We use canHold() to check if the order is "Editable".
             // It returns FALSE if order is Canceled, Closed, Complete, or Payment Review.
-            if ($freshOrder->canHold()) {
+            if ($persistedOrderIsEditable) {
                 // Safe to update. Ensure state/status are correct.
                 if ($order->getState() !== Order::STATE_PROCESSING
                     || $order->getStatus() !== Order::STATE_PROCESSING
@@ -182,7 +197,7 @@ class CaptureCommand extends WebhookCommand
                     'CaptureCommand: Skipping state update to PROCESSING' .
                     'because order %s is in a protected state (%s).',
                     $order->getIncrementId(),
-                    $freshOrder->getState()
+                    $persistedState
                 ));
             }
         }
@@ -200,10 +215,43 @@ class CaptureCommand extends WebhookCommand
     }
 
     /**
+     * Converts a captured amount from the transaction's currency into the order's base currency.
+     *
+     * The wallee invoice reports its amount in the transaction currency, which is the
+     * order currency — but every amount Magento receives through registerCaptureNotification()
+     * is a *base* amount: it lands in base_amount_paid_online, and isCaptureFinal() weighs it
+     * against getBaseTotalDue(). Handing over the order-currency figure therefore both stores
+     * the wrong number and makes a full capture look partial, so no invoice is registered and
+     * the order's paid totals are never filled in. Shops whose base and order currency match
+     * never noticed, because there the two amounts are the same.
+     *
+     * @param Order $order
+     * @param float $amount The captured amount, in the order's currency.
+     * @return float The same amount expressed in the order's base currency.
+     */
+    private function toBaseAmount(Order $order, float $amount): float
+    {
+        $rate = (float) $order->getBaseToOrderRate();
+
+        if ($rate <= 0.0 || $order->getBaseCurrencyCode() === $order->getOrderCurrencyCode()) {
+            return $amount;
+        }
+
+        // A full capture is settled from the order's own base total rather than from the
+        // division: re-deriving it can land a cent away from base_total_due, and that cent
+        // is enough for isCaptureFinal() to treat the capture as partial.
+        if ($this->priceCurrency->round($amount) === $this->priceCurrency->round((float) $order->getTotalDue())) {
+            return (float) $order->getBaseTotalDue();
+        }
+
+        return (float) $this->priceCurrency->round($amount / $rate);
+    }
+
+    /**
      * Ported private helper method
      *
      * @param Order $order
-     * @param float $amount
+     * @param float $amount The captured amount, in the order's base currency.
      * @param InvoiceInterface|null $invoice
      * @return InvoiceInterface|null
      */

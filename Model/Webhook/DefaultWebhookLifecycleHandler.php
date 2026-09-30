@@ -8,7 +8,7 @@ use Wallee\PluginCore\SharedKernel\AbstractDomainException;
 use Wallee\PluginCore\Webhook\DefaultWebhookLifecycleHandler as CoreDefaultWebhookLifecycleHandler;
 use Wallee\PluginCore\Webhook\Enum\WebhookListener;
 use Wallee\PluginCore\Webhook\Exception\SkippedStepException;
-use Wallee\PluginCore\Webhook\Exception\TransientWebhookException;
+use Wallee\PluginCore\Webhook\Exception\RetryableWebhookException;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Webhook\StateValidator;
 use Magento\Framework\App\ResourceConnection;
@@ -220,12 +220,12 @@ class DefaultWebhookLifecycleHandler extends CoreDefaultWebhookLifecycleHandler
      * @param string $lockId
      * @param int $attempt
      * @return void
-     * @throws TransientWebhookException
+     * @throws RetryableWebhookException
      */
     private function acquireLockWithRetry(string $lockId, int $attempt): void
     {
         if ($attempt >= self::MAX_LOCK_ATTEMPTS) {
-            throw new TransientWebhookException(
+            throw new RetryableWebhookException(
                 "Max lock wait attempts reached for lock ID: {$lockId}"
             );
         }

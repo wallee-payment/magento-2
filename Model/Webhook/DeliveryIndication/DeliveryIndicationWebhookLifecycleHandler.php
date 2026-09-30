@@ -10,6 +10,8 @@ use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Sdk\SdkProvider;
 use Wallee\PluginCore\DeliveryIndication\DeliveryIndication;
 use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationGatewayInterface;
+use Wallee\PluginCore\DeliveryIndication\Exception\DeliveryIndicationException;
+use Wallee\PluginCore\Webhook\Exception\RetryableWebhookException;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Lock\LockManagerInterface;
@@ -63,18 +65,36 @@ class DeliveryIndicationWebhookLifecycleHandler extends BaseOrderLifecycleHandle
     /**
      * Load SDK entity for the given webhook context.
      *
+     * A retryable failure must not be swallowed into a null here — doing so would
+     * make preProcess() ack the webhook as "nothing to do" and the portal would
+     * never retry it. A non-retryable failure returns null, same as the gateway
+     * confirming the entity does not exist.
+     *
      * @param WebhookListener $listener
      * @param WebhookContext $context
      * @return object|null
+     * @throws RetryableWebhookException If the failure is retryable.
      */
     protected function loadSdkEntity(WebhookListener $listener, WebhookContext $context): ?object
     {
         try {
             return $this->deliveryIndicationGateway->get($context->spaceId, $context->entityId);
-        } catch (\Exception $e) {
-            $this->logger->error("Failed to load DeliveryIndication {$context->entityId}: " . $e->getMessage());
+        } catch (DeliveryIndicationException $e) {
+            if ($e->isRetryable()) {
+                throw new RetryableWebhookException(
+                    "Failed to load DeliveryIndication {$context->entityId}: " . $e->getMessage(),
+                    null,
+                    $e
+                );
+            }
+
+            $this->logger->error(
+                "Failed to load DeliveryIndication {$context->entityId}: " . $e->getMessage(),
+                ['exception' => $e]
+            );
+
+            return null;
         }
-        return null;
     }
 
     /**

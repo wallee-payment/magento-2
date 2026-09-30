@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * wallee Magento 2
+ *
+ * This Magento 2 extension enables to process payments with wallee (https://www.wallee.com).
+ *
+ * @package Wallee_Payment
+ * @author wallee AG (https://www.wallee.com)
+ * @license http://www.apache.org/licenses/LICENSE-2.0  Apache Software License (ASL 2.0)
+
+ */
+ -->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Cache/etc/cache.xsd">
+    <type name="wallee_plugin_core" translate="label,description" instance="Wallee\Payment\Model\PluginCache\CacheType">
+        <label>Wallee Portal Data</label>
+        <description>Label descriptors and groups read from the Wallee Portal.</description>
+    </type>
+</config>

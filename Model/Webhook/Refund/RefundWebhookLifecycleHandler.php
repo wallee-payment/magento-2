@@ -11,6 +11,7 @@ use Wallee\PluginCore\Sdk\SdkProvider;
 use Wallee\PluginCore\Refund\Refund as CoreRefund;
 use Wallee\PluginCore\Refund\RefundGatewayInterface;
 use Wallee\PluginCore\Refund\Exception\RefundException;
+use Wallee\PluginCore\Webhook\Exception\RetryableWebhookException;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Magento\Framework\App\ResourceConnection;
@@ -62,26 +63,37 @@ class RefundWebhookLifecycleHandler extends BaseOrderLifecycleHandler
     /**
      * Load SDK entity for the given webhook context.
      *
+     * `findById()` never returns null — even a genuine "not found" surfaces as a
+     * RefundException — so `isRetryable()` is the only thing telling a retryable
+     * failure apart from a terminal one here. A retryable failure must not be
+     * swallowed into a null: doing so would make preProcess() ack the webhook as
+     * "nothing to do" and the portal would never retry it.
+     *
      * @param WebhookListener $listener
      * @param WebhookContext $context
      * @return object|null
+     * @throws RetryableWebhookException If the failure is retryable.
      */
     protected function loadSdkEntity(WebhookListener $listener, WebhookContext $context): ?object
     {
         try {
             return $this->pluginCoreRefundGateway->findById($context->spaceId, $context->entityId);
         } catch (RefundException $e) {
-            $this->logger->error('Failed to load Refund.', [
-                'entityId' => $context->entityId,
-                'exception' => $e,
-            ]);
-        } catch (\Exception $e) {
-            $this->logger->error('Failed to load Refund.', [
-                'entityId' => $context->entityId,
-                'exception' => $e,
-            ]);
+            if ($e->isRetryable()) {
+                throw new RetryableWebhookException(
+                    "Failed to load Refund {$context->entityId}: " . $e->getMessage(),
+                    null,
+                    $e
+                );
+            }
+
+            $this->logger->error(
+                "Failed to load Refund {$context->entityId}: " . $e->getMessage(),
+                ['exception' => $e]
+            );
+
+            return null;
         }
-        return null;
     }
 
     /**

@@ -458,7 +458,11 @@ class Info extends \Magento\Payment\Block\Info
             $descriptorGroups = $this->globalDataService->getLabelDescriptorGroups();
 
             $labelsByGroupId = [];
-            foreach ($this->getTransaction()->getLabels() as $descriptorId => $value) {
+            foreach ($this->getTransaction()->getLabels() as $descriptorId => $stored) {
+                $value = \is_array($stored) ? ($stored[TransactionInfoInterface::LABEL_VALUE] ?? null) : $stored;
+                if ($value === null || $value === '') {
+                    continue;
+                }
                 $descriptor = $descriptors->findById($descriptorId);
                 if ($descriptor) {
                     $labelsByGroupId[$descriptor->groupId][] = new Label($descriptor, $value);
@@ -483,6 +487,20 @@ class Info extends \Magento\Payment\Block\Info
         } else {
             return [];
         }
+    }
+
+    /**
+     * Truncates the label value for display.
+     *
+     * @param string $value
+     * @param int $maxLength
+     * @return string
+     */
+    #[\ReturnTypeWillChange]
+    public function truncateLabelValue($value, int $maxLength = 50): string
+    {
+        $value = (string) $value;
+        return \mb_strlen($value) > $maxLength ? \mb_substr($value, 0, $maxLength - 1) . '...' : $value;
     }
 
     /**

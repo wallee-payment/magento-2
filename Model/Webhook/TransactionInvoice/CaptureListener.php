@@ -16,6 +16,7 @@ use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Magento\Sales\Model\OrderFactory;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 
 class CaptureListener implements WebhookListenerInterface
 {
@@ -30,6 +31,7 @@ class CaptureListener implements WebhookListenerInterface
      * @param TransactionGatewayInterface $transactionGateway
      * @param OrderResourceModel $orderResourceModel
      * @param OrderFactory $orderFactory
+     * @param PriceCurrencyInterface $priceCurrency
      */
     public function __construct(
         private readonly LoggerInterface $logger,
@@ -40,7 +42,8 @@ class CaptureListener implements WebhookListenerInterface
         private readonly InvoiceGatewayInterface $invoiceGateway,
         private readonly TransactionGatewayInterface $transactionGateway,
         private readonly OrderResourceModel $orderResourceModel,
-        private readonly OrderFactory $orderFactory
+        private readonly OrderFactory $orderFactory,
+        private readonly PriceCurrencyInterface $priceCurrency
     ) {
     }
 
@@ -62,7 +65,8 @@ class CaptureListener implements WebhookListenerInterface
             $this->invoiceGateway,
             $this->transactionGateway,
             $this->orderResourceModel,
-            $this->orderFactory
+            $this->orderFactory,
+            $this->priceCurrency
         );
     }
 }

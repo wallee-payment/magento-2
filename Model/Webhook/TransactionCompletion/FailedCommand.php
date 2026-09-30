@@ -7,8 +7,8 @@ namespace Wallee\Payment\Model\Webhook\TransactionCompletion;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
-use Magento\Sales\Model\OrderFactory;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
+use Magento\Sales\Model\OrderFactory;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Model\Webhook\OrderInvoiceTrait;
 use Wallee\PluginCore\Log\LoggerInterface;
@@ -76,9 +76,10 @@ class FailedCommand extends WebhookCommand
             return null;
         }
 
-        // Load fresh state from DB
-        $freshOrder = $this->orderFactory->create();
-        $this->orderResourceModel->load($freshOrder, $order->getId());
+        // Work on the order as the database currently holds it, not on the snapshot the
+        // repository cached before the order lock was taken. Everything below — including the
+        // save — uses this instance.
+        $order = $this->reloadOrder($order);
 
         // Guard against External Changes
         $protectedStates = [
@@ -86,11 +87,11 @@ class FailedCommand extends WebhookCommand
             Order::STATE_CLOSED,
         ];
 
-        if (in_array($freshOrder->getState(), $protectedStates, true)) {
+        if (in_array($order->getState(), $protectedStates, true)) {
             $this->logger->info(sprintf(
                 'FailedCommand: Skipping cancellation. Order %s is in protected state %s.',
                 $order->getIncrementId(),
-                $freshOrder->getState()
+                $order->getState()
             ));
             return $order;
         }

@@ -68,6 +68,16 @@ interface TransactionInfoInterface extends ExtensibleDataInterface
     public const LABELS = 'labels';
 
     /**
+     * Name key of a label entry.
+     */
+    public const LABEL_NAME = 'name';
+
+    /**
+     * Value key of a label entry.
+     */
+    public const LABEL_VALUE = "value";
+
+    /**
      * Language.
      */
     public const LANGUAGE = 'language';

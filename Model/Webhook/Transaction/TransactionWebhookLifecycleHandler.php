@@ -13,6 +13,7 @@ use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
 use Wallee\PluginCore\Transaction\Exception\TransactionException;
 use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\PluginCore\Webhook\Enum\LifecycleAction;
+use Wallee\PluginCore\Webhook\Exception\RetryableWebhookException;
 use Wallee\PluginCore\Webhook\TransactionActionResolver;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Api\TransactionInfoManagementInterface;
@@ -88,30 +89,44 @@ class TransactionWebhookLifecycleHandler extends BaseOrderLifecycleHandler
     /**
      * Changed from private to protected to match parent.
      *
+     * No local TransactionInfo row (e.g. the order was placed with a non-WhitelabelMachineName
+     * payment method) is the ordinary "nothing to do" case and returns null directly.
+     * A retryable failure reading the transaction from the gateway must not be
+     * swallowed into a null: doing so would make preProcess() ack the webhook as
+     * "nothing to do" and the portal would never retry it. A non-retryable failure
+     * returns null too, same as the gateway confirming the entity does not exist.
+     *
      * @param WebhookListener $listener
      * @param WebhookContext $context
      * @return object|null
+     * @throws RetryableWebhookException If the failure is retryable.
      */
     protected function loadSdkEntity(WebhookListener $listener, WebhookContext $context): ?object
     {
-        try {
-            $transactionInfo = $this->findTransactionInfoByTransactionId($context->entityId);
+        $transactionInfo = $this->findTransactionInfoByTransactionId($context->entityId);
 
-            if ($transactionInfo) {
-                return $this->transactionGateway->find((int) $transactionInfo->getSpaceId(), (int) $context->entityId);
-            }
-        } catch (TransactionException $e) {
-            $this->logger->error('Failed to load Transaction.', [
-                'entityId' => $context->entityId,
-                'exception' => $e,
-            ]);
-        } catch (\Exception $e) {
-            $this->logger->error('Failed to load Transaction.', [
-                'entityId' => $context->entityId,
-                'exception' => $e,
-            ]);
+        if (!$transactionInfo) {
+            return null;
         }
-        return null;
+
+        try {
+            return $this->transactionGateway->find((int) $transactionInfo->getSpaceId(), (int) $context->entityId);
+        } catch (TransactionException $e) {
+            if ($e->isRetryable()) {
+                throw new RetryableWebhookException(
+                    "Failed to load Transaction {$context->entityId}: " . $e->getMessage(),
+                    null,
+                    $e
+                );
+            }
+
+            $this->logger->error(
+                "Failed to load Transaction {$context->entityId}: " . $e->getMessage(),
+                ['exception' => $e]
+            );
+
+            return null;
+        }
     }
 
     /**

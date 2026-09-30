@@ -145,3 +145,6 @@
 "The wallee transaction info is already linked to a different order.", "Die wallee-Transaktionsinformationen sind bereits mit einer anderen Bestellung verknüpft."
 "Unable to place order: A server error stopped your order from being placed. Please try to place your order again.", "Bestellung konnte nicht aufgegeben werden: Ein Serverfehler hat die Bestellung verhindert. Bitte versuchen Sie, Ihre Bestellung erneut aufzugeben."
 "Your checkout session has expired. Please try again.", "Ihre Checkout-Sitzung ist abgelaufen. Bitte versuchen Sie es erneut."
+"Unable to initialize the payment. Please try again.", "Die Zahlung konnte nicht initialisiert werden. Bitte versuchen Sie es erneut."
+"Wallee Portal Data", "Wallee Portal-Daten"
+"Label descriptors and groups read from the Wallee Portal.", "Aus dem Wallee Portal geladene Label-Deskriptoren und -Gruppen."

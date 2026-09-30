@@ -18,8 +18,10 @@ use Magento\Framework\Exception\LocalizedException;
 use Wallee\Payment\Api\TransactionInfoManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Api\Data\TransactionInfoInterface;
+use Wallee\Payment\Helper\Locale as LocaleHelper;
 use Wallee\PluginCore\Charge\ChargeService;
 use Wallee\PluginCore\GlobalData\GlobalDataService;
+use Wallee\PluginCore\GlobalData\LabelDescriptor\LabelDescriptor;
 use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\PluginCore\Transaction\Transaction;
@@ -270,9 +272,15 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
             return [];
         }
 
+        $descriptors = $this->globalDataService->getLabelDescriptors();
+
         $labels = [];
         foreach ($chargeAttempt->labels as $label) {
-            $labels[$label->descriptorId] = $label->content;
+            $labelDescriptor = $descriptors->findById($label->descriptorId);
+            $labels[$label->descriptorId] = [
+                TransactionInfoInterface::LABEL_NAME => $this->resolveDescriptorName($labelDescriptor),
+                TransactionInfoInterface::LABEL_VALUE => $label->content,
+            ];
         }
 
         $this->logger->debug('Resolved transaction labels from the successful charge attempt.', [
@@ -282,6 +290,24 @@ class TransactionInfoManagement implements TransactionInfoManagementInterface
         ]);
 
         return $labels;
+    }
+
+    /**
+     * Resolves a label descriptor's name for storage.
+     *
+     * @param LabelDescriptor|null $descriptor
+     * @return string|null
+     */
+    private function resolveDescriptorName(?LabelDescriptor $descriptor): ?string
+    {
+        if ($descriptor === null) {
+            return null;
+        }
+        $names = $descriptor->name->jsonSerialize();
+        if (!\is_array($names)) {
+            return \is_string($names) ? $names : null;
+        }
+        return $names[LocaleHelper::DEFAULT_LANGUAGE] ?? null;
     }
 
     /**

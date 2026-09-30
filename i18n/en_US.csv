@@ -146,3 +146,6 @@
 "The wallee transaction info is already linked to a different order.", "The wallee transaction info is already linked to a different order."
 "Unable to place order: A server error stopped your order from being placed. Please try to place your order again.", "Unable to place order: A server error stopped your order from being placed. Please try to place your order again."
 "Your checkout session has expired. Please try again.", "Your checkout session has expired. Please try again."
+"Unable to initialize the payment. Please try again.", "Unable to initialize the payment. Please try again."
+"Wallee Portal Data", "Wallee Portal Data"
+"Label descriptors and groups read from the Wallee Portal.", "Label descriptors and groups read from the Wallee Portal."
