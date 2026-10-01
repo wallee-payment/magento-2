@@ -56,6 +56,9 @@
     <constraint xsi:type="unique" referenceId="WALLEE_PAYMENT_TRANSACTION_INFO_ORDER_ID">
       <column name="order_id"/>
     </constraint>
+    <index referenceId="WALLEE_PAYMENT_TRANSACTION_INFO_TRANSACTION_ID" indexType="btree">
+      <column name="transaction_id"/>
+    </index>
   </table>
   <table name="wallee_payment_method_configuration" resource="default" engine="innodb" comment="wallee Payment Method Configuration">
     <column xsi:type="int" name="entity_id" padding="10" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
