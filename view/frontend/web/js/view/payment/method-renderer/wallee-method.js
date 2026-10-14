@@ -167,12 +167,17 @@ define([
                 $('body').trigger('processStart');
 
                 this.fetchMetadata().done(function (response) {
-                    var data = JSON.parse(response);
+                    var data;
+
+                    try {
+                        data = JSON.parse(response);
+                    } catch (e) {
+                        self.handleIframeInitError("Wallee Metadata Error:", e);
+                        return;
+                    }
+
                     if (data.error) {
-                        self.loadingIframe = false;
-                        $('body').trigger('processStop');
-                        fullScreenLoader.stopLoader(true);
-                        console.error("Wallee Metadata Error:", data.error);
+                        self.handleIframeInitError("Wallee Metadata Error:", data.error);
                         return;
                     }
 
@@ -182,10 +187,7 @@ define([
                     sdkLoader.load(data.javascriptUrl).then(function () {
                         var handlerFactory = window.IframeCheckoutHandler;
                         if (typeof handlerFactory !== 'function') {
-                            self.loadingIframe = false;
-                            $('body').trigger('processStop');
-                            fullScreenLoader.stopLoader(true);
-                            console.error("Wallee SDK Load failed: IframeCheckoutHandler is not a function");
+                            self.handleIframeInitError("Wallee SDK Load failed: IframeCheckoutHandler is not a function");
                             return;
                         }
 
@@ -219,14 +221,19 @@ define([
                                     return;
                                 }
 
+                                // Add the messages before scrolling: if the theme has no element with
+                                // the method's id, .offset() is undefined and would throw before the
+                                // errors were ever shown.
+                                for (var i = 0; i < errors.length; i++) {
+                                    this.messageContainer.addErrorMessage({
+                                        message: this.stripHtml(errors[i])
+                                    });
+                                }
+
                                 // Scroll to payment method on validation failure.
-                                $('html, body').animate({ scrollTop: $('#' + this.getCode()).offset().top - 20 });
-                                if (validationResult.errors) {
-                                    for (var i = 0; i < validationResult.errors.length; i++) {
-                                        this.messageContainer.addErrorMessage({
-                                            message: this.stripHtml(validationResult.errors[i])
-                                        });
-                                    }
+                                var $method = $('#' + this.getCode());
+                                if ($method.length) {
+                                    $('html, body').animate({ scrollTop: $method.offset().top - 20 });
                                 }
                             }
                         }).bind(self), (function () {
@@ -235,19 +242,24 @@ define([
                             this.loadingIframe = false;
                         }).bind(self));
                     }).catch(function (error) {
-                        self.loadingIframe = false;
-                        $('body').trigger('processStop');
-                        fullScreenLoader.stopLoader(true);
-                        console.error("Wallee SDK Load failed", error);
+                        self.handleIframeInitError("Wallee SDK Load failed", error);
                     });
 
                 }).fail(function (error) {
-                    self.loadingIframe = false;
-                    $('body').trigger('processStop');
-                    fullScreenLoader.stopLoader(true);
-                    console.error("Wallee REST Metadata Call failed", error);
+                    self.handleIframeInitError("Wallee REST Metadata Call failed", error);
                 });
             }
+        },
+
+        handleIframeInitError: function (logMessage, error) {
+            this.loadingIframe = false;
+            $('body').trigger('processStop');
+            fullScreenLoader.stopLoader(true);
+            // Log the raw error, customer see only generic message
+            console.error(logMessage, error);
+            this.messageContainer.addErrorMessage({
+                message: $t('Unable to initialize the payment. Please try again.')
+            });
         },
 
         getSubmitButton: function () {
@@ -279,7 +291,13 @@ define([
                         this.handler.validate();
                     }
                 } else {
-                    this.placeOrder();
+                    // No iframe: don't place an unpaid order, retry loading the iframe instead.
+                    this.createIframeHandler();
+                    if (!this.loadingIframe && !this.handler) {
+                        this.messageContainer.addErrorMessage({
+                            message: $t('Unable to initialize the payment. Please try again.')
+                        });
+                    }
                 }
             } else if (window.checkoutConfig.wallee.integrationMethod == 'lightbox') {
                 if (!this.validate() || !additionalValidators.validate()) {

@@ -149,6 +149,10 @@ class TransactionService extends AbstractTransactionService
         if (!preg_match('/transactionId=(\d+)/', $url, $matches)
             || !isset($matches[1])
             || $matches[1] != $transactionId) {
+            $this->logger->debug("Cached payment URL transaction ID mismatch; invalidating cache.", [
+                'cachedTransactionId' => $matches[1] ?? null,
+                'quoteTransactionId' => $transactionId,
+            ]);
             return null;
         }
         if ($this->isValidateTransactionOnCheckoutEnabled($quote->getStoreId()) && !$this->checkTransactionIsStillAvailable($quote)) {
@@ -437,7 +441,17 @@ class TransactionService extends AbstractTransactionService
         }
 
         $persistence = $this->persistenceFactory->create($quote, $spaceId);
-        return $this->pluginCoreTransactionService->upsert($context, $persistence);
+        $result = $this->pluginCoreTransactionService->upsert($context, $persistence);
+
+        if ($cachedTransactionId > 0 && $result->id !== $cachedTransactionId) {
+            $this->logger->warning("New transaction created due to version conflict during upsert.", [
+                'quoteId' => $quote->getId(),
+                'oldTransactionId' => $cachedTransactionId,
+                'newTransactionId' => $result->id,
+            ]);
+        }
+
+        return $result;
     }
 
     /**

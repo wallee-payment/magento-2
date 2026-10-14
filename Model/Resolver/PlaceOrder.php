@@ -113,6 +113,14 @@ class PlaceOrder implements ResolverInterface
             //And it solves the side effect of not having the order id at the first point where the transaction
             //info is saved.
             $transaction = $this->getTransaction($order);
+            if ($transaction->id !== (int) $order->getWalleeTransactionId()) {
+                throw new LocalizedException(
+                    \__('Transaction ID mismatch: order has %1 but retrieved %2',
+                        $order->getWalleeTransactionId(),
+                        $transaction->id
+                    )
+                );
+            }
             $this->setTransactionUrls($transaction, $orderId, $successUrl, $failureUrl);
             $transactionOutput = $this->getTransactionSettings($transaction, $order, $integrationType);
 
