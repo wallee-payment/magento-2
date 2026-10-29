@@ -50,6 +50,20 @@ class Collection extends AbstractCollection
     }
 
     /**
+     * Unserialize the refund context of loaded refund jobs.
+     *
+     * @return $this
+     */
+    protected function _afterLoad()
+    {
+        parent::_afterLoad();
+        foreach ($this->_items as $item) {
+            $this->getResource()->unserializeFields($item);
+        }
+        return $this;
+    }
+
+    /**
      * Filters the collection by space.
      *
      * @param int $spaceId
