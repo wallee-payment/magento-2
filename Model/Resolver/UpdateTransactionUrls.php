@@ -177,19 +177,9 @@ class UpdateTransactionUrls implements ResolverInterface
                 //Fetching the JavaScript URL here allows updating the quote
                 //with the current transaction and saving it in the session.
                 $this->transactionQuoteService->getJavaScriptUrl($quote);
-
-                //values from the session
-                $quote = $this->checkoutSession->getQuote();
-                $spaceId = $quote->getWalleeSpaceId();
-                $transactionId = $quote->getWalleeTransactionId();
             }
 
-            //$quoteSession = $this->checkoutSession->getQuote();
-            /** @var \Wallee\Payment\Model\ResourceModel\TransactionInfo $transactionInfo */
-            $transactionInfo = $this->transactionQuoteService->getTransaction(
-                $quote->getWalleeSpaceId(),
-                $quote->getWalleeTransactionId()
-            );
+            $transaction = $this->transactionQuoteService->getTransactionByQuote($quote);
 
             // Gets the ID reserved for the order from the quotation
             $orderId = $quote->getReservedOrderId();
@@ -201,10 +191,10 @@ class UpdateTransactionUrls implements ResolverInterface
             // has been made, so there is no order id at this point.
             // The transaction info id is set, so that there are no other unknown side effects, it's mandatory.
             if (!$orderId && !$quote->hasReservedOrderId()) {
-                $orderId = $transactionInfo->getId();
+                $orderId = $transaction->id;
             }
 
-            $this->transactionInfoManagement->setRedirectUrls($transactionInfo, $orderId, $successUrl, $failureUrl);
+            $this->transactionInfoManagement->setRedirectUrls($transaction, $orderId, $successUrl, $failureUrl);
             return ['result' => 'OK'];
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
             return ['result' => 'KO. ' . $e->getMessage()];
