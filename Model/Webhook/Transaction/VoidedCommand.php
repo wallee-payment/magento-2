@@ -16,9 +16,11 @@ use Wallee\PluginCore\Webhook\TransactionActionResolver;
 use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Magento\Sales\Model\OrderFactory;
+use Wallee\Payment\Model\Webhook\OrderReloadTrait;
 
 class VoidedCommand extends WebhookCommand
 {
+    use OrderReloadTrait;
     use TransactionCommandTrait;
     use OrderInvoiceTrait;
 

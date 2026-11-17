@@ -15,9 +15,11 @@ use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Transaction\Completion\TransactionCompletionGatewayInterface;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
 use Wallee\PluginCore\Webhook\WebhookContext;
+use Wallee\Payment\Model\Webhook\OrderReloadTrait;
 
 class FailedCommand extends WebhookCommand
 {
+    use OrderReloadTrait;
     use OrderInvoiceTrait;
     use TransactionCompletionCommandTrait;
 
