@@ -18,6 +18,7 @@ use Magento\Framework\App\Action\Context;
 use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
 use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Wallee\Payment\Observer\RestoreCartOnCartPage;
 
@@ -49,12 +50,18 @@ class Success extends \Wallee\Payment\Controller\Transaction
     private $cookieMetadataFactory;
 
     /**
+     * @var CartRepositoryInterface
+     */
+    private $quoteRepository;
+
+    /**
      * @param Context $context
      * @param OrderRepositoryInterface $orderRepository
      * @param CheckoutSession $checkoutSession
      * @param SuccessValidator $successValidator
      * @param CookieManagerInterface $cookieManager
      * @param CookieMetadataFactory $cookieMetadataFactory
+     * @param CartRepositoryInterface $quoteRepository
      */
     public function __construct(
         Context $context,
@@ -62,13 +69,15 @@ class Success extends \Wallee\Payment\Controller\Transaction
         CheckoutSession $checkoutSession,
         SuccessValidator $successValidator,
         CookieManagerInterface $cookieManager,
-        CookieMetadataFactory $cookieMetadataFactory
+        CookieMetadataFactory $cookieMetadataFactory,
+        CartRepositoryInterface $quoteRepository
     ) {
         parent::__construct($context, $orderRepository);
         $this->checkoutSession = $checkoutSession;
         $this->successValidator = $successValidator;
         $this->cookieManager = $cookieManager;
         $this->cookieMetadataFactory = $cookieMetadataFactory;
+        $this->quoteRepository = $quoteRepository;
     }
 
     /**
@@ -100,7 +109,7 @@ class Success extends \Wallee\Payment\Controller\Transaction
         if ($quote && $quote->getId()) {
             $quote->setIsActive(false);
             $quote->removeAllItems();
-            $quote->save();
+            $this->quoteRepository->save($quote);
         }
 
         $this->checkoutSession->setLastOrderId($order->getId())

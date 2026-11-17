@@ -118,9 +118,9 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
         $moduleInfo = $this->_moduleList->getOne('Amasty_Checkout');
 
         if (version_compare($moduleInfo['setup_version'], '4.0.0', '>=')) {
-            $feeRepository = $this->objectManager->get(\Amasty\CheckoutCore\Api\FeeRepositoryInterface::class);
+            $feeRepository = $this->objectManager->get('Amasty\CheckoutCore\Api\FeeRepositoryInterface');
         } else {
-            $feeRepository = $this->objectManager->get(\Amasty\Checkout\Api\FeeRepositoryInterface::class);
+            $feeRepository = $this->objectManager->get('Amasty\Checkout\Api\FeeRepositoryInterface');
         }
 
         $currency = null;

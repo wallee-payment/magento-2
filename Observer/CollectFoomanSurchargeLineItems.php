@@ -150,8 +150,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      */
     protected function convertOrderFoomanSurchargeLineItems(Order $order)
     {
-        /* @var \Fooman\Totals\Model\OrderTotalManagement $orderTotalManagement */
-        $orderTotalManagement = $this->objectManager->get(\Fooman\Totals\Model\OrderTotalManagement::class);
+        $orderTotalManagement = $this->objectManager->get('Fooman\Totals\Model\OrderTotalManagement');
         $surchargeCollection = $orderTotalManagement->getByOrderId($order->getId());
 
         $items = [];
@@ -217,8 +216,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      */
     protected function convertInvoiceFoomanSurchargeLineItems(Invoice $invoice)
     {
-        /* @var \Fooman\Totals\Model\InvoiceTotalManagement $invoiceTotalManagement */
-        $invoiceTotalManagement = $this->objectManager->get(\Fooman\Totals\Model\InvoiceTotalManagement::class);
+        $invoiceTotalManagement = $this->objectManager->get('Fooman\Totals\Model\InvoiceTotalManagement');
         $surchargeCollection = $invoiceTotalManagement->getByInvoiceId($invoice->getId());
 
         $items = [];
@@ -296,8 +294,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
             $entity->getStore()
         );
 
-        /* @var \Fooman\Surcharge\Helper\Surcharge $surchargeHelper */
-        $surchargeHelper = $this->objectManager->get(\Fooman\Surcharge\Helper\Surcharge::class);
+        $surchargeHelper = $this->objectManager->get('Fooman\Surcharge\Helper\Surcharge');
         $taxClassId = $surchargeHelper->getSurchargeTaxClassIdByTypeId($code);
         if ($taxClassId > 0) {
             $taxClass = $this->taxClassRepository->get($taxClassId);

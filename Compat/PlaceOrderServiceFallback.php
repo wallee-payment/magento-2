@@ -11,6 +11,9 @@
  */
 namespace Wallee\Payment\Compat;
 
+use Magento\Quote\Api\CartManagementInterface;
+use Magento\Quote\Model\Quote;
+
 /**
  * Stub base used when Hyvä Checkout module is not present.
  * Wallee\Payment\Compat\PlaceOrderServiceBase is aliased
@@ -20,4 +23,26 @@ namespace Wallee\Payment\Compat;
  */
 class PlaceOrderServiceFallback
 {
+    /**
+     * Initialize the fallback service.
+     *
+     * @param CartManagementInterface $cartManagement
+     * @param mixed $orderData
+     */
+    public function __construct(CartManagementInterface $cartManagement, $orderData = null)
+    {
+    }
+
+    /**
+     * Reject redirects when Hyvä Checkout is unavailable.
+     *
+     * @param Quote $quote
+     * @param int|null $orderId
+     * @return string
+     * @throws \LogicException
+     */
+    public function getRedirectUrl(Quote $quote, ?int $orderId = null): string
+    {
+        throw new \LogicException('Hyvä Checkout is required to resolve the order redirect URL.');
+    }
 }
