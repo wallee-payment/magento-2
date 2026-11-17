@@ -24,6 +24,16 @@ use Magento\Quote\Model\Quote;
 class PlaceOrderServiceFallback
 {
     /**
+     * @var CartManagementInterface
+     */
+    protected $cartManagement;
+
+    /**
+     * @var mixed
+     */
+    protected $orderData;
+
+    /**
      * Initialize the fallback service.
      *
      * @param CartManagementInterface $cartManagement
@@ -31,6 +41,8 @@ class PlaceOrderServiceFallback
      */
     public function __construct(CartManagementInterface $cartManagement, $orderData = null)
     {
+        $this->cartManagement = $cartManagement;
+        $this->orderData = $orderData;
     }
 
     /**

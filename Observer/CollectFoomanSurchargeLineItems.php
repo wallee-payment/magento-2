@@ -76,6 +76,11 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
     private $logger;
 
     /**
+     * @var string[]
+     */
+    private $serviceTypes;
+
+    /**
      *
      * @param ObjectManagerInterface $objectManager
      * @param ModuleManager $moduleManager
@@ -84,6 +89,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      * @param CustomerGroupRegistry $groupRegistry
      * @param Helper $helper
      * @param LoggerInterface $logger
+     * @param string[] $serviceTypes
      */
     public function __construct(
         ObjectManagerInterface $objectManager,
@@ -92,7 +98,8 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
         TaxCalculation $taxCalculation,
         CustomerGroupRegistry $groupRegistry,
         Helper $helper,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        array $serviceTypes
     ) {
         $this->objectManager = $objectManager;
         $this->moduleManager = $moduleManager;
@@ -101,6 +108,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
         $this->groupRegistry = $groupRegistry;
         $this->helper = $helper;
         $this->logger = $logger;
+        $this->serviceTypes = $serviceTypes;
     }
 
     /**
@@ -150,7 +158,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      */
     protected function convertOrderFoomanSurchargeLineItems(Order $order)
     {
-        $orderTotalManagement = $this->objectManager->get('Fooman\Totals\Model\OrderTotalManagement');
+        $orderTotalManagement = $this->objectManager->get($this->serviceTypes['orderTotalManagement']);
         $surchargeCollection = $orderTotalManagement->getByOrderId($order->getId());
 
         $items = [];
@@ -216,7 +224,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
      */
     protected function convertInvoiceFoomanSurchargeLineItems(Invoice $invoice)
     {
-        $invoiceTotalManagement = $this->objectManager->get('Fooman\Totals\Model\InvoiceTotalManagement');
+        $invoiceTotalManagement = $this->objectManager->get($this->serviceTypes['invoiceTotalManagement']);
         $surchargeCollection = $invoiceTotalManagement->getByInvoiceId($invoice->getId());
 
         $items = [];
@@ -294,7 +302,7 @@ class CollectFoomanSurchargeLineItems implements ObserverInterface
             $entity->getStore()
         );
 
-        $surchargeHelper = $this->objectManager->get('Fooman\Surcharge\Helper\Surcharge');
+        $surchargeHelper = $this->objectManager->get($this->serviceTypes['surchargeHelper']);
         $taxClassId = $surchargeHelper->getSurchargeTaxClassIdByTypeId($code);
         if ($taxClassId > 0) {
             $taxClass = $this->taxClassRepository->get($taxClassId);
