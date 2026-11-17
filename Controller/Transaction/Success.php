@@ -18,7 +18,7 @@ use Magento\Framework\App\Action\Context;
 use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
 use Magento\Framework\Stdlib\CookieManagerInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Quote\Api\CartRepositoryInterface;
+use Magento\Quote\Model\ResourceModel\Quote as QuoteResource;
 use Magento\Sales\Model\Order;
 use Wallee\Payment\Observer\RestoreCartOnCartPage;
 
@@ -50,9 +50,9 @@ class Success extends \Wallee\Payment\Controller\Transaction
     private $cookieMetadataFactory;
 
     /**
-     * @var CartRepositoryInterface
+     * @var QuoteResource
      */
-    private $quoteRepository;
+    private $quoteResource;
 
     /**
      * @param Context $context
@@ -61,7 +61,7 @@ class Success extends \Wallee\Payment\Controller\Transaction
      * @param SuccessValidator $successValidator
      * @param CookieManagerInterface $cookieManager
      * @param CookieMetadataFactory $cookieMetadataFactory
-     * @param CartRepositoryInterface $quoteRepository
+     * @param QuoteResource $quoteResource
      */
     public function __construct(
         Context $context,
@@ -70,14 +70,14 @@ class Success extends \Wallee\Payment\Controller\Transaction
         SuccessValidator $successValidator,
         CookieManagerInterface $cookieManager,
         CookieMetadataFactory $cookieMetadataFactory,
-        CartRepositoryInterface $quoteRepository
+        QuoteResource $quoteResource
     ) {
         parent::__construct($context, $orderRepository);
         $this->checkoutSession = $checkoutSession;
         $this->successValidator = $successValidator;
         $this->cookieManager = $cookieManager;
         $this->cookieMetadataFactory = $cookieMetadataFactory;
-        $this->quoteRepository = $quoteRepository;
+        $this->quoteResource = $quoteResource;
     }
 
     /**
@@ -109,7 +109,7 @@ class Success extends \Wallee\Payment\Controller\Transaction
         if ($quote && $quote->getId()) {
             $quote->setIsActive(false);
             $quote->removeAllItems();
-            $this->quoteRepository->save($quote);
+            $this->quoteResource->save($quote);
         }
 
         $this->checkoutSession->setLastOrderId($order->getId())
