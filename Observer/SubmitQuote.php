@@ -19,6 +19,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
+use Magento\Sales\Model\ResourceModel\Order\Invoice as InvoiceResource;
 use Wallee\Payment\Api\TransactionInfoManagementInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
@@ -89,6 +90,11 @@ class SubmitQuote implements ObserverInterface
     private $checkoutSession;
 
     /**
+     * @var InvoiceResource
+     */
+    private $invoiceResource;
+
+    /**
      *
      * @param OrderRepositoryInterface $orderRepository
      * @param DBTransactionFactory $dbTransactionFactory
@@ -99,6 +105,7 @@ class SubmitQuote implements ObserverInterface
      * @param ChargeService $chargeService
      * @param LoggerInterface $logger
      * @param CheckoutSession $checkoutSession
+     * @param InvoiceResource $invoiceResource
      */
     public function __construct(
         OrderRepositoryInterface $orderRepository,
@@ -109,7 +116,8 @@ class SubmitQuote implements ObserverInterface
         TransactionInfoRepositoryInterface $transactionInfoRepository,
         ChargeService $chargeService,
         LoggerInterface $logger,
-        CheckoutSession $checkoutSession
+        CheckoutSession $checkoutSession,
+        InvoiceResource $invoiceResource
     ) {
         $this->orderRepository = $orderRepository;
         $this->dbTransactionFactory = $dbTransactionFactory;
@@ -120,6 +128,7 @@ class SubmitQuote implements ObserverInterface
         $this->chargeService = $chargeService;
         $this->logger = $logger;
         $this->checkoutSession = $checkoutSession;
+        $this->invoiceResource = $invoiceResource;
     }
 
     /**
@@ -281,7 +290,7 @@ class SubmitQuote implements ObserverInterface
      * Gets the invoice linked to the given transaction.
      *
      * @param Order $order
-     * @return Invoice
+     * @return Invoice|null
      */
     private function getInvoiceForTransaction(Order $order)
     {
@@ -293,7 +302,7 @@ class SubmitQuote implements ObserverInterface
                     '_' . $order->getWalleeTransactionId()
             ) === 0 && $invoice->getState() != Invoice::STATE_CANCELED
             ) {
-                $invoice->load($invoice->getId());
+                $this->invoiceResource->load($invoice, $invoice->getId());
                 // Invoice::getOrder() lazily loads a fresh Order from the DB when $_order isn't
                 // already set — which it isn't for an invoice found via getInvoiceCollection().
                 // Without this, cancel()'s internal order-total mutations would silently land on

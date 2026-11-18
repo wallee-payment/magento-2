@@ -183,7 +183,7 @@ class Info extends \Magento\Payment\Block\Info
     /**
      * Gets the URL to the payment method image.
      *
-     * @return string
+     * @return string|null
      */
     public function getImageUrl()
     {

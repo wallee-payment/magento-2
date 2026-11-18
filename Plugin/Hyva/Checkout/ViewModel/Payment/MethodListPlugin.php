@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Wallee\Payment\Plugin\Hyva\Checkout\ViewModel\Payment;
 
-use Hyva\Checkout\ViewModel\Checkout\Payment\MethodList;
 use Magento\Framework\View\Element\Template;
 use Magento\Payment\Model\MethodInterface;
 
@@ -25,13 +24,13 @@ class MethodListPlugin
      * This is a fallback to the generic wallee payment block if
      * the specific dynamically generated method block isn't found.
      *
-     * @param MethodList $subject
+     * @param object $subject
      * @param \Magento\Framework\View\Element\AbstractBlock|false $result
      * @param Template $block
      * @param MethodInterface $method
      * @return \Magento\Framework\View\Element\AbstractBlock|false
      */
-    public function afterGetMethodBlock(MethodList $subject, $result, Template $block, MethodInterface $method)
+    public function afterGetMethodBlock($subject, $result, Template $block, MethodInterface $method)
     {
         // If Hyva already found a matched layout block, return it unmodified.
         if ($result !== false) {

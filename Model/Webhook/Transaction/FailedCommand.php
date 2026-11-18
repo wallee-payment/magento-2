@@ -17,9 +17,11 @@ use Wallee\PluginCore\Webhook\TransactionActionResolver;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Magento\Sales\Model\OrderFactory;
+use Wallee\Payment\Model\Webhook\OrderReloadTrait;
 
 class FailedCommand extends WebhookCommand
 {
+    use OrderReloadTrait;
     use OrderInvoiceTrait;
     use TransactionCommandTrait;
 

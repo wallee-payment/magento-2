@@ -52,7 +52,7 @@ class DeviceSession extends \Magento\Framework\View\Element\Template
     /**
      * Get payment device fingerprint script URL.
      *
-     * @return string|bool
+     * @return string|bool|null
      */
     public function getScriptUrl()
     {
