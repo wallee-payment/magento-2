@@ -31,7 +31,7 @@ trait TransactionCompletionCommandTrait
     protected function loadTransactionCompletion(): ?TransactionCompletion
     {
         try {
-            return $this->completionGateway->find($this->context->spaceId, $this->context->entityId);
+            return $this->completionService->find($this->context->spaceId, $this->context->entityId);
         } catch (CompletionException $e) {
             if ($e->isRetryable()) {
                 throw new RetryableWebhookException(

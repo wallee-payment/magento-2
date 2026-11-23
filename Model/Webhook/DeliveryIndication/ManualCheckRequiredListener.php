@@ -7,7 +7,7 @@ namespace Wallee\Payment\Model\Webhook\DeliveryIndication;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
-use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationGatewayInterface;
+use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationService;
 use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Webhook\Command\WebhookCommandInterface;
@@ -23,7 +23,7 @@ class ManualCheckRequiredListener implements WebhookListenerInterface
      * @param OrderRepositoryInterface $orderRepository
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param DeliveryIndicationGatewayInterface $deliveryIndicationGateway
+     * @param DeliveryIndicationService $deliveryIndicationService
      * @param OrderResourceModel $orderResourceModel
      */
     public function __construct(
@@ -31,7 +31,7 @@ class ManualCheckRequiredListener implements WebhookListenerInterface
         private readonly OrderRepositoryInterface $orderRepository,
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly DeliveryIndicationGatewayInterface $deliveryIndicationGateway,
+        private readonly DeliveryIndicationService $deliveryIndicationService,
         private readonly OrderResourceModel $orderResourceModel,
     ) {
     }
@@ -50,7 +50,7 @@ class ManualCheckRequiredListener implements WebhookListenerInterface
             $this->orderRepository,
             $this->transactionInfoRepository,
             $this->searchCriteriaBuilder,
-            $this->deliveryIndicationGateway,
+            $this->deliveryIndicationService,
             $this->orderResourceModel,
         );
     }

@@ -8,7 +8,7 @@ use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
-use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationGatewayInterface;
+use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationService;
 use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
@@ -25,7 +25,7 @@ class ManualCheckRequiredCommand extends WebhookCommand
      * @param OrderRepositoryInterface $orderRepository
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param DeliveryIndicationGatewayInterface $deliveryIndicationGateway
+     * @param DeliveryIndicationService $deliveryIndicationService
      * @param OrderResourceModel $orderResourceModel
      */
     public function __construct(
@@ -34,7 +34,7 @@ class ManualCheckRequiredCommand extends WebhookCommand
         private readonly OrderRepositoryInterface $orderRepository,
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly DeliveryIndicationGatewayInterface $deliveryIndicationGateway,
+        private readonly DeliveryIndicationService $deliveryIndicationService,
         private readonly OrderResourceModel $orderResourceModel
     ) {
         parent::__construct($context, $logger);

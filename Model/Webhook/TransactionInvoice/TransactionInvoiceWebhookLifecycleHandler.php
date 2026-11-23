@@ -10,7 +10,7 @@ use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Sdk\SdkProvider;
 use Wallee\PluginCore\Transaction\Invoice\Exception\InvoiceException;
 use Wallee\PluginCore\Transaction\Invoice\Invoice;
-use Wallee\PluginCore\Transaction\Invoice\InvoiceGatewayInterface;
+use Wallee\PluginCore\Transaction\Invoice\InvoiceService;
 use Wallee\PluginCore\Webhook\Exception\RetryableWebhookException;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Magento\Framework\App\ResourceConnection;
@@ -34,7 +34,7 @@ class TransactionInvoiceWebhookLifecycleHandler extends BaseOrderLifecycleHandle
      * @param OrderRepositoryInterface $orderRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param SdkProvider $sdkProvider
-     * @param InvoiceGatewayInterface $invoiceGateway
+     * @param InvoiceService $invoiceService
      */
     public function __construct(
         private readonly OrderEmailSender $orderEmailSender,
@@ -46,7 +46,7 @@ class TransactionInvoiceWebhookLifecycleHandler extends BaseOrderLifecycleHandle
         OrderRepositoryInterface $orderRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
         SdkProvider $sdkProvider,
-        private readonly InvoiceGatewayInterface $invoiceGateway
+        private readonly InvoiceService $invoiceService
     ) {
         parent::__construct(
             $resource,
@@ -75,7 +75,7 @@ class TransactionInvoiceWebhookLifecycleHandler extends BaseOrderLifecycleHandle
     protected function loadSdkEntity(WebhookListener $listener, WebhookContext $context): ?object
     {
         try {
-            return $this->invoiceGateway->find($context->spaceId, $context->entityId);
+            return $this->invoiceService->find($context->spaceId, $context->entityId);
         } catch (InvoiceException $e) {
             if ($e->isRetryable()) {
                 throw new RetryableWebhookException(

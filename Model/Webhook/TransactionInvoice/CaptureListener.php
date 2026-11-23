@@ -8,8 +8,8 @@ use Wallee\PluginCore\Webhook\Command\WebhookCommandInterface;
 use Wallee\PluginCore\Webhook\Listener\WebhookListenerInterface;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Log\LoggerInterface;
-use Wallee\PluginCore\Transaction\Invoice\InvoiceGatewayInterface;
-use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
+use Wallee\PluginCore\Transaction\Invoice\InvoiceService;
+use Wallee\PluginCore\Transaction\TransactionService as CoreTransactionService;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender as OrderEmailSender;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
@@ -27,8 +27,8 @@ class CaptureListener implements WebhookListenerInterface
      * @param OrderEmailSender $orderEmailSender
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param InvoiceGatewayInterface $invoiceGateway
-     * @param TransactionGatewayInterface $transactionGateway
+     * @param InvoiceService $invoiceService
+     * @param CoreTransactionService $coreTransactionService
      * @param OrderResourceModel $orderResourceModel
      * @param OrderFactory $orderFactory
      * @param PriceCurrencyInterface $priceCurrency
@@ -39,8 +39,8 @@ class CaptureListener implements WebhookListenerInterface
         private readonly OrderEmailSender $orderEmailSender,
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly InvoiceGatewayInterface $invoiceGateway,
-        private readonly TransactionGatewayInterface $transactionGateway,
+        private readonly InvoiceService $invoiceService,
+        private readonly CoreTransactionService $coreTransactionService,
         private readonly OrderResourceModel $orderResourceModel,
         private readonly OrderFactory $orderFactory,
         private readonly PriceCurrencyInterface $priceCurrency
@@ -62,8 +62,8 @@ class CaptureListener implements WebhookListenerInterface
             $this->orderEmailSender,
             $this->transactionInfoRepository,
             $this->searchCriteriaBuilder,
-            $this->invoiceGateway,
-            $this->transactionGateway,
+            $this->invoiceService,
+            $this->coreTransactionService,
             $this->orderResourceModel,
             $this->orderFactory,
             $this->priceCurrency

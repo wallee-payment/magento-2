@@ -16,7 +16,7 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
 use Wallee\Payment\Model\Payment\Method\Adapter;
-use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
+use Wallee\PluginCore\Transaction\TransactionService as CoreTransactionService;
 
 /**
  * Observer to validate and handle the registration of an invoice.
@@ -25,17 +25,17 @@ class RegisterInvoice implements ObserverInterface
 {
     /**
      *
-     * @var TransactionGatewayInterface
+     * @var CoreTransactionService
      */
-    private $transactionGateway;
+    private $coreTransactionService;
 
     /**
      *
-     * @param TransactionGatewayInterface $transactionGateway
+     * @param CoreTransactionService $coreTransactionService
      */
-    public function __construct(TransactionGatewayInterface $transactionGateway)
+    public function __construct(CoreTransactionService $coreTransactionService)
     {
-        $this->transactionGateway = $transactionGateway;
+        $this->coreTransactionService = $coreTransactionService;
     }
 
     /**
@@ -69,7 +69,7 @@ class RegisterInvoice implements ObserverInterface
 
                     if (! $order->getWalleeInvoiceAllowManipulation()) {
                         // The invoice can only be created by the merchant if the transaction is in state 'AUTHORIZED'.
-                        $transaction = $this->transactionGateway->find(
+                        $transaction = $this->coreTransactionService->findTransaction(
                             (int) $order->getWalleeSpaceId(),
                             (int) $order->getWalleeTransactionId()
                         );

@@ -13,6 +13,8 @@ namespace Wallee\Payment\Model;
 
 use Magento\Framework\App\Cache\Type\Config as ConfigCache;
 use Magento\Framework\App\Cache\TypeListInterface as CacheTypeList;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Wallee\Payment\Api\PaymentMethodConfigurationManagementInterface;
@@ -50,21 +52,30 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
 
     /**
      *
+     * @var ScopeConfigInterface
+     */
+    private $scopeConfig;
+
+    /**
+     *
      * @param PaymentMethodService $pluginCorePaymentMethodService
      * @param SettingsProvider $settingsProvider
      * @param StoreManagerInterface $storeManager
      * @param CacheTypeList $cacheTypeList
+     * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         PaymentMethodService $pluginCorePaymentMethodService,
         SettingsProvider $settingsProvider,
         StoreManagerInterface $storeManager,
-        CacheTypeList $cacheTypeList
+        CacheTypeList $cacheTypeList,
+        ScopeConfigInterface $scopeConfig
     ) {
         $this->pluginCorePaymentMethodService = $pluginCorePaymentMethodService;
         $this->settingsProvider = $settingsProvider;
         $this->storeManager = $storeManager;
         $this->cacheTypeList = $cacheTypeList;
+        $this->scopeConfig = $scopeConfig;
     }
 
     /**
@@ -83,11 +94,13 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
             $output->writeln('Synchronizing payment methods:');
         }
 
+        $locales = $this->getShopLocales();
+
         foreach ($this->getConfiguredSpaceIds() as $spaceId) {
             if ($output) {
                 $output->writeln('Space ' . $spaceId);
             }
-            $this->pluginCorePaymentMethodService->synchronize($spaceId);
+            $this->pluginCorePaymentMethodService->synchronize($spaceId, $locales);
         }
 
         $this->cacheTypeList->cleanType(ConfigCache::TYPE_IDENTIFIER);
@@ -95,6 +108,34 @@ class PaymentMethodConfigurationManagement implements PaymentMethodConfiguration
         if ($output) {
             $output->writeln('Synchronization completed.');
         }
+    }
+
+    /**
+     * Returns the distinct locales configured at default, website and store scope.
+     *
+     * The API answers each request in a single language, and the repository writes
+     * titles for every one of these scopes, so each of their locales has to be fetched.
+     *
+     * @return string[]
+     */
+    private function getShopLocales(): array
+    {
+        $locales = [(string)$this->scopeConfig->getValue('general/locale/code')];
+        foreach ($this->storeManager->getWebsites() as $website) {
+            $locales[] = (string)$this->scopeConfig->getValue(
+                'general/locale/code',
+                ScopeInterface::SCOPE_WEBSITES,
+                $website->getId()
+            );
+        }
+        foreach ($this->storeManager->getStores() as $store) {
+            $locales[] = (string)$this->scopeConfig->getValue(
+                'general/locale/code',
+                ScopeInterface::SCOPE_STORES,
+                $store->getId()
+            );
+        }
+        return array_values(array_unique(array_filter($locales)));
     }
 
     /**

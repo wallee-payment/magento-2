@@ -15,7 +15,7 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Checkout\Model\Session as CheckoutSession;
-use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
+use Wallee\PluginCore\Transaction\TransactionService as CoreTransactionService;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -29,9 +29,9 @@ class ValidateAndRestoreQuote implements ObserverInterface
     private $checkoutSession;
 
     /**
-     * @var TransactionGatewayInterface
+     * @var CoreTransactionService
      */
-    private $transactionGateway;
+    private $coreTransactionService;
 
     /**
      *
@@ -42,16 +42,16 @@ class ValidateAndRestoreQuote implements ObserverInterface
     /**
      *
      * @param CheckoutSession $checkoutSession
-     * @param TransactionGatewayInterface $transactionGateway
+     * @param CoreTransactionService $coreTransactionService
      * @param LoggerInterface $logger
      */
     public function __construct(
         CheckoutSession $checkoutSession,
-        TransactionGatewayInterface $transactionGateway,
+        CoreTransactionService $coreTransactionService,
         LoggerInterface $logger
     ) {
         $this->checkoutSession = $checkoutSession;
-        $this->transactionGateway = $transactionGateway;
+        $this->coreTransactionService = $coreTransactionService;
         $this->logger = $logger;
     }
 
@@ -83,7 +83,7 @@ class ValidateAndRestoreQuote implements ObserverInterface
         $transactionId = $order->getWalleeTransactionId();
         if ($spaceId && $transactionId) {
             try {
-                $transaction = $this->transactionGateway->find((int) $spaceId, (int) $transactionId);
+                $transaction = $this->coreTransactionService->findTransaction((int) $spaceId, (int) $transactionId);
                 if ($transaction !== null && $transaction->state->isPaidLike()) {
                     throw new LocalizedException(
                         __('Your cart has already been paid for and cannot be restored.')

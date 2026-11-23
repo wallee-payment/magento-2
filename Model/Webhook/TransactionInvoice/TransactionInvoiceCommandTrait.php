@@ -7,7 +7,7 @@ namespace Wallee\Payment\Model\Webhook\TransactionInvoice;
 use Magento\Sales\Model\Order;
 use Wallee\PluginCore\Transaction\Invoice\Exception\InvoiceException;
 use Wallee\PluginCore\Transaction\Invoice\Invoice;
-use Wallee\PluginCore\Transaction\Invoice\InvoiceGatewayInterface;
+use Wallee\PluginCore\Transaction\Invoice\InvoiceService;
 use Wallee\PluginCore\Webhook\Exception\RetryableWebhookException;
 use Wallee\Payment\Model\Webhook\BaseOrderLookupTrait;
 
@@ -32,7 +32,7 @@ trait TransactionInvoiceCommandTrait
     protected function loadTransactionInvoice(): ?Invoice
     {
         try {
-            return $this->invoiceGateway->find($this->context->spaceId, $this->context->entityId);
+            return $this->invoiceService->find($this->context->spaceId, $this->context->entityId);
         } catch (InvoiceException $e) {
             if ($e->isRetryable()) {
                 throw new RetryableWebhookException(

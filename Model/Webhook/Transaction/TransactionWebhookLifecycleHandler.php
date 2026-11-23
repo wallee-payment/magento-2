@@ -9,7 +9,7 @@ use Wallee\PluginCore\Webhook\Enum\WebhookListener;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Sdk\SdkProvider;
 use Wallee\PluginCore\Transaction\Transaction as CoreTransaction;
-use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
+use Wallee\PluginCore\Transaction\TransactionService as CoreTransactionService;
 use Wallee\PluginCore\Transaction\Exception\TransactionException;
 use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\PluginCore\Webhook\Enum\LifecycleAction;
@@ -47,7 +47,7 @@ class TransactionWebhookLifecycleHandler extends BaseOrderLifecycleHandler
      * @param ResourceConnection $resource
      * @param SdkProvider $sdkProvider
      * @param LoggerInterface $logger
-     * @param TransactionGatewayInterface $transactionGateway
+     * @param CoreTransactionService $coreTransactionService
      * @param TransactionActionResolver $transactionActionResolver
      */
     public function __construct(
@@ -60,7 +60,7 @@ class TransactionWebhookLifecycleHandler extends BaseOrderLifecycleHandler
         ResourceConnection $resource,
         SdkProvider $sdkProvider,
         LoggerInterface $logger,
-        private readonly TransactionGatewayInterface $transactionGateway,
+        private readonly CoreTransactionService $coreTransactionService,
         private readonly TransactionActionResolver $transactionActionResolver
     ) {
         parent::__construct(
@@ -110,7 +110,7 @@ class TransactionWebhookLifecycleHandler extends BaseOrderLifecycleHandler
         }
 
         try {
-            return $this->transactionGateway->find((int) $transactionInfo->getSpaceId(), (int) $context->entityId);
+            return $this->coreTransactionService->findTransaction((int) $transactionInfo->getSpaceId(), (int) $context->entityId);
         } catch (TransactionException $e) {
             if ($e->isRetryable()) {
                 throw new RetryableWebhookException(

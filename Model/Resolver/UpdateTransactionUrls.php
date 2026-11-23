@@ -185,7 +185,7 @@ class UpdateTransactionUrls implements ResolverInterface
             }
 
             //$quoteSession = $this->checkoutSession->getQuote();
-            /** @var \Wallee\Payment\Model\ResourceModel\TransactionInfo $transactionInfo */
+            /** @var \Wallee\PluginCore\Transaction\Transaction $transactionInfo */
             $transactionInfo = $this->transactionQuoteService->getTransaction(
                 $quote->getWalleeSpaceId(),
                 $quote->getWalleeTransactionId()
@@ -201,7 +201,7 @@ class UpdateTransactionUrls implements ResolverInterface
             // has been made, so there is no order id at this point.
             // The transaction info id is set, so that there are no other unknown side effects, it's mandatory.
             if (!$orderId && !$quote->hasReservedOrderId()) {
-                $orderId = $transactionInfo->getId();
+                $orderId = $transactionInfo->id;
             }
 
             $this->transactionInfoManagement->setRedirectUrls($transactionInfo, $orderId, $successUrl, $failureUrl);

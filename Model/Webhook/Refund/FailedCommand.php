@@ -8,7 +8,7 @@ use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\PluginCore\Log\LoggerInterface;
-use Wallee\PluginCore\Refund\RefundGatewayInterface;
+use Wallee\PluginCore\Refund\RefundService as CoreRefundService;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
 use Wallee\PluginCore\Webhook\WebhookContext;
 
@@ -23,7 +23,7 @@ class FailedCommand extends WebhookCommand
      * @param OrderRepositoryInterface $orderRepository
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param RefundGatewayInterface $pluginCoreRefundGateway
+     * @param CoreRefundService $coreRefundService
      */
     public function __construct(
         WebhookContext $context,
@@ -31,7 +31,7 @@ class FailedCommand extends WebhookCommand
         private readonly OrderRepositoryInterface $orderRepository,
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly RefundGatewayInterface $pluginCoreRefundGateway,
+        private readonly CoreRefundService $coreRefundService,
     ) {
         parent::__construct($context, $logger);
     }

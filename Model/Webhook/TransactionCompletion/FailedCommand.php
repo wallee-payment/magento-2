@@ -12,7 +12,7 @@ use Magento\Sales\Model\OrderFactory;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Model\Webhook\OrderInvoiceTrait;
 use Wallee\PluginCore\Log\LoggerInterface;
-use Wallee\PluginCore\Transaction\Completion\TransactionCompletionGatewayInterface;
+use Wallee\PluginCore\Transaction\Completion\TransactionCompletionService;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
 use Wallee\PluginCore\Webhook\WebhookContext;
 
@@ -30,7 +30,7 @@ class FailedCommand extends WebhookCommand
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param OrderResourceModel $orderResourceModel
      * @param OrderFactory $orderFactory
-     * @param TransactionCompletionGatewayInterface $completionGateway
+     * @param TransactionCompletionService $completionService
      */
     public function __construct(
         WebhookContext $context,
@@ -40,7 +40,7 @@ class FailedCommand extends WebhookCommand
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly OrderResourceModel $orderResourceModel,
         private readonly OrderFactory $orderFactory,
-        protected readonly TransactionCompletionGatewayInterface $completionGateway,
+        protected readonly TransactionCompletionService $completionService,
     ) {
         parent::__construct($context, $logger);
     }

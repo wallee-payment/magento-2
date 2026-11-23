@@ -185,6 +185,18 @@ class TransactionService extends AbstractTransactionService
     }
 
     /**
+     * Gets the transaction by its ID.
+     *
+     * @param int $spaceId
+     * @param int $transactionId
+     * @return CoreTransaction
+     */
+    public function getTransaction($spaceId, $transactionId): CoreTransaction
+    {
+        return $this->pluginCoreTransactionService->getTransaction((int) $spaceId, (int) $transactionId);
+    }
+
+    /**
      * Gets the URL to the JavaScript library required to display the iframe payment form.
      *
      * @param Quote $quote

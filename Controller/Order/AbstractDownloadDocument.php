@@ -11,12 +11,14 @@
  */
 namespace Wallee\Payment\Controller\Order;
 
-use Magento\Framework\Registry;
+use Magento\Customer\Model\Session as CustomerSession;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\Response\Http\FileFactory;
-use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Controller\Result\ForwardFactory;
-use Magento\Sales\Controller\AbstractController\OrderLoaderInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Controller\AbstractController\OrderViewAuthorizationInterface;
+use Magento\Sales\Model\Order;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Api\Data\TransactionInfoInterface;
 use Wallee\Payment\Controller\DocumentDownloadResponseTrait;
@@ -44,11 +46,6 @@ abstract class AbstractDownloadDocument extends \Wallee\Payment\Controller\Order
      */
     private $fileFactory;
 
-    /**
-     *
-     * @var Registry
-     */
-    private $registry;
 
     /**
      *
@@ -58,9 +55,21 @@ abstract class AbstractDownloadDocument extends \Wallee\Payment\Controller\Order
 
     /**
      *
-     * @var OrderLoaderInterface
+     * @var OrderRepositoryInterface
      */
-    private $orderLoader;
+    private $orderRepository;
+
+    /**
+     *
+     * @var OrderViewAuthorizationInterface
+     */
+    private $orderAuthorization;
+
+    /**
+     *
+     * @var CustomerSession
+     */
+    private $customerSession;
 
     /**
      *
@@ -84,9 +93,10 @@ abstract class AbstractDownloadDocument extends \Wallee\Payment\Controller\Order
      * @param Context $context
      * @param ForwardFactory $resultForwardFactory
      * @param FileFactory $fileFactory
-     * @param Registry $registry
      * @param DocumentHelper $documentHelper
-     * @param OrderLoaderInterface $orderLoader
+     * @param OrderRepositoryInterface $orderRepository
+     * @param OrderViewAuthorizationInterface $orderAuthorization
+     * @param CustomerSession $customerSession
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param DocumentService $documentService
      * @param LoggerInterface $logger
@@ -95,9 +105,10 @@ abstract class AbstractDownloadDocument extends \Wallee\Payment\Controller\Order
         Context $context,
         ForwardFactory $resultForwardFactory,
         FileFactory $fileFactory,
-        Registry $registry,
         DocumentHelper $documentHelper,
-        OrderLoaderInterface $orderLoader,
+        OrderRepositoryInterface $orderRepository,
+        OrderViewAuthorizationInterface $orderAuthorization,
+        CustomerSession $customerSession,
         TransactionInfoRepositoryInterface $transactionInfoRepository,
         DocumentService $documentService,
         LoggerInterface $logger
@@ -105,9 +116,10 @@ abstract class AbstractDownloadDocument extends \Wallee\Payment\Controller\Order
         parent::__construct($context);
         $this->resultForwardFactory = $resultForwardFactory;
         $this->fileFactory = $fileFactory;
-        $this->registry = $registry;
         $this->documentHelper = $documentHelper;
-        $this->orderLoader = $orderLoader;
+        $this->orderRepository = $orderRepository;
+        $this->orderAuthorization = $orderAuthorization;
+        $this->customerSession = $customerSession;
         $this->transactionInfoRepository = $transactionInfoRepository;
         $this->documentService = $documentService;
         $this->logger = $logger;
@@ -121,13 +133,15 @@ abstract class AbstractDownloadDocument extends \Wallee\Payment\Controller\Order
     #[\ReturnTypeWillChange]
     public function execute()
     {
-        $result = $this->orderLoader->load($this->_request);
-        if ($result instanceof ResultInterface) {
-            return $result;
+        $order = $this->loadOrder();
+        if ($order === null) {
+            return $this->resultForwardFactory->create()->forward('noroute');
         }
 
-        /** @var \Magento\Sales\Model\Order $order */
-        $order = $this->registry->registry('current_order');
+        if (!$this->canDownload($order)) {
+            return $this->redirectUnauthorized($order);
+        }
+
         $transaction = $this->transactionInfoRepository->getByOrderId($order->getId());
         if (!$this->isDocumentDownloadAllowed($transaction, $order->getStoreId())) {
             return $this->resultForwardFactory->create()->forward('noroute');
@@ -152,6 +166,63 @@ abstract class AbstractDownloadDocument extends \Wallee\Payment\Controller\Order
         ]);
 
         return $this->createDocumentDownloadResponse($document);
+    }
+
+    /**
+     * @return Order|null
+     */
+    private function loadOrder()
+    {
+        $orderId = (int) $this->getRequest()->getParam('order_id');
+        if ($orderId <= 0) {
+            return null;
+        }
+
+        try {
+            return $this->orderRepository->get($orderId);
+        } catch (NoSuchEntityException $e) {
+            return null;
+        }
+    }
+
+    /**
+     * A link carrying the order's protect code (as sent in order emails) grants access on its own,
+     * otherwise the visitor must be the logged-in owner of the order.
+     *
+     * @param Order $order
+     * @return bool
+     */
+    private function canDownload(Order $order): bool
+    {
+        $protectCode = (string) $this->getRequest()->getParam('protect_code', '');
+        if ($protectCode !== '' && (string) $order->getProtectCode() !== '') {
+            return \hash_equals((string) $order->getProtectCode(), $protectCode);
+        }
+
+        return $this->orderAuthorization->canView($order);
+    }
+
+    /**
+     * Sends a visitor who may not download the document to a page that exists: the order history
+     * when logged in, the guest order lookup for guest orders, the login page otherwise.
+     *
+     * @param Order $order
+     * @return \Magento\Framework\Controller\Result\Redirect
+     */
+    private function redirectUnauthorized(Order $order)
+    {
+        $redirect = $this->resultRedirectFactory->create();
+
+        if ($this->customerSession->isLoggedIn()) {
+            return $redirect->setPath('sales/order/history');
+        }
+
+        if ($order->getCustomerIsGuest()) {
+            return $redirect->setPath('sales/guest/form');
+        }
+
+        $this->customerSession->setBeforeAuthUrl($this->_url->getCurrentUrl());
+        return $redirect->setPath('customer/account/login');
     }
 
     /**

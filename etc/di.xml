@@ -282,6 +282,7 @@
         <arguments>
             <argument name="sdkProvider" xsi:type="object">Wallee\Payment\SdkProvider</argument>
             <argument name="settings" xsi:type="object">Wallee\PluginCore\Settings\Settings</argument>
+            <argument name="signatureGateway" xsi:type="object">Wallee\Payment\WebhookSignatureGateway</argument>
         </arguments>
     </type>
 

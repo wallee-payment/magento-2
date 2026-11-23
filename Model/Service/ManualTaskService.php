@@ -16,7 +16,7 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Config\Storage\WriterInterface as StorageWriter;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use Wallee\PluginCore\ManualTask\ManualTaskGatewayInterface;
+use Wallee\PluginCore\ManualTask\ManualTaskService as CoreManualTaskService;
 use Wallee\PluginCore\ManualTask\State as ManualTaskState;
 
 /**
@@ -53,9 +53,9 @@ class ManualTaskService
 
     /**
      *
-     * @var ManualTaskGatewayInterface
+     * @var CoreManualTaskService
      */
-    private $manualTaskGateway;
+    private $coreManualTaskService;
 
     /**
      *
@@ -63,20 +63,20 @@ class ManualTaskService
      * @param ScopeConfigInterface $scopeConfig
      * @param CollectionFactory $configCollectionFactory
      * @param StorageWriter $configWriter
-     * @param ManualTaskGatewayInterface $manualTaskGateway
+     * @param CoreManualTaskService $coreManualTaskService
      */
     public function __construct(
         StoreManagerInterface $storeManager,
         ScopeConfigInterface $scopeConfig,
         CollectionFactory $configCollectionFactory,
         StorageWriter $configWriter,
-        ManualTaskGatewayInterface $manualTaskGateway
+        CoreManualTaskService $coreManualTaskService
     ) {
         $this->storeManager = $storeManager;
         $this->scopeConfig = $scopeConfig;
         $this->configCollectionFactory = $configCollectionFactory;
         $this->configWriter = $configWriter;
-        $this->manualTaskGateway = $manualTaskGateway;
+        $this->coreManualTaskService = $coreManualTaskService;
     }
 
     /**
@@ -117,7 +117,7 @@ class ManualTaskService
                 $website->getId()
             );
             if ($spaceId && ! \in_array($spaceId, $spaceIds)) {
-                $websiteNumberOfManualTasks = $this->manualTaskGateway->countByState(
+                $websiteNumberOfManualTasks = $this->coreManualTaskService->countByState(
                     (int)$spaceId,
                     ManualTaskState::OPEN
                 );

@@ -41,17 +41,16 @@ use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Transaction\Exception\TransactionException;
 use Wallee\PluginCore\Transaction\Exception\TransactionNotConfirmableException;
 use Wallee\PluginCore\Transaction\Invoice\Invoice as CoreInvoice;
-use Wallee\PluginCore\Transaction\Invoice\InvoiceGatewayInterface;
+use Wallee\PluginCore\Transaction\Invoice\InvoiceService;
 use Wallee\PluginCore\Transaction\Invoice\InvoiceSearchCriteria;
 use Wallee\PluginCore\Transaction\Invoice\State as CoreTransactionInvoiceState;
 use Wallee\PluginCore\SharedKernel\Url;
 use Wallee\PluginCore\Transaction\State as CoreTransactionState;
 use Wallee\PluginCore\Transaction\TransactionContext;
-use Wallee\PluginCore\Transaction\TransactionGatewayInterface;
 use Wallee\PluginCore\Transaction\TransactionService as CoreTransactionService;
 use Wallee\PluginCore\Token\Token as CoreToken;
 use Wallee\PluginCore\DeliveryIndication\DeliveryIndication as CoreDeliveryIndication;
-use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationGatewayInterface;
+use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationService;
 use Wallee\PluginCore\Transaction\Transaction as CoreTransaction;
 
 /**
@@ -103,12 +102,6 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
-     * @var TransactionGatewayInterface
-     */
-    private TransactionGatewayInterface $transactionGateway;
-
-    /**
-     *
      * @var CoreTransactionService
      */
     private CoreTransactionService $coreTransactionService;
@@ -121,15 +114,15 @@ class TransactionService extends AbstractTransactionService
 
     /**
      *
-     * @var DeliveryIndicationGatewayInterface
+     * @var DeliveryIndicationService
      */
-    private $deliveryIndicationGateway;
+    private $deliveryIndicationService;
 
     /**
      *
-     * @var InvoiceGatewayInterface
+     * @var InvoiceService
      */
-    private $invoiceGateway;
+    private $invoiceService;
 
     /**
      *
@@ -154,11 +147,10 @@ class TransactionService extends AbstractTransactionService
      * @param LineItemService $lineItemService
      * @param LineItemHelper $lineItemHelper
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
-     * @param InvoiceGatewayInterface $invoiceGateway
-     * @param TransactionGatewayInterface $transactionGateway
+     * @param InvoiceService $invoiceService
      * @param EventManagerInterface $eventManager
      * @param CartRepositoryInterface $quoteRepository
-     * @param DeliveryIndicationGatewayInterface $deliveryIndicationGateway
+     * @param DeliveryIndicationService $deliveryIndicationService
      * @param CoreTransactionService $coreTransactionService
      * @param NoOpTransactionPersistence $noOpPersistence
      */
@@ -172,11 +164,10 @@ class TransactionService extends AbstractTransactionService
         LineItemService $lineItemService,
         LineItemHelper $lineItemHelper,
         TransactionInfoRepositoryInterface $transactionInfoRepository,
-        InvoiceGatewayInterface $invoiceGateway,
-        TransactionGatewayInterface $transactionGateway,
+        InvoiceService $invoiceService,
         EventManagerInterface $eventManager,
         CartRepositoryInterface $quoteRepository,
-        DeliveryIndicationGatewayInterface $deliveryIndicationGateway,
+        DeliveryIndicationService $deliveryIndicationService,
         CoreTransactionService $coreTransactionService,
         NoOpTransactionPersistence $noOpPersistence,
     ) {
@@ -192,10 +183,9 @@ class TransactionService extends AbstractTransactionService
         $this->eventManager = $eventManager;
         $this->lineItemHelper = $lineItemHelper;
         $this->transactionInfoRepository = $transactionInfoRepository;
-        $this->invoiceGateway = $invoiceGateway;
-        $this->transactionGateway = $transactionGateway;
+        $this->invoiceService = $invoiceService;
         $this->quoteRepository = $quoteRepository;
-        $this->deliveryIndicationGateway = $deliveryIndicationGateway;
+        $this->deliveryIndicationService = $deliveryIndicationService;
         $this->coreTransactionService = $coreTransactionService;
         $this->noOpPersistence = $noOpPersistence;
     }
@@ -572,7 +562,7 @@ class TransactionService extends AbstractTransactionService
         // (iframe / lightbox / payment page) internally from the settings,
         // so the explicit integration type is no longer needed but accepted
         // for signature compatibility.
-        $url = (string) $this->transactionGateway->getPaymentUrl($spaceId, $transactionId);
+        $url = (string) $this->coreTransactionService->getPaymentUrl($spaceId, $transactionId);
 
         $this->logger->debug('Generated payment page URL: ' . $url);
         return $url;
@@ -737,7 +727,7 @@ class TransactionService extends AbstractTransactionService
      */
     public function accept(Order $order): CoreDeliveryIndication
     {
-        $indication = $this->deliveryIndicationGateway->markAsSuitable(
+        $indication = $this->deliveryIndicationService->markAsSuitable(
             (int) $order->getWalleeSpaceId(),
             $this->getDeliveryIndication($order)->id
         );
@@ -758,7 +748,7 @@ class TransactionService extends AbstractTransactionService
      */
     public function deny(Order $order): CoreDeliveryIndication
     {
-        $indication = $this->deliveryIndicationGateway->markAsNotSuitable(
+        $indication = $this->deliveryIndicationService->markAsNotSuitable(
             (int) $order->getWalleeSpaceId(),
             $this->getDeliveryIndication($order)->id
         );
@@ -778,7 +768,7 @@ class TransactionService extends AbstractTransactionService
      */
     protected function getDeliveryIndication(Order $order): CoreDeliveryIndication
     {
-        $indication = $this->deliveryIndicationGateway->findByTransaction(
+        $indication = $this->deliveryIndicationService->findByTransaction(
             (int) $order->getWalleeSpaceId(),
             (int) $order->getWalleeTransactionId()
         );
@@ -804,7 +794,7 @@ class TransactionService extends AbstractTransactionService
                 'completion.lineItemVersion.transaction.id' => $order->getWalleeTransactionId(),
             ]
         );
-        $invoices = $this->invoiceGateway->search(
+        $invoices = $this->invoiceService->search(
             (int) $order->getWalleeSpaceId(),
             $criteria
         );

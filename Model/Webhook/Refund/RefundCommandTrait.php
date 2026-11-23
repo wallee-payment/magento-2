@@ -7,7 +7,7 @@ namespace Wallee\Payment\Model\Webhook\Refund;
 use Magento\Sales\Model\Order;
 use Wallee\PluginCore\Refund\Exception\RefundException;
 use Wallee\PluginCore\Refund\Refund as CoreRefund;
-use Wallee\PluginCore\Refund\RefundGatewayInterface;
+use Wallee\PluginCore\Refund\RefundService as CoreRefundService;
 use Wallee\PluginCore\Webhook\Exception\RetryableWebhookException;
 use Wallee\Payment\Model\Webhook\BaseOrderLookupTrait; // 1. Use the base trait
 
@@ -32,11 +32,11 @@ trait RefundCommandTrait
      */
     protected function loadRefund(): ?CoreRefund
     {
-        /** @var RefundGatewayInterface $pluginCoreRefundGateway */
-        $pluginCoreRefundGateway = $this->pluginCoreRefundGateway;
+        /** @var CoreRefundService $coreRefundService */
+        $coreRefundService = $this->coreRefundService;
 
         try {
-            return $pluginCoreRefundGateway->findById($this->context->spaceId, (int) $this->context->entityId);
+            return $coreRefundService->findById($this->context->spaceId, (int) $this->context->entityId);
         } catch (RefundException $e) {
             if ($e->isRetryable()) {
                 throw new RetryableWebhookException(

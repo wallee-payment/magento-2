@@ -15,7 +15,7 @@ use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\Payment\Api\RefundJobRepositoryInterface;
 use Wallee\Payment\Helper\Data as Helper;
 use Wallee\Payment\Model\Service\Order\TransactionService;
-use Wallee\PluginCore\Refund\RefundGatewayInterface;
+use Wallee\PluginCore\Refund\RefundService as CoreRefundService;
 use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\Webhook\Command\WebhookCommandInterface;
 use Wallee\PluginCore\Webhook\Listener\WebhookListenerInterface;
@@ -38,7 +38,7 @@ class SuccessfulListener implements WebhookListenerInterface
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param RefundJobRepositoryInterface $refundJobRepository
-     * @param RefundGatewayInterface $pluginCoreRefundGateway
+     * @param CoreRefundService $coreRefundService
      */
     public function __construct(
         private readonly LoggerInterface $logger,
@@ -53,7 +53,7 @@ class SuccessfulListener implements WebhookListenerInterface
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly RefundJobRepositoryInterface $refundJobRepository,
-        private readonly RefundGatewayInterface $pluginCoreRefundGateway
+        private readonly CoreRefundService $coreRefundService
     ) {
     }
 
@@ -79,7 +79,7 @@ class SuccessfulListener implements WebhookListenerInterface
             $this->transactionInfoRepository,
             $this->searchCriteriaBuilder,
             $this->refundJobRepository,
-            $this->pluginCoreRefundGateway
+            $this->coreRefundService
         );
     }
 }

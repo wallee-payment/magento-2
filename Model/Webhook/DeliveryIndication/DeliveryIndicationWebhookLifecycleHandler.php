@@ -9,7 +9,7 @@ use Wallee\PluginCore\Webhook\Enum\WebhookListener;
 use Wallee\PluginCore\Webhook\WebhookContext;
 use Wallee\PluginCore\Sdk\SdkProvider;
 use Wallee\PluginCore\DeliveryIndication\DeliveryIndication;
-use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationGatewayInterface;
+use Wallee\PluginCore\DeliveryIndication\DeliveryIndicationService;
 use Wallee\PluginCore\DeliveryIndication\Exception\DeliveryIndicationException;
 use Wallee\PluginCore\Webhook\Exception\RetryableWebhookException;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
@@ -25,9 +25,9 @@ class DeliveryIndicationWebhookLifecycleHandler extends BaseOrderLifecycleHandle
 
     /**
      *
-     * @var DeliveryIndicationGatewayInterface
+     * @var DeliveryIndicationService
      */
-    private $deliveryIndicationGateway;
+    private $deliveryIndicationService;
 
     /**
      *
@@ -38,7 +38,7 @@ class DeliveryIndicationWebhookLifecycleHandler extends BaseOrderLifecycleHandle
      * @param ResourceConnection $resource
      * @param SdkProvider $sdkProvider
      * @param LoggerInterface $logger
-     * @param DeliveryIndicationGatewayInterface $deliveryIndicationGateway
+     * @param DeliveryIndicationService $deliveryIndicationService
      */
     public function __construct(
         TransactionInfoRepositoryInterface $transactionInfoRepository,
@@ -48,7 +48,7 @@ class DeliveryIndicationWebhookLifecycleHandler extends BaseOrderLifecycleHandle
         ResourceConnection $resource,
         SdkProvider $sdkProvider,
         LoggerInterface $logger,
-        DeliveryIndicationGatewayInterface $deliveryIndicationGateway
+        DeliveryIndicationService $deliveryIndicationService
     ) {
         parent::__construct(
             $resource,
@@ -59,7 +59,7 @@ class DeliveryIndicationWebhookLifecycleHandler extends BaseOrderLifecycleHandle
             $searchCriteriaBuilder,
             $sdkProvider
         );
-        $this->deliveryIndicationGateway = $deliveryIndicationGateway;
+        $this->deliveryIndicationService = $deliveryIndicationService;
     }
 
     /**
@@ -78,7 +78,7 @@ class DeliveryIndicationWebhookLifecycleHandler extends BaseOrderLifecycleHandle
     protected function loadSdkEntity(WebhookListener $listener, WebhookContext $context): ?object
     {
         try {
-            return $this->deliveryIndicationGateway->get($context->spaceId, $context->entityId);
+            return $this->deliveryIndicationService->get($context->spaceId, $context->entityId);
         } catch (DeliveryIndicationException $e) {
             if ($e->isRetryable()) {
                 throw new RetryableWebhookException(

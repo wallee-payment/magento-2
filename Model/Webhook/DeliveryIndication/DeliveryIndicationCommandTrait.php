@@ -32,7 +32,7 @@ trait DeliveryIndicationCommandTrait
     protected function loadDeliveryIndication(): ?DeliveryIndication
     {
         try {
-            return $this->deliveryIndicationGateway->get($this->context->spaceId, $this->context->entityId);
+            return $this->deliveryIndicationService->get($this->context->spaceId, $this->context->entityId);
         } catch (DeliveryIndicationException $e) {
             if ($e->isRetryable()) {
                 throw new RetryableWebhookException(

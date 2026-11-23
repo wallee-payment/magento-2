@@ -332,14 +332,7 @@ class Info extends \Magento\Payment\Block\Info
     #[\ReturnTypeWillChange]
     public function getInvoiceDownloadUrl()
     {
-        $class_backend = $this->isHelperBackend();
-        return $this->$class_backend->getUrl(
-            'wallee_payment/order/downloadInvoice',
-            [
-                'order_id' => $this->getTransaction()
-                    ->getOrderId()
-            ]
-        );
+        return $this->getDocumentDownloadUrl('wallee_payment/order/downloadInvoice');
     }
 
     /**
@@ -350,14 +343,31 @@ class Info extends \Magento\Payment\Block\Info
     #[\ReturnTypeWillChange]
     public function getPackingSlipDownloadUrl()
     {
+        return $this->getDocumentDownloadUrl('wallee_payment/order/downloadPackingSlip');
+    }
+
+    /**
+     * Builds a document download URL. Frontend URLs carry the order's protect code so that the link
+     * also works for guests opening it from an email, without a shop session.
+     *
+     * @param string $route
+     * @return string
+     */
+    private function getDocumentDownloadUrl($route)
+    {
         $class_backend = $this->isHelperBackend();
-        return  $this->$class_backend->getUrl(
-            'wallee_payment/order/downloadPackingSlip',
-            [
-                'order_id' => $this->getTransaction()
-                    ->getOrderId()
-            ]
-        );
+        $params = [
+            'order_id' => $this->getTransaction()->getOrderId()
+        ];
+
+        if ($class_backend === 'urlHelper' && $this->getInfo() instanceof Payment) {
+            $order = $this->getInfo()->getOrder();
+            if ($order && $order->getProtectCode()) {
+                $params['protect_code'] = $order->getProtectCode();
+            }
+        }
+
+        return $this->$class_backend->getUrl($route, $params);
     }
 
     /**

@@ -10,7 +10,7 @@ use Magento\Sales\Model\OrderFactory;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Wallee\Payment\Api\TransactionInfoRepositoryInterface;
 use Wallee\PluginCore\Log\LoggerInterface;
-use Wallee\PluginCore\Transaction\Completion\TransactionCompletionGatewayInterface;
+use Wallee\PluginCore\Transaction\Completion\TransactionCompletionService;
 use Wallee\PluginCore\Webhook\Command\WebhookCommandInterface;
 use Wallee\PluginCore\Webhook\Listener\WebhookListenerInterface;
 use Wallee\PluginCore\Webhook\WebhookContext;
@@ -26,7 +26,7 @@ class FailedListener implements WebhookListenerInterface
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param OrderResourceModel $orderResourceModel
      * @param OrderFactory $orderFactory
-     * @param TransactionCompletionGatewayInterface $completionGateway
+     * @param TransactionCompletionService $completionService
      */
     public function __construct(
         private readonly LoggerInterface $logger,
@@ -35,7 +35,7 @@ class FailedListener implements WebhookListenerInterface
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly OrderResourceModel $orderResourceModel,
         private readonly OrderFactory $orderFactory,
-        private readonly TransactionCompletionGatewayInterface $completionGateway,
+        private readonly TransactionCompletionService $completionService,
     ) {
     }
 
@@ -55,7 +55,7 @@ class FailedListener implements WebhookListenerInterface
             $this->searchCriteriaBuilder,
             $this->orderResourceModel,
             $this->orderFactory,
-            $this->completionGateway,
+            $this->completionService,
         );
     }
 }

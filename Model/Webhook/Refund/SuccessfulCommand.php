@@ -9,8 +9,10 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Api\CreditmemoManagementInterface;
 use Magento\Sales\Api\CreditmemoRepositoryInterface;
 use Magento\Sales\Api\InvoiceRepositoryInterface;
+use Magento\Sales\Api\Data\CreditmemoInterface;
 use Magento\Sales\Api\Data\InvoiceInterface;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Creditmemo;
 use Magento\Sales\Model\Order\CreditmemoFactory;
 use Magento\Sales\Model\Order\Invoice;
 use Magento\CatalogInventory\Api\StockConfigurationInterface;
@@ -28,7 +30,7 @@ use Wallee\Payment\Model\Webhook\OrderInvoiceTrait;
 use Wallee\PluginCore\Log\LoggerInterface;
 use Wallee\PluginCore\LineItem\LineItem as CoreLineItem;
 use Wallee\PluginCore\Refund\Refund as CoreRefund;
-use Wallee\PluginCore\Refund\RefundGatewayInterface;
+use Wallee\PluginCore\Refund\RefundService as CoreRefundService;
 use Wallee\PluginCore\Webhook\Command\WebhookCommand;
 use Wallee\PluginCore\Webhook\WebhookContext;
 
@@ -55,7 +57,7 @@ class SuccessfulCommand extends WebhookCommand
      * @param TransactionInfoRepositoryInterface $transactionInfoRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param RefundJobRepositoryInterface $refundJobRepository
-     * @param RefundGatewayInterface $pluginCoreRefundGateway
+     * @param CoreRefundService $coreRefundService
      */
     public function __construct(
         WebhookContext $context,
@@ -71,7 +73,7 @@ class SuccessfulCommand extends WebhookCommand
         private readonly TransactionInfoRepositoryInterface $transactionInfoRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly RefundJobRepositoryInterface $refundJobRepository,
-        private readonly RefundGatewayInterface $pluginCoreRefundGateway
+        private readonly CoreRefundService $coreRefundService
     ) {
         parent::__construct($context, $logger);
     }
@@ -196,6 +198,10 @@ class SuccessfulCommand extends WebhookCommand
                 $creditmemo = $this->creditmemoFactory->createByOrder($order, $creditmemoData);
             }
         }
+        // Magento assembles the credit memo from quantities alone, so its total
+        // still has to be brought back to the amount the portal actually refunded.
+        $this->reconcileCreditmemoTotal($creditmemo, $refund, $order);
+
         // This credit memo mirrors a refund the portal already processed — it must
         // never trigger a second, live refund request against the gateway.
         $creditmemo->setPaymentRefundDisallowed(true);
@@ -215,6 +221,11 @@ class SuccessfulCommand extends WebhookCommand
     /**
      * Build credit memo data from refund reductions.
      *
+     * Every monetary value in the returned array is a **base**-currency amount:
+     * Magento's CreditmemoFactory feeds `shipping_amount` straight into
+     * setBaseShippingAmount(), while the portal reports refund amounts in the
+     * transaction (= order) currency.
+     *
      * @param CoreRefund $refund
      * @param Order $order
      * @return array
@@ -226,12 +237,14 @@ class SuccessfulCommand extends WebhookCommand
             $orderItemMap[$orderItem->getQuoteItemId()] = $orderItem;
         }
 
+        // Keyed by *order* item id — the key CreditmemoFactory::getQtyToRefund()
+        // looks up — so that an item left out of this refund is explicitly
+        // credited with zero instead of being resolved through its parent.
         $refundQuantities = [];
         foreach ($order->getAllItems() as $orderItem) {
-            $refundQuantities[$orderItem->getQuoteItemId()] = 0;
+            $refundQuantities[$orderItem->getId()] = 0;
         }
 
-        $creditmemoAmount = 0;
         $shippingAmount = 0;
         foreach ($refund->lineItems ?? [] as $item) {
             switch ($item->type) {
@@ -252,8 +265,18 @@ class SuccessfulCommand extends WebhookCommand
                             );
                             break;
                         }
-                        $refundQuantities[$orderItem->getId()] = $item->quantity;
-                        $creditmemoAmount += $item->amountIncludingTax;
+                        // Never ask for more than Magento has left on the line. A
+                        // reduction can lower the unit price without touching the
+                        // quantity, and a line already credited in full can be
+                        // refunded again; either way crediting the quantity a second
+                        // time would push qty_refunded past qty_ordered. Whatever the
+                        // capped quantity fails to cover in money is settled by
+                        // reconcileCreditmemoTotal().
+                        $quantity = min((float) $item->quantity, (float) $orderItem->getQtyToRefund());
+                        if ($quantity <= 0) {
+                            break;
+                        }
+                        $refundQuantities[$orderItem->getId()] = $quantity;
                     }
                     break;
                 case CoreLineItem::TYPE_FEE:
@@ -262,15 +285,16 @@ class SuccessfulCommand extends WebhookCommand
                 case CoreLineItem::TYPE_SHIPPING:
                     $shippingAmount = $item->amountIncludingTax;
 
-                    if ($shippingAmount == $order->getShippingInclTax()) {
-                        $creditmemoAmount += $shippingAmount;
-                    } elseif ($shippingAmount <= $order->getShippingInclTax() - $order->getShippingRefunded()) {
-                        $creditmemoAmount += $shippingAmount;
-                    } else {
+                    if ($shippingAmount != $order->getShippingInclTax()
+                        && $shippingAmount > $order->getShippingInclTax() - $order->getShippingRefunded()
+                    ) {
                         $shippingAmount = 0;
                     }
 
-                    if ($order->getShippingDiscountAmount() > 0 && $order->getShippingAmount() > 0) {
+                    if ($shippingAmount > 0
+                        && $order->getShippingDiscountAmount() > 0
+                        && $order->getShippingAmount() > 0
+                    ) {
                         $shippingAmount += ($shippingAmount / $order->getShippingAmount()) *
                             $order->getShippingDiscountAmount();
                     }
@@ -278,24 +302,124 @@ class SuccessfulCommand extends WebhookCommand
             }
         }
 
-        $roundedCreditmemoAmount = $this->helper->roundAmount(
-            $creditmemoAmount,
-            $order->getOrderCurrencyCode()
-        );
-
-        $positiveAdjustment = 0;
-        $negativeAdjustment = 0;
-        if ($roundedCreditmemoAmount > $refund->amount) {
-            $negativeAdjustment = $roundedCreditmemoAmount - $refund->amount;
-        } elseif ($roundedCreditmemoAmount < $refund->amount) {
-            $positiveAdjustment = $refund->amount - $roundedCreditmemoAmount;
-        }
-
         return [
             'qtys' => $refundQuantities,
-            'shipping_amount' => $shippingAmount,
-            'adjustment_positive' => $positiveAdjustment,
-            'adjustment_negative' => $negativeAdjustment
+            'shipping_amount' => $this->getBaseShippingAmount((float) $shippingAmount, $order)
         ];
+    }
+
+    /**
+     * Aligns the credit memo's totals with the amount the portal refunded.
+     *
+     * Magento credits whole line items, so a refund that only lowered a unit price
+     * — or one aimed at a line that is already fully credited — leaves a credit
+     * memo whose total is not the refunded amount. The difference is booked as an
+     * adjustment.
+     *
+     * @param Creditmemo $creditmemo
+     * @param CoreRefund $refund
+     * @param Order $order
+     * @return void
+     */
+    private function reconcileCreditmemoTotal(Creditmemo $creditmemo, CoreRefund $refund, Order $order): void
+    {
+        $orderCurrency = (string) $order->getOrderCurrencyCode();
+        $baseCurrency = (string) $order->getBaseCurrencyCode();
+
+        $refundAmount = $this->helper->roundAmount((float) $refund->amount, $orderCurrency);
+        $baseRefundAmount = $this->toBaseAmount($refundAmount, $order);
+
+        $delta = $this->helper->roundAmount(
+            (float) $creditmemo->getGrandTotal() - $refundAmount,
+            $orderCurrency
+        );
+        $baseDelta = $this->helper->roundAmount(
+            (float) $creditmemo->getBaseGrandTotal() - $baseRefundAmount,
+            $baseCurrency
+        );
+
+        if ($delta == 0 && $baseDelta == 0) {
+            return;
+        }
+
+        // Both columns are written directly instead of through
+        // Creditmemo::setAdjustment*(), which derives the order-currency amount from
+        // the base one and can leave the credit memo a cent off the amount the
+        // portal actually refunded. Magento's Grand total collector reads the two
+        // columns independently, so each one carries the difference measured in its
+        // own currency and both totals land on the refunded amount.
+        if ($delta > 0) {
+            $creditmemo->setData(CreditmemoInterface::ADJUSTMENT_NEGATIVE, abs($delta));
+            $creditmemo->setData(CreditmemoInterface::BASE_ADJUSTMENT_NEGATIVE, max($baseDelta, 0.0));
+        } else {
+            $creditmemo->setData(CreditmemoInterface::ADJUSTMENT_POSITIVE, abs($delta));
+            $creditmemo->setData(CreditmemoInterface::BASE_ADJUSTMENT_POSITIVE, max(-$baseDelta, 0.0));
+        }
+
+        // Every credit memo total collector adds its part to the grand total, so the
+        // grand total has to start from zero again or the amounts collected a moment
+        // ago are counted twice.
+        $creditmemo->setGrandTotal(0);
+        $creditmemo->setBaseGrandTotal(0);
+        $creditmemo->collectTotals();
+
+        $this->logger->debug('Adjusted the credit memo to the refunded amount.', [
+            'orderId' => $order->getIncrementId(),
+            'refundAmount' => $refundAmount,
+            'creditmemoAmountFromQuantities' => $this->helper->roundAmount(
+                $refundAmount + $delta,
+                $orderCurrency
+            ),
+            'adjustment' => $delta,
+            'baseAdjustment' => $baseDelta
+        ]);
+    }
+
+    /**
+     * Converts a refunded shipping amount from the order to the base currency.
+     *
+     * Magento's Creditmemo\Total\Shipping validates the value it is given against
+     * the order's *base* shipping amount, so an order-currency amount makes every
+     * multi-currency shipping refund fail with "Maximum shipping amount allowed to
+     * refund is …" — and the webhook retries that failure forever. A full refund
+     * takes the order's own base amount instead of dividing by the rate, which can
+     * land a cent off and trip the very same check.
+     *
+     * @param float $shippingAmount Amount in order currency.
+     * @param Order $order
+     * @return float
+     */
+    private function getBaseShippingAmount(float $shippingAmount, Order $order): float
+    {
+        if ($shippingAmount <= 0) {
+            return 0.0;
+        }
+
+        if ($shippingAmount == (float) $order->getShippingInclTax()) {
+            $baseShippingAmount = (float) $order->getBaseShippingInclTax();
+        } else {
+            $baseShippingAmount = $this->toBaseAmount($shippingAmount, $order);
+        }
+
+        $baseAllowed = (float) $order->getBaseShippingInclTax() - (float) $order->getBaseShippingRefunded();
+
+        return min($baseShippingAmount, max($baseAllowed, 0.0));
+    }
+
+    /**
+     * Converts an amount from the order currency to the base currency.
+     *
+     * @param float $amount
+     * @param Order $order
+     * @return float
+     */
+    private function toBaseAmount(float $amount, Order $order): float
+    {
+        $rate = (float) $order->getBaseToOrderRate();
+        if ($rate <= 0 || $rate == 1.0) {
+            return $amount;
+        }
+
+        return (float) $this->helper->roundAmount($amount / $rate, (string) $order->getBaseCurrencyCode());
     }
 }
