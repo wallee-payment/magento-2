@@ -22,9 +22,11 @@ use Wallee\PluginCore\Webhook\WebhookContext;
 use Magento\Sales\Model\ResourceModel\Order as OrderResourceModel;
 use Magento\Sales\Model\OrderFactory;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
+use Wallee\Payment\Model\Webhook\OrderReloadTrait;
 
 class CaptureCommand extends WebhookCommand
 {
+    use OrderReloadTrait;
     use TransactionInvoiceCommandTrait;
     use OrderInvoiceTrait;
 

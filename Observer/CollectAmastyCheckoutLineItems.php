@@ -53,22 +53,30 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
     protected $_moduleList;
 
     /**
+     * @var string[]
+     */
+    private $serviceTypes;
+
+    /**
      *
      * @param ObjectManagerInterface $objectManager
      * @param ModuleManager $moduleManager
      * @param Helper $helper
      * @param ModuleListInterface $moduleList
+     * @param string[] $serviceTypes
      */
     public function __construct(
         ObjectManagerInterface $objectManager,
         ModuleManager $moduleManager,
         Helper $helper,
-        ModuleListInterface $moduleList
+        ModuleListInterface $moduleList,
+        array $serviceTypes
     ) {
         $this->objectManager = $objectManager;
         $this->moduleManager = $moduleManager;
         $this->helper = $helper;
         $this->_moduleList = $moduleList;
+        $this->serviceTypes = $serviceTypes;
     }
 
     /**
@@ -118,9 +126,9 @@ class CollectAmastyCheckoutLineItems implements ObserverInterface
         $moduleInfo = $this->_moduleList->getOne('Amasty_Checkout');
 
         if (version_compare($moduleInfo['setup_version'], '4.0.0', '>=')) {
-            $feeRepository = $this->objectManager->get(\Amasty\CheckoutCore\Api\FeeRepositoryInterface::class);
+            $feeRepository = $this->objectManager->get($this->serviceTypes['checkoutCoreFeeRepository']);
         } else {
-            $feeRepository = $this->objectManager->get(\Amasty\Checkout\Api\FeeRepositoryInterface::class);
+            $feeRepository = $this->objectManager->get($this->serviceTypes['checkoutFeeRepository']);
         }
 
         $currency = null;

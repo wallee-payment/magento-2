@@ -102,7 +102,7 @@ abstract class AbstractTransactionService
      *
      * @param string $customerEmailAddress
      * @param int $customerId
-     * @return string
+     * @return string|null
      */
     protected function getCustomerEmailAddress($customerEmailAddress, $customerId)
     {
@@ -124,7 +124,7 @@ abstract class AbstractTransactionService
      *
      * @param string $dateOfBirth
      * @param int $customerId
-     * @return string
+     * @return string|null
      */
     protected function getDateOfBirth($dateOfBirth, $customerId)
     {

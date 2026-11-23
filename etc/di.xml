@@ -315,4 +315,21 @@
 
     <preference for="Wallee\Payment\Api\PaymentMetadataManagementInterface" type="Wallee\Payment\Model\PaymentMetadataManagement" />
     <preference for="Wallee\Payment\Api\GuestPaymentMetadataManagementInterface" type="Wallee\Payment\Model\GuestPaymentMetadataManagement" />
+    <type name="Wallee\Payment\Observer\CollectAmastyCheckoutLineItems">
+        <arguments>
+            <argument name="serviceTypes" xsi:type="array">
+                <item name="checkoutCoreFeeRepository" xsi:type="string">Amasty\CheckoutCore\Api\FeeRepositoryInterface</item>
+                <item name="checkoutFeeRepository" xsi:type="string">Amasty\Checkout\Api\FeeRepositoryInterface</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Wallee\Payment\Observer\CollectFoomanSurchargeLineItems">
+        <arguments>
+            <argument name="serviceTypes" xsi:type="array">
+                <item name="orderTotalManagement" xsi:type="string">Fooman\Totals\Model\OrderTotalManagement</item>
+                <item name="invoiceTotalManagement" xsi:type="string">Fooman\Totals\Model\InvoiceTotalManagement</item>
+                <item name="surchargeHelper" xsi:type="string">Fooman\Surcharge\Helper\Surcharge</item>
+            </argument>
+        </arguments>
+    </type>
 </config>

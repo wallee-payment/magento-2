@@ -174,12 +174,14 @@ abstract class AbstractLineItemService
         }
 
         if (!$this->checkIsAdmin()) {
-            if ($this->giftCardAccountManagement
-                instanceof \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement
+            if (class_exists(\Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement::class)
+                && $this->giftCardAccountManagement
+                    instanceof \Magento\GiftCardAccount\Model\Service\GiftCardAccountManagement
             ) {
                 $giftCardaccount = $this->giftCardAccountManagement->getListByQuoteId($entity->get()['entity_id']);
 
-                if ($giftCardaccount instanceof \Magento\GiftCardAccount\Model\Giftcardaccount
+                if (class_exists(\Magento\GiftCardAccount\Model\Giftcardaccount::class)
+                    && $giftCardaccount instanceof \Magento\GiftCardAccount\Model\Giftcardaccount
                     && count($giftCardaccount->getGiftCards()) > 0
                 ) {
                     $giftCardCode = current($giftCardaccount->getGiftCards());
